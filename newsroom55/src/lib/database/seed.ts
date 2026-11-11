@@ -4,13 +4,23 @@ import { DEFAULT_BREAKING_RULES } from "@/lib/news/breaking";
 import { TIMEZONE } from "@/lib/config";
 
 const DEFAULT_SYMBOLS = [
-  { symbol: "CSCO", display_name: "Cisco", kind: "equity", currency: "USD", provider_symbol: "CSCO", quote_provider: "cboe", sort_order: 1 },
-  { symbol: "NVDA", display_name: "NVIDIA", kind: "equity", currency: "USD", provider_symbol: "NVDA", quote_provider: "cboe", sort_order: 2 },
-  { symbol: "MSFT", display_name: "Microsoft", kind: "equity", currency: "USD", provider_symbol: "MSFT", quote_provider: "cboe", sort_order: 3 },
-  { symbol: "AAPL", display_name: "Apple", kind: "equity", currency: "USD", provider_symbol: "AAPL", quote_provider: "cboe", sort_order: 4 },
-  { symbol: "SPX", display_name: "S&P 500", kind: "index", currency: "USD", provider_symbol: "^GSPC", quote_provider: "twelvedata", sort_order: 5 },
-  { symbol: "IXIC", display_name: "NASDAQ", kind: "index", currency: "USD", provider_symbol: "^IXIC", quote_provider: "twelvedata", sort_order: 6 },
-  { symbol: "TSX", display_name: "TSX", kind: "index", currency: "CAD", provider_symbol: "^GSPTSE", quote_provider: "twelvedata", sort_order: 7 },
+  { symbol: "CSCO", display_name: "Cisco Systems, Inc.", kind: "equity", currency: "USD", provider_symbol: "CSCO", quote_provider: "cboe", sort_order: 1 },
+  { symbol: "NVDA", display_name: "NVIDIA Corporation", kind: "equity", currency: "USD", provider_symbol: "NVDA", quote_provider: "cboe", sort_order: 2 },
+  { symbol: "MSFT", display_name: "Microsoft Corporation", kind: "equity", currency: "USD", provider_symbol: "MSFT", quote_provider: "cboe", sort_order: 3 },
+  { symbol: "AAPL", display_name: "Apple Inc.", kind: "equity", currency: "USD", provider_symbol: "AAPL", quote_provider: "cboe", sort_order: 4 },
+  { symbol: "SPX", display_name: "S&P 500 Index", kind: "index", currency: "USD", provider_symbol: "^GSPC", quote_provider: "twelvedata", sort_order: 5 },
+  { symbol: "IXIC", display_name: "Nasdaq Composite", kind: "index", currency: "USD", provider_symbol: "^IXIC", quote_provider: "twelvedata", sort_order: 6 },
+  { symbol: "TSX", display_name: "S&P/TSX Composite Index", kind: "index", currency: "CAD", provider_symbol: "^GSPTSE", quote_provider: "twelvedata", sort_order: 7 },
+];
+
+const DEFAULT_DISPLAY_NAME_UPGRADES = [
+  { symbol: "CSCO", previous: "Cisco", next: "Cisco Systems, Inc." },
+  { symbol: "NVDA", previous: "NVIDIA", next: "NVIDIA Corporation" },
+  { symbol: "MSFT", previous: "Microsoft", next: "Microsoft Corporation" },
+  { symbol: "AAPL", previous: "Apple", next: "Apple Inc." },
+  { symbol: "SPX", previous: "S&P 500", next: "S&P 500 Index" },
+  { symbol: "IXIC", previous: "NASDAQ", next: "Nasdaq Composite" },
+  { symbol: "TSX", previous: "TSX", next: "S&P/TSX Composite Index" },
 ];
 
 const PUBLIC_MARKET_SYMBOLS = [
@@ -90,6 +100,15 @@ export function seedIfNeeded() {
   }
 
   if (!getSetting("timezone", "")) setSetting("timezone", TIMEZONE);
+
+  const upgradeDisplayName = db.prepare(
+    `UPDATE market_symbols
+     SET display_name = @next
+     WHERE symbol = @symbol AND display_name = @previous`,
+  );
+  for (const upgrade of DEFAULT_DISPLAY_NAME_UPGRADES) {
+    upgradeDisplayName.run(upgrade);
+  }
 
   const insertPublicSymbol = db.prepare(
     `INSERT INTO market_symbols (symbol, display_name, kind, currency, provider_symbol, quote_provider, sort_order, enabled)

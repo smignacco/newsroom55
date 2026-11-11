@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.3
+
+- En mode focus, l’identification de l’écran et de la chaîne est maintenant
+  compacte et placée dans le coin supérieur droit sans masquer le bas de
+  l’image.
+- Le ticker affiche le nom complet de l’entreprise sous chaque symbole.
+
 ## 1.0.0-ha.2
 
 - Formulaire Home Assistant complet : mot de passe administrateur obligatoire

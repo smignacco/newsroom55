@@ -49,7 +49,10 @@ export function MarketTicker({
           className={`nr-quote ${direction(q)}`}
           onClick={() => onOpen(q)}
         >
-          <span className="nr-sym">{q.symbol}</span>
+          <span className="nr-symbol-block">
+            <span className="nr-sym">{q.symbol}</span>
+            <span className="nr-company">{q.displayName}</span>
+          </span>
           <span className="nr-px">{formatPx(q)}</span>
           <span className={`nr-chg ${direction(q)}`}>{formatChg(q)}</span>
           <span className="nr-time">{q.currency}</span>

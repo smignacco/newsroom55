@@ -214,7 +214,7 @@ export function LiveChannel({
                   </div>
                 </div>
                 <div className="nr-multiview-label">
-                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <span>ÉCRAN {String(index + 1).padStart(2, "0")}</span>
                   <strong>{channel.name}</strong>
                   {channel.id === audioChannelId ? <em>AUDIO</em> : null}
                 </div>

@@ -386,6 +386,26 @@ textarea {
   grid-row: 1;
 }
 
+.nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label {
+  top: 0.45rem;
+  right: 0.45rem;
+  bottom: auto;
+  left: auto;
+  max-width: min(54%, 24rem);
+  padding: 0.32rem 0.45rem;
+  border: 1px solid rgba(53, 198, 244, 0.28);
+  background: rgba(3, 10, 17, 0.64);
+  backdrop-filter: blur(4px);
+}
+
+.nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label strong {
+  flex: 0 1 auto;
+}
+
+.nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label em {
+  display: none;
+}
+
 .nr-multiview-focus .nr-multiview-tile:not(.is-focused) .nr-wait-copy {
   display: none;
 }
@@ -1072,9 +1092,26 @@ textarea {
   min-height: 2.75rem;
 }
 
+.nr-symbol-block {
+  display: inline-grid;
+  align-self: center;
+  gap: 0.12rem;
+  min-width: 8.5rem;
+}
+
 .nr-sym {
   letter-spacing: 0.12em;
   color: var(--nr-text);
+}
+
+.nr-company {
+  display: block;
+  overflow: hidden;
+  max-width: 13rem;
+  color: var(--nr-text-2);
+  font: 500 0.55rem/1.1 var(--font-plex-sans), sans-serif;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
 }
 
 .nr-px {
