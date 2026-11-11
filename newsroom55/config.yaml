@@ -1,7 +1,7 @@
 name: "NEWSROOM55"
-version: "1.0.0-ha.1"
+version: "1.0.0-ha.2"
 slug: "newsroom55"
-description: "Centre de nouvelles, marchés et multivue pour Cisco Board"
+description: "Centre de nouvelles, marchés et multivue pour Cisco Board. Configurez le mot de passe administrateur dans l’onglet Configuration — aucun fichier .env."
 stage: "experimental"
 startup: "application"
 boot: "auto"
@@ -22,15 +22,21 @@ environment:
   DATA_DIR: "/data"
 options:
   admin_username: "admin"
-  timezone: "America/Montreal"
+  timezone: "America/Toronto"
   markets_provider: "hybrid"
+  finnhub_api_key: ""
+  twelve_data_api_key: ""
   twelve_data_refresh_minutes: 30
   twelve_data_max_symbols: 6
+  roomos_device_ip: ""
+  roomos_username: ""
+  roomos_password: ""
   roomos_protocol: "https"
   roomos_insecure_tls: false
+  newsroom_url: ""
 schema:
   admin_username: "str(1,64)"
-  admin_password: "password(8,)?"
+  admin_password: "password(8,)"
   timezone: "str(1,64)"
   markets_provider: "list(hybrid|cboe|bankofcanada|twelvedata|finnhub)"
   finnhub_api_key: "password?"
@@ -42,3 +48,4 @@ schema:
   roomos_password: "password?"
   roomos_protocol: "list(https|http)"
   roomos_insecure_tls: "bool"
+  newsroom_url: "str?"

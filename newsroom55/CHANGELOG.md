@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.0.0-ha.2
+
+- Formulaire Home Assistant complet : mot de passe administrateur obligatoire
+  avant le démarrage, clés marché et RoomOS visibles dans **Configuration**.
+- Plus aucun fichier `.env` sur Home Assistant OS ; le secret de session est
+  généré dans `/data`.
+- Fuseau par défaut `America/Toronto`. Champ `newsroom_url` pour l’URL LAN du
+  Board.
+
 ## 1.0.0-ha.1
 
 - Première version empaquetée comme application Home Assistant OS.

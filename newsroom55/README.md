@@ -38,10 +38,11 @@ Health: `GET /api/health`
 
 ## Home Assistant OS
 
-This folder is a self-contained Home Assistant app. Add the Git repository to
-the Home Assistant app store, install **NEWSROOM55**, and configure the
-administrator password in the app options. Home Assistant persists the SQLite
-database and generated session secret in `/data`.
+This folder is a self-contained Home Assistant app. Add
+`https://github.com/smignacco/newsroom55` to the app store, install
+**NEWSROOM55**, then fill **Configuration** (administrator password is
+required). Do not create a `.env` file on Home Assistant OS: options are stored
+by Supervisor and the session secret is generated under `/data`.
 
 ## What is live vs unconfigured
 

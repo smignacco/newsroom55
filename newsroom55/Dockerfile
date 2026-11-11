@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certifi
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY home-assistant-entrypoint.mjs ./
+COPY home-assistant-entrypoint.mjs home-assistant-options.mjs ./
 RUN mkdir -p /app/data && chown -R newsroom:newsroom /app
 USER root
 EXPOSE 3000

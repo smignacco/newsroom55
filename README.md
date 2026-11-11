@@ -10,9 +10,11 @@ Docker Compose afin d’éviter deux copies difficiles à maintenir.
 2. Dans Home Assistant, ouvrez **Paramètres → Applications → Installer une
    application → ⋮ → Dépôts**.
 3. Ajoutez l’URL Git du dépôt.
-4. Installez **NEWSROOM55**, configurez un mot de passe administrateur, puis
-   démarrez l’application.
-5. Utilisez **Ouvrir l’interface Web**. Le port par défaut est `3000`.
+4. Installez **NEWSROOM55**.
+5. Dans l’onglet **Configuration**, saisissez le mot de passe administrateur
+   (8 caractères minimum). Les autres champs (marchés, RoomOS) sont optionnels.
+   Aucun fichier `.env` n’est utilisé sous Home Assistant OS.
+6. Démarrez, puis **Ouvrir l’interface Web**. Le port par défaut est `3000`.
 
 Home Assistant construit l’image ARM64 directement sur le Raspberry Pi. Le
 premier build est plus long; les démarrages suivants utilisent l’image locale.

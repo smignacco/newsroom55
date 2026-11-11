@@ -1,31 +1,45 @@
 configuration:
   admin_username:
     name: "Administrator username"
+    description: "Account for the /admin console and /remote control."
   admin_password:
     name: "Administrator password"
-    description: "At least 8 characters. Required for /admin and /remote."
+    description: "Required, at least 8 characters. Set it here, never in a .env file."
   timezone:
     name: "Timezone"
+    description: "Example: America/Toronto."
   markets_provider:
     name: "Market provider"
+    description: "hybrid uses Cboe (delayed US quotes, no key) and Twelve Data only when a key is set."
   finnhub_api_key:
     name: "Finnhub API key"
+    description: "Optional. Leave empty to use Cboe only."
   twelve_data_api_key:
     name: "Twelve Data API key"
+    description: "Optional. Needed only for non-Cboe symbols in hybrid mode."
   twelve_data_refresh_minutes:
     name: "Twelve Data interval"
-    description: "Minutes between refreshes."
+    description: "Minutes between refreshes (minimum 15)."
   twelve_data_max_symbols:
     name: "Maximum Twelve Data symbols"
+    description: "Hard cap of 6 to protect API credits."
   roomos_device_ip:
     name: "Cisco Board address"
+    description: "Local Board IP, only if /remote should control the device."
   roomos_username:
     name: "RoomOS username"
+    description: "Local Board API account, not a Webex account."
   roomos_password:
     name: "RoomOS password"
+    description: "Local API password. Never commit it."
   roomos_protocol:
     name: "RoomOS protocol"
+    description: "HTTPS by default."
   roomos_insecure_tls:
     name: "Allow a self-signed RoomOS certificate"
+    description: "Enable only for a trusted Board on the LAN."
+  newsroom_url:
+    name: "NEWSROOM55 URL for the Board"
+    description: "LAN URL the Board should open, for example http://192.168.1.10:3000. Not localhost."
 network:
   3000/tcp: "NEWSROOM55 web interface"

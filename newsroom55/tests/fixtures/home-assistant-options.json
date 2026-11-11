@@ -3,8 +3,14 @@
   "admin_password": "test-password-123",
   "timezone": "America/Toronto",
   "markets_provider": "cboe",
+  "finnhub_api_key": "",
+  "twelve_data_api_key": "",
   "twelve_data_refresh_minutes": 45,
   "twelve_data_max_symbols": 4,
+  "roomos_device_ip": "",
+  "roomos_username": "",
+  "roomos_password": "",
   "roomos_protocol": "https",
-  "roomos_insecure_tls": false
+  "roomos_insecure_tls": false,
+  "newsroom_url": ""
 }

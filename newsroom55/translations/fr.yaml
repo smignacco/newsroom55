@@ -1,31 +1,45 @@
 configuration:
   admin_username:
     name: "Nom d’utilisateur administrateur"
+    description: "Compte de la console /admin et de la télécommande /remote."
   admin_password:
     name: "Mot de passe administrateur"
-    description: "Minimum de 8 caractères. Requis pour accéder à /admin et /remote."
+    description: "Obligatoire, 8 caractères minimum. Saisi ici, jamais dans un fichier .env."
   timezone:
     name: "Fuseau horaire"
+    description: "Exemple : America/Toronto."
   markets_provider:
     name: "Fournisseur de marchés"
+    description: "hybrid utilise Cboe (USA, différé, sans clé) et Twelve Data seulement si une clé est fournie."
   finnhub_api_key:
     name: "Clé API Finnhub"
+    description: "Facultatif. Laissez vide pour Cboe seul."
   twelve_data_api_key:
     name: "Clé API Twelve Data"
+    description: "Facultatif. Requis seulement pour les symboles hors Cboe en mode hybrid."
   twelve_data_refresh_minutes:
     name: "Intervalle Twelve Data"
-    description: "Nombre de minutes entre les actualisations."
+    description: "Minutes entre les actualisations (minimum 15)."
   twelve_data_max_symbols:
     name: "Maximum de symboles Twelve Data"
+    description: "Plafond de 6 pour limiter les crédits API."
   roomos_device_ip:
     name: "Adresse du Cisco Board"
+    description: "IP locale du Board, seulement si /remote doit le piloter."
   roomos_username:
     name: "Utilisateur RoomOS"
+    description: "Compte API local du Board, pas un compte Webex."
   roomos_password:
     name: "Mot de passe RoomOS"
+    description: "Mot de passe API local. Ne le commitez jamais."
   roomos_protocol:
     name: "Protocole RoomOS"
+    description: "HTTPS par défaut."
   roomos_insecure_tls:
     name: "Autoriser un certificat RoomOS autosigné"
+    description: "À n’activer que pour un Board de confiance sur le réseau local."
+  newsroom_url:
+    name: "URL NEWSROOM55 pour le Board"
+    description: "URL LAN que le Board doit ouvrir, par exemple http://192.168.1.10:3000. Pas localhost."
 network:
   3000/tcp: "Interface Web NEWSROOM55"

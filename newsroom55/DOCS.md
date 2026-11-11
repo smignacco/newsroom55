@@ -1,8 +1,11 @@
 # Configuration de NEWSROOM55
 
-Après l’installation, définissez au minimum `admin_password` dans l’onglet
-**Configuration**. Il protège `/admin` et `/remote`; utilisez au moins huit
-caractères.
+Sur Home Assistant OS, tout se règle dans l’onglet **Configuration** de
+l’application. Il n’y a pas de fichier `.env` à créer ou à éditer.
+
+Avant le premier démarrage, Home Assistant exige le **mot de passe
+administrateur** (8 caractères minimum). Il protège `/admin` et `/remote`.
+Les clés API et les champs RoomOS peuvent rester vides.
 
 L’interface principale est accessible avec **Ouvrir l’interface Web** ou à
 `http://ADRESSE_HOME_ASSISTANT:3000`.
