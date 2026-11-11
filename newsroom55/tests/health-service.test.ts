@@ -121,6 +121,36 @@ describe("health synchronization", () => {
     ]);
   });
 
+  it("shares one in-flight synchronization between scheduler and manual requests", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    let release!: () => void;
+    let stateReads = 0;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const reader: HomeAssistantReader = {
+      async testConnection() {
+        return { version: "2026.11" };
+      },
+      async getStates() {
+        stateReads += 1;
+        await gate;
+        return [];
+      },
+      async getHistory() {
+        return [];
+      },
+    };
+
+    const scheduled = syncHealthData(reader);
+    const manual = syncHealthData(reader);
+    expect(manual).toBe(scheduled);
+    expect(stateReads).toBe(1);
+    release();
+    await Promise.all([scheduled, manual]);
+    expect(stateReads).toBe(1);
+  });
+
   it("uses only reliable available nights for the seven-night average", async () => {
     const { syncHealthData } = await import("@/lib/health/service");
     const history = [

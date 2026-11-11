@@ -333,9 +333,9 @@ async function syncRecorderHistory(
   }
 }
 
-export async function syncHealthData(
-  reader: HomeAssistantReader = new HomeAssistantClient(),
-) {
+let healthSyncInFlight: Promise<PulseSnapshot> | null = null;
+
+async function performHealthSync(reader: HomeAssistantReader) {
   const database = getDb();
   const attemptAt = new Date().toISOString();
   database
@@ -443,6 +443,16 @@ export async function syncHealthData(
       .run(attemptAt, message.slice(0, 500));
     throw error;
   }
+}
+
+export function syncHealthData(reader?: HomeAssistantReader) {
+  if (healthSyncInFlight) return healthSyncInFlight;
+  healthSyncInFlight = performHealthSync(
+    reader ?? new HomeAssistantClient(),
+  ).finally(() => {
+    healthSyncInFlight = null;
+  });
+  return healthSyncInFlight;
 }
 
 export async function discoverHealthSensors(
