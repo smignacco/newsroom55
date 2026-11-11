@@ -7,6 +7,10 @@ import {
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvBag
+ */
+
 export const OPTIONS_PATH = "/data/options.json";
 
 export const OPTION_ENVIRONMENT = {
@@ -37,6 +41,11 @@ export function readHomeAssistantOptions(optionsPath = OPTIONS_PATH) {
   }
 }
 
+/**
+ * @param {Record<string, unknown>} options
+ * @param {EnvBag} [env]
+ * @returns {EnvBag}
+ */
 export function applyHomeAssistantOptions(options, env = process.env) {
   for (const [option, environment] of Object.entries(OPTION_ENVIRONMENT)) {
     const value = options[option];
@@ -46,6 +55,11 @@ export function applyHomeAssistantOptions(options, env = process.env) {
   return env;
 }
 
+/**
+ * @param {string} dataDir
+ * @param {EnvBag} [env]
+ * @returns {string}
+ */
 export function ensureSessionSecret(dataDir, env = process.env) {
   mkdirSync(dataDir, { recursive: true });
   const secretPath = path.join(dataDir, "session-secret");
@@ -58,6 +72,9 @@ export function ensureSessionSecret(dataDir, env = process.env) {
   return env.SESSION_SECRET;
 }
 
+/**
+ * @param {EnvBag} [env]
+ */
 export function requireAdminPassword(env = process.env) {
   const password = env.ADMIN_PASSWORD;
   if (!password || password.trim().length < 8) {

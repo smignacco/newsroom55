@@ -10,6 +10,8 @@ import {
 } from "../home-assistant-options.mjs";
 import fixture from "./fixtures/home-assistant-options.json";
 
+type EnvBag = Record<string, string | undefined>;
+
 const originalEnv = { ...process.env };
 
 afterEach(() => {
@@ -21,7 +23,7 @@ afterEach(() => {
 
 describe("Home Assistant options", () => {
   it("maps the configuration form onto environment variables and skips blanks", () => {
-    const env: NodeJS.ProcessEnv = {};
+    const env: EnvBag = {};
     applyHomeAssistantOptions(fixture, env);
     expect(env.ADMIN_USERNAME).toBe("ha-test-admin");
     expect(env.ADMIN_PASSWORD).toBe("test-password-123");
@@ -37,7 +39,7 @@ describe("Home Assistant options", () => {
   });
 
   it("does not require a .env file", () => {
-    const env: NodeJS.ProcessEnv = {};
+    const env: EnvBag = {};
     applyHomeAssistantOptions(
       {
         admin_username: "admin",
@@ -68,7 +70,7 @@ describe("Home Assistant options", () => {
 
   it("creates a session secret on disk instead of a .env value", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "ha-secret-"));
-    const env: NodeJS.ProcessEnv = {};
+    const env: EnvBag = {};
     const first = ensureSessionSecret(dir, env);
     const second = ensureSessionSecret(dir, {});
     expect(first.length).toBeGreaterThanOrEqual(32);
