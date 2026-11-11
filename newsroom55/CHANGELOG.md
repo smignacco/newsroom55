@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.0.0-ha.7
+
+- Autorise une URL Home Assistant vide lorsque **Activity & Sleep Pulse** est
+  désactivé, afin que la configuration par défaut soit acceptée par le
+  Superviseur.
+
 ## 1.0.0-ha.6
 
 - Ajout du panneau compact **Activity & Sleep Pulse** dans le rail droit, sans

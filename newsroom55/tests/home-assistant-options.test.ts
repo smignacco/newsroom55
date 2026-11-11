@@ -22,6 +22,16 @@ afterEach(() => {
 });
 
 describe("Home Assistant options", () => {
+  it("allows the optional Home Assistant URL to remain blank", () => {
+    const config = readFileSync(
+      path.resolve(process.cwd(), "config.yaml"),
+      "utf8",
+    );
+    expect(config).toContain('ha_base_url: ""');
+    expect(config).toContain('ha_base_url: "str?"');
+    expect(config).not.toContain('ha_base_url: "url?"');
+  });
+
   it("maps the configuration form onto environment variables and skips blanks", () => {
     const env: EnvBag = {};
     applyHomeAssistantOptions(fixture, env);
@@ -62,7 +72,9 @@ describe("Home Assistant options", () => {
 
   it("refuses a missing or short administrator password", () => {
     expect(() => requireAdminPassword({})).toThrow(/Configuration tab/);
-    expect(() => requireAdminPassword({ ADMIN_PASSWORD: "short" })).toThrow(/8 characters/);
+    expect(() => requireAdminPassword({ ADMIN_PASSWORD: "short" })).toThrow(
+      /8 characters/,
+    );
   });
 
   it("reads Supervisor options.json", () => {
@@ -79,6 +91,8 @@ describe("Home Assistant options", () => {
     const second = ensureSessionSecret(dir, {});
     expect(first.length).toBeGreaterThanOrEqual(32);
     expect(second).toBe(first);
-    expect(readFileSync(path.join(dir, "session-secret"), "utf8").trim()).toBe(first);
+    expect(readFileSync(path.join(dir, "session-secret"), "utf8").trim()).toBe(
+      first,
+    );
   });
 });
