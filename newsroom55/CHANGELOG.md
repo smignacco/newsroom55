@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.0.0-ha.8
+
+- Remplace les grandes cases à cocher de l’administration Activity & Sleep par
+  des interrupteurs compacts et proportionnés.
+- Affiche les indicateurs après activation du panneau; le mode confidentiel
+  demeure disponible, mais n’est plus activé implicitement.
+- Rend la liste des manchettes défilable dans le rail droit afin que la tuile
+  Activity & Sleep ne masque plus les nouvelles suivantes.
+
 ## 1.0.0-ha.7
 
 - Autorise une URL Home Assistant vide lorsque **Activity & Sleep Pulse** est

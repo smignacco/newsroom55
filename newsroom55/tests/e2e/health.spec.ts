@@ -23,6 +23,12 @@ test("health administration, privacy and display authorization", async ({
   await expect(
     page.getByRole("heading", { name: "Activity & Sleep Pulse" }),
   ).toBeVisible();
+  const toggleBox = await page
+    .locator(".health-toggle input[type=checkbox]")
+    .first()
+    .boundingBox();
+  expect(toggleBox?.width).toBeLessThan(50);
+  expect(toggleBox?.height).toBeLessThan(30);
 
   await page
     .getByRole("checkbox", { name: /Afficher le panneau personnel/ })

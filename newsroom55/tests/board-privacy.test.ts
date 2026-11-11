@@ -13,6 +13,14 @@ afterAll(() => {
 });
 
 describe("public board snapshot privacy", () => {
+  it("keeps confidential mode optional while the panel remains disabled by default", async () => {
+    const { healthSettings } = await import("@/lib/health/service");
+    expect(healthSettings()).toMatchObject({
+      enabled: false,
+      privacyMode: false,
+    });
+  });
+
   it("exposes only pulse enablement, never personal aggregates", async () => {
     const { getDb, setSetting } = await import("@/lib/database");
     const { getBoardSnapshot } = await import("@/lib/board-snapshot");

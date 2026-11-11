@@ -86,7 +86,7 @@ export function healthSettings() {
   return {
     enabled:
       getSetting("health_pulse_enabled", envEnabled ? "on" : "off") === "on",
-    privacyMode: getSetting("health_privacy_mode", "on") === "on",
+    privacyMode: getSetting("health_privacy_mode", "off") === "on",
     dailyExerciseGoal: optionalNumber("health_daily_exercise_goal"),
     dailyStepsGoal: optionalNumber("health_daily_steps_goal"),
     weeklyActivityGoal: optionalNumber("health_weekly_activity_goal"),

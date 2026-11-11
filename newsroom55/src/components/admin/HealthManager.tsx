@@ -106,7 +106,7 @@ const metricGroups: Array<{
 
 const defaultSettings: HealthSettings = {
   enabled: false,
-  privacyMode: true,
+  privacyMode: false,
   dailyExerciseGoal: null,
   dailyStepsGoal: null,
   weeklyActivityGoal: null,
@@ -266,7 +266,9 @@ export function HealthManager({ csrf }: { csrf: string }) {
             <div>
               <h3>Affichage et confidentialité</h3>
               <p>
-                Le module et sa lecture personnelle sont désactivés par défaut.
+                Le panneau est désactivé par défaut. Activez le mode
+                confidentiel seulement lorsque vous souhaitez masquer
+                temporairement les mesures.
               </p>
             </div>
           </div>

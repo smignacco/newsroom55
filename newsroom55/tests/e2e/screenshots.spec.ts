@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
-const media = process.env.SCREENSHOT_DIR || path.resolve("/cursor/stores/self/media");
+const media =
+  process.env.SCREENSHOT_DIR || path.resolve("/cursor/stores/self/media");
 
 function ensureDir() {
   fs.mkdirSync(media, { recursive: true });
@@ -15,7 +16,9 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("CENTRE DE NOUVELLES")).toBeVisible();
     await expect(page.locator('img[src="/cisco-logo.png"]')).toBeVisible();
-    await expect(page.getByText(/Actualisation (\d{2}:\d{2}|imminente)/)).toBeVisible();
+    await expect(
+      page.getByText(/Actualisation (\d{2}:\d{2}|imminente)/),
+    ).toBeVisible();
     await expect(page.getByTestId("iptv-wait")).toBeVisible();
     await expect(page.getByText("Marchés", { exact: true })).toBeVisible();
     const dest = path.join(media, "newsroom-1920x1080.png");
@@ -38,6 +41,18 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("CENTRE DE NOUVELLES")).toBeVisible();
+    const headlines = page.locator(".nr-headlines");
+    expect(
+      await headlines.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
+    ).toBe(true);
+    await headlines.evaluate((element) =>
+      element.scrollTo(0, element.scrollHeight),
+    );
+    await expect
+      .poll(() => headlines.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
     const dest = path.join(media, "newsroom-1366x768.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);
@@ -48,7 +63,9 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Choisir une source" }).click();
-    await expect(page.getByRole("dialog", { name: "Sélection des chaînes" })).toBeVisible({
+    await expect(
+      page.getByRole("dialog", { name: "Sélection des chaînes" }),
+    ).toBeVisible({
       timeout: 10_000,
     });
     const dest = path.join(media, "newsroom-iptv-wait.png");
@@ -70,7 +87,9 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.getByText("Sources")).toBeVisible();
     await expect(page.getByText("BBC News")).toBeVisible();
     await page.getByRole("button", { name: "Finance" }).click();
-    await expect(page.getByRole("heading", { name: "Actions et fonds" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Actions et fonds" }),
+    ).toBeVisible();
     await page
       .getByRole("textbox", { name: "Rechercher une entreprise ou un fonds" })
       .fill("Cisco");
@@ -80,16 +99,26 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.screenshot({ path: financeDest, fullPage: false });
     expect(fs.existsSync(financeDest)).toBe(true);
     await page.getByRole("button", { name: "Television" }).click();
-    await expect(page.getByRole("heading", { name: "Gestion des stations" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Gestion des stations" }),
+    ).toBeVisible();
     await expect(page.getByText("Listes du dépôt")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Ajouter" }).first()).toBeEnabled();
-    await expect(page.getByRole("button", { name: "Synchroniser maintenant" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Ajouter" }).first(),
+    ).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Synchroniser maintenant" }),
+    ).toBeVisible();
     await expect(page.locator(".tv-playlist-card").first()).toBeVisible();
     const admin = page.locator(".nr-admin");
     expect(
-      await admin.evaluate((element) => element.scrollHeight > element.clientHeight),
+      await admin.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
     ).toBe(true);
-    await admin.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+    await admin.evaluate((element) =>
+      element.scrollTo(0, element.scrollHeight),
+    );
     await expect
       .poll(() => admin.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
@@ -101,9 +130,13 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator(".nr-admin-nav")).toBeVisible();
     expect(
-      await admin.evaluate((element) => element.scrollHeight > element.clientHeight),
+      await admin.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
     ).toBe(true);
-    await admin.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+    await admin.evaluate((element) =>
+      element.scrollTo(0, element.scrollHeight),
+    );
     await expect
       .poll(() => admin.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
@@ -121,7 +154,9 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.locator('input[type="password"]').fill(password!);
     await page.getByRole("button", { name: "Enter" }).click();
     await expect(page).toHaveURL(/\/remote$/);
-    await expect(page.getByRole("heading", { name: "Télécommande" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Télécommande" }),
+    ).toBeVisible();
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
       "href",
       "/apple-touch-icon.png",
@@ -131,14 +166,24 @@ test.describe("Centre de nouvelles visual board", () => {
         fetch("/manifest.webmanifest").then((response) => response.json()),
       ),
     ).toMatchObject({ start_url: "/remote", display: "standalone" });
-    await expect(page.getByRole("button", { name: /Mettre en veille|Réafficher/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Diminuer le volume" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Augmenter le volume" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Quitter Halfwake" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Mettre en veille|Réafficher/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Diminuer le volume" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Augmenter le volume" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Quitter Halfwake" }),
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sources" })).toBeVisible();
     await expect(page.getByLabel("Chaîne de la source 1")).toBeVisible();
     await expect(page.locator(".remote-view-picker")).toContainText("Focus");
-    await expect(page.getByRole("button", { name: /Audio actif|Écouter/ })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Audio actif|Écouter/ }),
+    ).toBeVisible();
     expect(
       await page.evaluate(() =>
         fetch("/api/admin/control", {
@@ -149,7 +194,9 @@ test.describe("Centre de nouvelles visual board", () => {
       ),
     ).toBe(403);
 
-    const audio = page.getByRole("button", { name: /Réactiver le son|Couper le son/ });
+    const audio = page.getByRole("button", {
+      name: /Réactiver le son|Couper le son/,
+    });
     const before = await audio.textContent();
     await audio.click();
     await expect(audio).not.toHaveText(before ?? "");
@@ -160,9 +207,13 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.setViewportSize({ width: 390, height: 500 });
     const remote = page.locator(".remote-shell");
     expect(
-      await remote.evaluate((element) => element.scrollHeight > element.clientHeight),
+      await remote.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
     ).toBe(true);
-    await remote.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+    await remote.evaluate((element) =>
+      element.scrollTo(0, element.scrollHeight),
+    );
     await expect
       .poll(() => remote.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);

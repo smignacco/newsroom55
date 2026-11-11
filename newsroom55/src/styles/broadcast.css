@@ -314,10 +314,6 @@ textarea {
   grid-template-rows: minmax(0, 77fr) minmax(8.5rem, 23fr);
 }
 
-.nr-right-rail.has-breaking.with-pulse .nr-headline:nth-child(n + 8) {
-  display: none;
-}
-
 .nr-pulse {
   --nr-pulse-activity: var(--nr-accent);
   --nr-pulse-goal: #48b990;
@@ -1460,9 +1456,27 @@ textarea {
 .nr-headlines {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.28rem;
   display: flex;
   flex-direction: column;
+  scrollbar-color: rgba(53, 198, 244, 0.42) rgba(255, 255, 255, 0.035);
+  scrollbar-width: thin;
+}
+
+.nr-headlines::-webkit-scrollbar {
+  width: 0.32rem;
+}
+
+.nr-headlines::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.nr-headlines::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(53, 198, 244, 0.42);
 }
 
 .nr-headline {
@@ -1481,6 +1495,7 @@ textarea {
   border-top: 1px solid var(--nr-line-dim);
   cursor: pointer;
   min-height: 3.2rem;
+  flex: 0 0 auto;
   transition: background 180ms ease, transform 180ms ease;
 }
 
@@ -2755,18 +2770,72 @@ textarea {
 .health-toggle {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.65rem;
-  min-height: 3.4rem;
-  padding: 0.65rem 0.75rem;
+  min-height: 3.6rem;
+  padding: 0.7rem 0.8rem;
   border: 1px solid var(--nr-line-dim);
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
 }
 
-.health-toggle input { accent-color: var(--nr-accent); }
+.nr-admin .health-toggle input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  order: 2;
+  flex: 0 0 2.35rem;
+  width: 2.35rem;
+  max-width: none;
+  min-height: 0;
+  height: 1.3rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(145, 168, 189, 0.42);
+  border-radius: 999px;
+  background: rgba(145, 168, 189, 0.14);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.nr-admin .health-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 0.16rem;
+  left: 0.17rem;
+  width: 0.84rem;
+  height: 0.84rem;
+  border-radius: 50%;
+  background: var(--nr-text-2);
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.nr-admin .health-toggle input[type="checkbox"]:checked {
+  border-color: rgba(53, 198, 244, 0.75);
+  background: rgba(53, 198, 244, 0.28);
+}
+
+.nr-admin .health-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(1.08rem);
+  background: var(--nr-accent);
+}
+
+.nr-admin .health-toggle input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--nr-accent);
+  outline-offset: 2px;
+}
+
 .health-toggle span,
 .health-toggle small { display: block; }
-.health-toggle strong { font-size: 0.78rem; }
+.health-toggle span {
+  order: 1;
+  min-width: 0;
+}
+.health-toggle strong { font-size: 0.76rem; }
 .health-toggle small {
   margin-top: 0.12rem;
   color: var(--nr-text-2);
