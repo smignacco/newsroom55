@@ -388,18 +388,10 @@ textarea {
 
 .nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label {
   top: 0.45rem;
-  right: 0.45rem;
+  right: auto;
   bottom: auto;
-  left: auto;
+  left: 0.45rem;
   max-width: min(54%, 24rem);
-  padding: 0.32rem 0.45rem;
-  border: 1px solid rgba(53, 198, 244, 0.28);
-  background: rgba(3, 10, 17, 0.64);
-  backdrop-filter: blur(4px);
-}
-
-.nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label strong {
-  flex: 0 1 auto;
 }
 
 .nr-multiview-focus .nr-multiview-tile.is-focused .nr-multiview-label em {
@@ -411,9 +403,11 @@ textarea {
 }
 
 .nr-multiview-focus .nr-multiview-tile:not(.is-focused) .nr-multiview-label {
-  right: 0.2rem;
-  bottom: 0.15rem;
+  top: 0.2rem;
+  right: auto;
+  bottom: auto;
   left: 0.2rem;
+  max-width: calc(100% - 0.4rem);
   padding: 0.22rem 0.3rem;
 }
 
@@ -441,17 +435,20 @@ textarea {
 
 .nr-multiview-label {
   position: absolute;
+  top: 0.45rem;
   left: 0.45rem;
-  right: 0.45rem;
-  bottom: 0.4rem;
+  right: auto;
+  bottom: auto;
   z-index: 4;
   display: flex;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
+  max-width: min(62%, 24rem);
   padding: 0.35rem 0.45rem;
-  background: rgba(3, 10, 17, 0.78);
-  backdrop-filter: blur(6px);
+  border: 1px solid rgba(53, 198, 244, 0.28);
+  background: rgba(3, 10, 17, 0.64);
+  backdrop-filter: blur(4px);
 }
 
 .nr-multiview-label span,
@@ -463,7 +460,7 @@ textarea {
 
 .nr-multiview-label strong {
   overflow: hidden;
-  flex: 1;
+  flex: 0 1 auto;
   font-size: 0.68rem;
   text-overflow: ellipsis;
   white-space: nowrap;

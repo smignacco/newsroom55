@@ -1,5 +1,10 @@
 # Journal des modifications
 
+## 1.0.0-ha.4
+
+- Les libellés compacts des stations sont placés dans le coin supérieur gauche
+  de chaque image, y compris le grand écran et les vignettes en mode focus.
+
 ## 1.0.0-ha.3
 
 - En mode focus, l’identification de l’écran et de la chaîne est maintenant
