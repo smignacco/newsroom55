@@ -59,6 +59,7 @@ export function NewsroomBoard({
   const [videoState, setVideoState] = useState<PlaybackState>("idle");
   const controlRevision = useRef(initialControl.revision);
   const displayCommandRevision = useRef(initialControl.displayCommandRevision);
+  const resolvingStoryId = useRef<number | null>(null);
   const stories = useRef(initial.stories);
 
   const refresh = useCallback(async () => {
@@ -104,12 +105,13 @@ export function NewsroomBoard({
         if (!response.ok) return;
         const control = (await response.json()) as BoardControlState;
         if (control.displayCommandRevision !== displayCommandRevision.current) {
-          displayCommandRevision.current = control.displayCommandRevision;
           if (control.displayCommand === "reload") {
+            displayCommandRevision.current = control.displayCommandRevision;
             window.location.reload();
             return;
           }
           if (control.displayCommand === "close-story") {
+            displayCommandRevision.current = control.displayCommandRevision;
             setStory(null);
           } else if (
             control.displayCommand === "open-story" &&
@@ -118,7 +120,32 @@ export function NewsroomBoard({
             const selectedStory = stories.current.find(
               (candidate) => candidate.id === control.displayStoryId,
             );
-            if (selectedStory) setStory(selectedStory);
+            if (selectedStory) {
+              displayCommandRevision.current = control.displayCommandRevision;
+              setStory(selectedStory);
+            } else if (resolvingStoryId.current === null) {
+              const pendingRevision = control.displayCommandRevision;
+              const pendingStoryId = control.displayStoryId;
+              resolvingStoryId.current = pendingStoryId;
+              try {
+                const storyResponse = await fetch(`/api/news/${pendingStoryId}`, {
+                  cache: "no-store",
+                });
+                if (storyResponse.ok) {
+                  const payload = (await storyResponse.json()) as {
+                    story: NewsStory;
+                  };
+                  if (displayCommandRevision.current < pendingRevision) {
+                    displayCommandRevision.current = pendingRevision;
+                    setStory(payload.story);
+                  }
+                }
+              } finally {
+                if (resolvingStoryId.current === pendingStoryId) {
+                  resolvingStoryId.current = null;
+                }
+              }
+            }
           }
         }
         if (control.revision === controlRevision.current) return;

@@ -6,6 +6,8 @@
   commande pour recharger le tableau.
 - Permet de sélectionner une nouvelle depuis la télécommande, de l’afficher
   dans une fenêtre détaillée sur le Board et de la fermer à distance.
+- Charge la nouvelle sélectionnée par son identifiant lorsqu’elle n’est pas
+  encore présente dans le cache du Board.
 - Tente d’afficher le site de l’éditeur dans un cadre isolé, avec un lien de
   remplacement lorsque l’éditeur interdit l’intégration.
 

@@ -121,6 +121,17 @@ export type NewsStory = {
   source: string;
 };
 
+const STORY_SELECT = `SELECT n.id, n.title, n.url, n.summary, n.category,
+  n.published_at, n.fetched_at, n.priority, s.name as source
+  FROM news_items n JOIN news_sources s ON s.id = n.source_id`;
+
+export function storyById(id: number): NewsStory | null {
+  const row = getDb()
+    .prepare(`${STORY_SELECT} WHERE n.id = ? AND n.hidden = 0`)
+    .get(id) as NewsStory | undefined;
+  return row ?? null;
+}
+
 export function listStories(limit = 18, category?: string | null): NewsStory[] {
   const db = getDb();
   const sql = category
