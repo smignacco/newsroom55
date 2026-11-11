@@ -6,7 +6,8 @@
   des interrupteurs compacts et proportionnés.
 - Affiche les indicateurs après activation du panneau; le mode confidentiel
   demeure disponible, mais n’est plus activé implicitement.
-- Rend la liste des manchettes défilable dans le rail droit afin que la tuile
+- Fait défiler automatiquement les manchettes dans le rail droit, avec pause
+  pendant une interaction tactile, clavier ou souris, afin que la tuile
   Activity & Sleep ne masque plus les nouvelles suivantes.
 
 ## 1.0.0-ha.7

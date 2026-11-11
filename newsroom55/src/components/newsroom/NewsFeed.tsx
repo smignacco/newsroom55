@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NewsStory } from "@/lib/news/aggregator";
 import { CATEGORIES, CATEGORY_SHORT } from "@/lib/news/classify";
 import { formatNewsTime } from "@/lib/time";
@@ -35,10 +35,83 @@ export function NewsFeed({
   onOpen: (story: NewsStory) => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const headlinesRef = useRef<HTMLDivElement>(null);
+  const headlineKey = headlines.map((story) => story.id).join(",");
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const element = headlinesRef.current;
+    if (
+      !element ||
+      headlines.length < 2 ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    let pointerInside = false;
+    let focusInside = false;
+    let pausedUntil = 0;
+    const pauseTemporarily = () => {
+      pausedUntil = Date.now() + 12_000;
+    };
+    const onPointerEnter = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") pointerInside = true;
+    };
+    const onPointerLeave = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") pointerInside = false;
+    };
+    const onFocusIn = () => {
+      focusInside = true;
+    };
+    const onFocusOut = () => {
+      focusInside = false;
+    };
+
+    element.addEventListener("pointerenter", onPointerEnter);
+    element.addEventListener("pointerleave", onPointerLeave);
+    element.addEventListener("focusin", onFocusIn);
+    element.addEventListener("focusout", onFocusOut);
+    element.addEventListener("wheel", pauseTemporarily, { passive: true });
+    element.addEventListener("touchstart", pauseTemporarily, { passive: true });
+
+    const timer = window.setInterval(() => {
+      const maximum = element.scrollHeight - element.clientHeight;
+      if (
+        maximum <= 1 ||
+        pointerInside ||
+        focusInside ||
+        Date.now() < pausedUntil
+      ) {
+        return;
+      }
+      const reachedEnd = element.scrollTop >= maximum - 4;
+      element.scrollTo({
+        top: reachedEnd
+          ? 0
+          : Math.min(
+              maximum,
+              element.scrollTop + Math.max(72, element.clientHeight * 0.68),
+            ),
+        behavior: "smooth",
+      });
+    }, 4_500);
+
+    return () => {
+      window.clearInterval(timer);
+      element.removeEventListener("pointerenter", onPointerEnter);
+      element.removeEventListener("pointerleave", onPointerLeave);
+      element.removeEventListener("focusin", onFocusIn);
+      element.removeEventListener("focusout", onFocusOut);
+      element.removeEventListener("wheel", pauseTemporarily);
+      element.removeEventListener("touchstart", pauseTemporarily);
+    };
+  }, [headlineKey, headlines.length]);
+
   const lastRefreshMs = lastRefresh ? Date.parse(lastRefresh) : NaN;
   const remaining = Number.isFinite(lastRefreshMs)
     ? Math.max(
@@ -82,9 +155,10 @@ export function NewsFeed({
       </div>
       <FeaturedStory story={featured} timezone={timezone} onOpen={onOpen} />
       <div
+        ref={headlinesRef}
         className="nr-headlines"
         tabIndex={0}
-        aria-label="Toutes les manchettes — faire défiler"
+        aria-label="Toutes les manchettes — défilement automatique"
       >
         {headlines.length === 0 ? (
           <div className="nr-empty-news">

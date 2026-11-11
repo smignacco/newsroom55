@@ -47,11 +47,10 @@ test.describe("Centre de nouvelles visual board", () => {
         (element) => element.scrollHeight > element.clientHeight,
       ),
     ).toBe(true);
-    await headlines.evaluate((element) =>
-      element.scrollTo(0, element.scrollHeight),
-    );
     await expect
-      .poll(() => headlines.evaluate((element) => element.scrollTop))
+      .poll(() => headlines.evaluate((element) => element.scrollTop), {
+        timeout: 7_000,
+      })
       .toBeGreaterThan(0);
     const dest = path.join(media, "newsroom-1366x768.png");
     await page.screenshot({ path: dest, fullPage: false });
