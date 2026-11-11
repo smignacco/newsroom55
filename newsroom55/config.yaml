@@ -1,0 +1,44 @@
+name: "NEWSROOM55"
+version: "1.0.0-ha.1"
+slug: "newsroom55"
+description: "Centre de nouvelles, marchés et multivue pour Cisco Board"
+stage: "experimental"
+startup: "application"
+boot: "auto"
+init: true
+arch:
+  - aarch64
+  - amd64
+ports:
+  "3000/tcp": 3000
+ports_description:
+  "3000/tcp": "Interface NEWSROOM55"
+webui: "http://[HOST]:[PORT:3000]/"
+watchdog: "http://[HOST]:[PORT:3000]/api/health"
+backup: "cold"
+environment:
+  HOSTNAME: "0.0.0.0"
+  PORT: "3000"
+  DATA_DIR: "/data"
+options:
+  admin_username: "admin"
+  timezone: "America/Montreal"
+  markets_provider: "hybrid"
+  twelve_data_refresh_minutes: 30
+  twelve_data_max_symbols: 6
+  roomos_protocol: "https"
+  roomos_insecure_tls: false
+schema:
+  admin_username: "str(1,64)"
+  admin_password: "password(8,)?"
+  timezone: "str(1,64)"
+  markets_provider: "list(hybrid|cboe|bankofcanada|twelvedata|finnhub)"
+  finnhub_api_key: "password?"
+  twelve_data_api_key: "password?"
+  twelve_data_refresh_minutes: "int(15,1440)"
+  twelve_data_max_symbols: "int(1,6)"
+  roomos_device_ip: "str?"
+  roomos_username: "str?"
+  roomos_password: "password?"
+  roomos_protocol: "list(https|http)"
+  roomos_insecure_tls: "bool"

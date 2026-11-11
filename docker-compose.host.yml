@@ -1,0 +1,6 @@
+# Optional Linux-only override for hosts where Docker bridge egress is restricted.
+# Standard Docker Desktop deployments should use docker-compose.yml alone.
+services:
+  newsroom55:
+    network_mode: host
+    ports: !reset []

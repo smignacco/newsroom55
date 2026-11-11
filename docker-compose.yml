@@ -1,0 +1,40 @@
+services:
+  newsroom55:
+    build:
+      context: ./newsroom55
+      args:
+        BUILD_VERSION: compose
+    image: newsroom55:local
+    container_name: newsroom55
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      TZ: America/Montreal
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
+      TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY:-}
+      TWELVE_DATA_REFRESH_MINUTES: ${TWELVE_DATA_REFRESH_MINUTES:-30}
+      TWELVE_DATA_MAX_SYMBOLS: ${TWELVE_DATA_MAX_SYMBOLS:-6}
+      MARKETS_PROVIDER: ${MARKETS_PROVIDER:-hybrid}
+      ROOMOS_DEVICE_IP: ${ROOMOS_DEVICE_IP:-}
+      ROOMOS_USERNAME: ${ROOMOS_USERNAME:-}
+      ROOMOS_PASSWORD: ${ROOMOS_PASSWORD:-}
+      ROOMOS_PROTOCOL: ${ROOMOS_PROTOCOL:-https}
+      ROOMOS_INSECURE_TLS: ${ROOMOS_INSECURE_TLS:-0}
+    volumes:
+      - newsroom-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  newsroom-data:

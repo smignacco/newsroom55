@@ -1,0 +1,31 @@
+configuration:
+  admin_username:
+    name: "Nom d’utilisateur administrateur"
+  admin_password:
+    name: "Mot de passe administrateur"
+    description: "Minimum de 8 caractères. Requis pour accéder à /admin et /remote."
+  timezone:
+    name: "Fuseau horaire"
+  markets_provider:
+    name: "Fournisseur de marchés"
+  finnhub_api_key:
+    name: "Clé API Finnhub"
+  twelve_data_api_key:
+    name: "Clé API Twelve Data"
+  twelve_data_refresh_minutes:
+    name: "Intervalle Twelve Data"
+    description: "Nombre de minutes entre les actualisations."
+  twelve_data_max_symbols:
+    name: "Maximum de symboles Twelve Data"
+  roomos_device_ip:
+    name: "Adresse du Cisco Board"
+  roomos_username:
+    name: "Utilisateur RoomOS"
+  roomos_password:
+    name: "Mot de passe RoomOS"
+  roomos_protocol:
+    name: "Protocole RoomOS"
+  roomos_insecure_tls:
+    name: "Autoriser un certificat RoomOS autosigné"
+network:
+  3000/tcp: "Interface Web NEWSROOM55"

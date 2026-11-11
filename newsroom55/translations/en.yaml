@@ -1,0 +1,31 @@
+configuration:
+  admin_username:
+    name: "Administrator username"
+  admin_password:
+    name: "Administrator password"
+    description: "At least 8 characters. Required for /admin and /remote."
+  timezone:
+    name: "Timezone"
+  markets_provider:
+    name: "Market provider"
+  finnhub_api_key:
+    name: "Finnhub API key"
+  twelve_data_api_key:
+    name: "Twelve Data API key"
+  twelve_data_refresh_minutes:
+    name: "Twelve Data interval"
+    description: "Minutes between refreshes."
+  twelve_data_max_symbols:
+    name: "Maximum Twelve Data symbols"
+  roomos_device_ip:
+    name: "Cisco Board address"
+  roomos_username:
+    name: "RoomOS username"
+  roomos_password:
+    name: "RoomOS password"
+  roomos_protocol:
+    name: "RoomOS protocol"
+  roomos_insecure_tls:
+    name: "Allow a self-signed RoomOS certificate"
+network:
+  3000/tcp: "NEWSROOM55 web interface"
