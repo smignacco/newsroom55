@@ -186,6 +186,20 @@ function sourceTime(states: (HomeAssistantState | undefined)[]) {
   );
 }
 
+function stateForLocalDate(
+  state: HomeAssistantState | undefined,
+  expectedDate: string,
+) {
+  if (!state?.last_updated) return undefined;
+  try {
+    return localDate(state.last_updated, TIMEZONE) === expectedDate
+      ? state
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function upsertActivity(
   date: string,
   values: {
@@ -292,11 +306,13 @@ async function syncRecorderHistory(
   );
   if (relevant.length === 0) return;
   const start = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+  const end = new Date().toISOString();
   let history: HomeAssistantState[][];
   try {
     history = await reader.getHistory(
       relevant.map((mapping) => mapping.entityId),
       start,
+      end,
     );
   } catch {
     return;
@@ -305,6 +321,11 @@ async function syncRecorderHistory(
   for (const mapping of relevant) {
     const series = (byEntity.get(mapping.entityId) || [])
       .slice()
+      .filter(
+        (state) =>
+          typeof state.last_updated === "string" &&
+          !Number.isNaN(new Date(state.last_updated).getTime()),
+      )
       .sort((a, b) => a.last_updated.localeCompare(b.last_updated));
     for (const state of series) {
       const value = measurementValue(mapping.metric, state);
@@ -352,30 +373,52 @@ async function performHealthSync(reader: HomeAssistantReader) {
     const mapped = stateMap(states, mappings);
     const syncedAt = new Date().toISOString();
     const today = localDate(syncedAt, TIMEZONE);
+    const currentActivity = new Map<
+      HealthMetric,
+      HomeAssistantState | undefined
+    >(
+      [
+        "steps",
+        "exercise_minutes",
+        "active_energy",
+        "move_goal",
+        "exercise_goal",
+        "stand_hours",
+      ].map((metric) => [
+        metric as HealthMetric,
+        stateForLocalDate(mapped.get(metric as HealthMetric), today),
+      ]),
+    );
     const activityStates = [
-      mapped.get("steps"),
-      mapped.get("exercise_minutes"),
-      mapped.get("active_energy"),
-      mapped.get("move_goal"),
-      mapped.get("exercise_goal"),
-      mapped.get("stand_hours"),
+      currentActivity.get("steps"),
+      currentActivity.get("exercise_minutes"),
+      currentActivity.get("active_energy"),
+      currentActivity.get("move_goal"),
+      currentActivity.get("exercise_goal"),
+      currentActivity.get("stand_hours"),
     ];
     const activityValues = {
-      steps: measurementValue("steps", mapped.get("steps")),
+      steps: measurementValue("steps", currentActivity.get("steps")),
       exerciseMinutes: measurementValue(
         "exercise_minutes",
-        mapped.get("exercise_minutes"),
+        currentActivity.get("exercise_minutes"),
       ),
       activeEnergyKcal: measurementValue(
         "active_energy",
-        mapped.get("active_energy"),
+        currentActivity.get("active_energy"),
       ),
-      moveGoalKcal: measurementValue("move_goal", mapped.get("move_goal")),
+      moveGoalKcal: measurementValue(
+        "move_goal",
+        currentActivity.get("move_goal"),
+      ),
       exerciseGoalMinutes: measurementValue(
         "exercise_goal",
-        mapped.get("exercise_goal"),
+        currentActivity.get("exercise_goal"),
       ),
-      standHours: measurementValue("stand_hours", mapped.get("stand_hours")),
+      standHours: measurementValue(
+        "stand_hours",
+        currentActivity.get("stand_hours"),
+      ),
       sourceUpdatedAt: sourceTime(activityStates),
     };
     if (

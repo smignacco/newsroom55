@@ -92,6 +92,27 @@ describe("health synchronization", () => {
     });
   });
 
+  it("does not assign yesterday's unchanged daily counters to today", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    vi.setSystemTime(new Date("2026-11-12T15:00:00Z"));
+    try {
+      const snapshot = await syncHealthData(
+        new Reader([
+          state("sensor.health_steps", "6400", "steps", "2026-11-11T23:30:00Z"),
+          state("sensor.exercise_time", "35", "min", "2026-11-11T23:30:00Z"),
+        ]),
+      );
+      expect(snapshot.activity.date).toBe("2026-11-12");
+      expect(snapshot.activity.steps).toBeNull();
+      expect(snapshot.activity.exerciseMinutes).toBeNull();
+      expect(
+        snapshot.activity.days.find((day) => day.date === "2026-11-12")?.status,
+      ).toBe("missing");
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
+
   it("corrects a late synchronization without duplicating the logical night", async () => {
     const { syncHealthData } = await import("@/lib/health/service");
     const { getDb } = await import("@/lib/database");

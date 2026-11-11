@@ -55,6 +55,41 @@ describe("Home Assistant REST client", () => {
     ).rejects.toThrow(/entité/);
   });
 
+  it("requests complete Recorder states through an explicit end time", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          [
+            {
+              entity_id: "sensor.sleep_duration",
+              state: "7.5",
+              last_changed: "2026-11-11T12:00:00Z",
+              last_updated: "2026-11-11T12:00:00Z",
+              attributes: { unit_of_measurement: "h" },
+            },
+          ],
+        ]),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new HomeAssistantClient({
+      baseUrl: "https://ha.example.test",
+      token: "test-token",
+    });
+
+    const history = await client.getHistory(
+      ["sensor.sleep_duration"],
+      "2026-11-01T00:00:00Z",
+      "2026-11-11T15:00:00Z",
+    );
+    expect(history[0][0].attributes.unit_of_measurement).toBe("h");
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.searchParams.get("end_time")).toBe("2026-11-11T15:00:00.000Z");
+    expect(url.searchParams.has("minimal_response")).toBe(false);
+    expect(url.searchParams.has("no_attributes")).toBe(false);
+  });
+
   it("aborts a stalled Home Assistant request", async () => {
     vi.stubGlobal(
       "fetch",

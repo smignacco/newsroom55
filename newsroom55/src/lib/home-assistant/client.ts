@@ -24,6 +24,7 @@ export interface HomeAssistantReader {
   getHistory(
     entityIds: string[],
     startIso: string,
+    endIso?: string,
   ): Promise<HomeAssistantState[][]>;
 }
 
@@ -129,16 +130,22 @@ export class HomeAssistantClient implements HomeAssistantReader {
     return states.filter((state) => ENTITY_ID.test(state.entity_id));
   }
 
-  async getHistory(entityIds: string[], startIso: string) {
+  async getHistory(
+    entityIds: string[],
+    startIso: string,
+    endIso = new Date().toISOString(),
+  ) {
     const entities = validateEntityIds(entityIds);
     const start = new Date(startIso);
     if (Number.isNaN(start.getTime()))
       throw new Error("Début d’historique invalide.");
+    const end = new Date(endIso);
+    if (Number.isNaN(end.getTime()) || end <= start)
+      throw new Error("Fin d’historique invalide.");
     const params = new URLSearchParams({
       filter_entity_id: entities.join(","),
-      minimal_response: "1",
-      no_attributes: "0",
       significant_changes_only: "1",
+      end_time: end.toISOString(),
     });
     const history = await this.request<HomeAssistantState[][]>(
       `/api/history/period/${encodeURIComponent(start.toISOString())}?${params}`,
