@@ -119,12 +119,12 @@ export function LiveChannel({
     (channel) => playback[channel.id]?.state ?? "idle",
   );
   const programState = playbackStates.includes("playing")
-    ? "Program live"
+    ? "Diffusion en direct"
     : playbackStates.includes("loading")
-      ? "Connecting"
+      ? "Connexion"
       : playbackStates.includes("error")
-        ? "Signal unavailable"
-        : "Program idle";
+        ? "Signal indisponible"
+        : "En attente";
 
   const selectChannel = (channel: PublicChannel) => {
     const next = [...selectedChannels];
@@ -144,7 +144,7 @@ export function LiveChannel({
       <div className="nr-frame" data-testid="iptv-wait">
         <div className="nr-frame-bar">
           <span>
-            {layoutMode === "focus" && selectedChannels.length > 1 ? "Focus" : "Multivue"} ·{" "}
+            {layoutMode === "focus" && selectedChannels.length > 1 ? "Vue principale" : "Multivue"} ·{" "}
             {selectedChannels.length} source(s) · <strong>{programState}</strong>
           </span>
           <span>1–4 flux HLS · audio unique</span>
@@ -239,14 +239,14 @@ export function LiveChannel({
               onOpenSelector();
             }}
           >
-            Select source
+            Choisir une source
           </button>
           <div style={{ display: "flex", gap: "0.45rem" }}>
             <button type="button" className="nr-chip" onClick={onToggleMute}>
-              {muted ? "Muted" : "Audio ready"}
+              {muted ? "Son coupé" : "Audio actif"}
             </button>
             <button type="button" className="nr-chip" onClick={onFullscreen}>
-              Fullscreen
+              Plein écran
             </button>
           </div>
         </div>

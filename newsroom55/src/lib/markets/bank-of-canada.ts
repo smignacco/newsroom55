@@ -31,7 +31,7 @@ function unavailable(symbol: SymbolConfig): Quote {
 
 export class BankOfCanadaProvider implements MarketProvider {
   id = "bankofcanada";
-  name = "Bank of Canada · daily";
+  name = "Banque du Canada · quotidien";
   configured = true;
   delayed = true;
 

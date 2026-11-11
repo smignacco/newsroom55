@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 
 function clockParts(date: Date, timezone: string) {
-  const clock = new Intl.DateTimeFormat("en-CA", {
+  const clock = new Intl.DateTimeFormat("fr-CA", {
     timeZone: timezone,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
   }).format(date);
-  const dateLabel = new Intl.DateTimeFormat("en-CA", {
+  const dateLabel = new Intl.DateTimeFormat("fr-CA", {
     timeZone: timezone,
     weekday: "long",
     day: "2-digit",
@@ -21,12 +21,8 @@ function clockParts(date: Date, timezone: string) {
 }
 
 export function BroadcastHeader({
-  online,
-  live,
   timezone,
 }: {
-  online: boolean;
-  live: boolean;
   timezone: string;
 }) {
   const [now, setNow] = useState(() => new Date());
@@ -50,28 +46,12 @@ export function BroadcastHeader({
           <div className="nr-brand-sig">Information en continu</div>
         </div>
       </div>
-      <div className="nr-header-meta">
-        <span className={`nr-dot ${online ? "on" : "off"}`} />
-        <span>{online ? "Board online" : "Network lost"}</span>
-        <span className="nr-header-rule" />
-        <span>Montréal desk</span>
-      </div>
       <div className="nr-clock-block">
         <div className="nr-clock">{formatted.clock}</div>
         <div className="nr-date">{formatted.dateLabel}</div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
         <div className="nr-tz">{timezone}</div>
-        <div className="nr-live-slot">
-          {live ? (
-            <div className="nr-live-badge">
-              <span className="nr-dot" />
-              LIVE
-            </div>
-          ) : (
-            <div className="nr-standby">STANDBY</div>
-          )}
-        </div>
       </div>
     </header>
   );

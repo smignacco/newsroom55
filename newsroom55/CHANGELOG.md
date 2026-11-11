@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.0.0-ha.5
+
+- Retrait des mentions « Board online », « Montréal desk » et « STANDBY » du
+  bandeau.
+- Francisation des commandes, états vidéo, sélecteur de chaînes, marchés,
+  panneaux de détail et barre d’état du tableau principal.
+- Dates et nombres affichés avec la locale française du Canada.
+
 ## 1.0.0-ha.4
 
 - Les libellés compacts des stations sont placés dans le coin supérieur gauche

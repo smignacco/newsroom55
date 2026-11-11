@@ -20,29 +20,38 @@ export function StatusStrip({
 }) {
   const videoLabel =
     videoState === "playing"
-      ? "LIVE"
+      ? "DIRECT"
       : videoState === "loading"
-        ? "CONNECTING"
+        ? "CONNEXION"
         : videoState === "error"
-          ? "FAULT"
-          : "WAITING";
+          ? "ERREUR"
+          : "ATTENTE";
+  const marketLabel =
+    markets.board === "LIVE"
+      ? "DIRECT"
+      : markets.board === "DELAYED"
+        ? "DIFFÉRÉ"
+        : markets.board === "UNAVAILABLE"
+          ? "INDISPONIBLE"
+          : "NON CONFIGURÉ";
   return (
     <footer className="nr-status">
       <span>
-        Server <b>OK</b>
+        Serveur <b>OK</b>
       </span>
       <span>
-        News <b>{news.ok}/{news.total} live</b>
-        {news.error ? ` · ${news.error} fault` : ""} · {formatNewsTime(news.lastFetch, timezone)}
+        Nouvelles <b>{news.ok}/{news.total} actives</b>
+        {news.error ? ` · ${news.error} en erreur` : ""} ·{" "}
+        {formatNewsTime(news.lastFetch, timezone)}
       </span>
       <span>
-        Finance <b>{markets.board}</b> · {markets.providerName}
+        Marchés <b>{marketLabel}</b> · {markets.providerName}
       </span>
       <span>
-        Video <b>{videoLabel}</b>
+        Vidéo <b>{videoLabel}</b>
       </span>
       <span>
-        Network <b>{online ? "REACHABLE" : "OFFLINE"}</b>
+        Réseau <b>{online ? "JOIGNABLE" : "HORS LIGNE"}</b>
       </span>
       <button type="button" className="nr-filter" style={{ marginLeft: "auto", minHeight: "1.4rem", padding: "0 0.2rem" }} onClick={onDesk}>
         Admin

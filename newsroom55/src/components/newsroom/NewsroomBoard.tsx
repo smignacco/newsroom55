@@ -134,7 +134,7 @@ export function NewsroomBoard({
 
   return (
     <div className={`nr-board ${performance ? "performance" : ""}`} style={{ fontSize: `${snapshot.appearance.textScale}%` }}>
-      <BroadcastHeader online={online} live={false} timezone={snapshot.appearance.timezone} />
+      <BroadcastHeader timezone={snapshot.appearance.timezone} />
       <LiveChannel
         channels={snapshot.channels}
         selectedChannels={selectedChannels}
@@ -195,20 +195,25 @@ export function NewsroomBoard({
       {story ? (
         <div className="nr-drawer" onClick={() => setStory(null)}>
           <div className="nr-drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="nr-kicker">{story.category} · {story.priority}</div>
+            <div className="nr-kicker">
+              {story.category} · {story.priority === "BREAKING" ? "ALERTE" : story.priority}
+            </div>
             <h3>{story.title}</h3>
-            <p>{story.summary || "Open the publisher page for the full article. Titles and metadata only are shown here."}</p>
+            <p>
+              {story.summary ||
+                "Ouvrez la page de l’éditeur pour lire l’article complet. Seuls le titre et les métadonnées sont affichés ici."}
+            </p>
             <div className="nr-meta">
               <span>{story.source}</span>
               {story.url ? (
                 <a href={story.url} target="_blank" rel="noopener noreferrer">
-                  Original article
+                  Article original
                 </a>
               ) : null}
             </div>
             <div style={{ marginTop: "1rem" }}>
               <button type="button" className="nr-chip" onClick={() => setStory(null)}>
-                Close
+                Fermer
               </button>
             </div>
           </div>
@@ -218,22 +223,28 @@ export function NewsroomBoard({
       {quote ? (
         <div className="nr-drawer" onClick={() => setQuote(null)}>
           <div className="nr-drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="nr-kicker">{quote.status}</div>
+            <div className="nr-kicker">
+              {quote.status === "LIVE"
+                ? "DIRECT"
+                : quote.status === "DELAYED"
+                  ? "DIFFÉRÉ"
+                  : "INDISPONIBLE"}
+            </div>
             <h3>
               {quote.displayName} · {quote.symbol}
             </h3>
             <p>
               {quote.price == null
-                ? "No reliable quote is available. Prices are never invented."
+                ? "Aucun cours fiable n’est disponible. Les prix ne sont jamais inventés."
                 : `${quote.price} ${quote.currency}`}
             </p>
             <div className="nr-meta">
-              <span>Provider {quote.provider}</span>
-              <span>{quote.asOf ?? "no timestamp"}</span>
+              <span>Fournisseur {quote.provider}</span>
+              <span>{quote.asOf ?? "aucun horodatage"}</span>
             </div>
             <div style={{ marginTop: "1rem" }}>
               <button type="button" className="nr-chip" onClick={() => setQuote(null)}>
-                Close
+                Fermer
               </button>
             </div>
           </div>
@@ -243,12 +254,12 @@ export function NewsroomBoard({
       {settings ? (
         <div className="nr-drawer" onClick={() => setSettings(false)}>
           <div className="nr-drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <h3>Desk</h3>
-            <p>Appearance and sources are managed in the protected /admin console.</p>
-            <Link href="/admin">Open administration</Link>
+            <h3>Réglages</h3>
+            <p>L’apparence et les sources sont gérées dans la console protégée /admin.</p>
+            <Link href="/admin">Ouvrir l’administration</Link>
             <div style={{ marginTop: "1rem" }}>
               <button type="button" className="nr-chip" onClick={() => setSettings(false)}>
-                Close
+                Fermer
               </button>
             </div>
           </div>

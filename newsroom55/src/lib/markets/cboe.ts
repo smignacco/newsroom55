@@ -38,7 +38,7 @@ function timestamp(value: string | undefined): string | null {
 
 export class CboeProvider implements MarketProvider {
   id = "cboe";
-  name = "Cboe · delayed 15 min";
+  name = "Cboe · différé 15 min";
   configured = true;
   delayed = true;
 

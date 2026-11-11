@@ -14,7 +14,7 @@ export function nowIso(): string {
 }
 
 export function formatClock(date: Date, timeZone = TIMEZONE): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("fr-CA", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
@@ -24,7 +24,7 @@ export function formatClock(date: Date, timeZone = TIMEZONE): string {
 }
 
 export function formatDateLong(date: Date, timeZone = TIMEZONE): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("fr-CA", {
     timeZone,
     weekday: "long",
     day: "2-digit",
@@ -37,7 +37,7 @@ export function formatNewsTime(iso: string | null | undefined, timeZone = TIMEZO
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("fr-CA", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",

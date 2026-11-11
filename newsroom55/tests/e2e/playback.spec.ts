@@ -15,7 +15,7 @@ test("plays one enabled HLS channel through the signed proxy", async ({ page }) 
   await expect
     .poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState), { timeout: 45_000 })
     .toBeGreaterThanOrEqual(2);
-  await expect(page.getByText("Program live")).toBeVisible();
+  await expect(page.getByText("Diffusion en direct")).toBeVisible();
   await expect(page.locator(".nr-viewfinder.playing .nr-scan-line")).toBeHidden();
 
   const destination = path.join(media, "newsroom-hls-browser.png");

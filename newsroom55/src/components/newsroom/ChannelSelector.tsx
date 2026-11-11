@@ -14,14 +14,15 @@ export function ChannelSelector({
   onClose: () => void;
 }) {
   return (
-    <div className="nr-overlay" role="dialog" aria-label="Channel selection">
+    <div className="nr-overlay" role="dialog" aria-label="Sélection des chaînes">
       <div className="nr-overlay-card">
-        <div className="nr-kicker">Signal path</div>
-        <h2>Live channels</h2>
+        <div className="nr-kicker">Chemin du signal</div>
+        <h2>Chaînes en direct</h2>
         {channels.length === 0 ? (
           <p className="nr-channel-empty">
-            No authorized live source is configured. This is a waiting state, not a simulated broadcast. IPTV
-            credentials remain on the server.
+            Aucune source en direct autorisée n’est configurée. Il s’agit d’un
+            état d’attente, pas d’une diffusion simulée. Les identifiants IPTV
+            restent sur le serveur.
           </p>
         ) : (
           <div className="nr-channel-list">
@@ -33,14 +34,17 @@ export function ChannelSelector({
                 style={{ textAlign: "left" }}
                 onClick={() => onSelect(ch)}
               >
-                {ch.name} · {ch.configured ? `${ch.adapter.toUpperCase()} catalogued, unverified` : "no stream source"}
+                {ch.name} ·{" "}
+                {ch.configured
+                  ? `${ch.adapter.toUpperCase()} répertorié, non vérifié`
+                  : "aucune source de flux"}
               </button>
             ))}
           </div>
         )}
         <div style={{ marginTop: "0.85rem" }}>
           <button type="button" className="nr-chip" onClick={onClose}>
-            Return to newsroom
+            Retour au tableau
           </button>
         </div>
       </div>

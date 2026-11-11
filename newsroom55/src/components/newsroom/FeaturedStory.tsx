@@ -23,10 +23,11 @@ export function FeaturedStory({
   if (!story) {
     return (
       <article className="nr-featured">
-        <div className="nr-kicker">Lead story</div>
+        <div className="nr-kicker">À la une</div>
         <div className="nr-empty-featured">
-          No headlines in cache yet. The aggregator is polling verified publisher feeds. This panel stays empty rather
-          than inventing a story.
+          Aucun titre n’est encore en mémoire. L’agrégateur interroge les flux
+          vérifiés des éditeurs. Ce panneau reste vide plutôt que d’inventer
+          une nouvelle.
         </div>
       </article>
     );
@@ -39,7 +40,7 @@ export function FeaturedStory({
       <div className="nr-meta">
         <span>{story.source}</span>
         <span>{formatNewsTime(story.published_at, timezone)}</span>
-        <span>{story.priority}</span>
+        <span>{story.priority === "BREAKING" ? "ALERTE" : story.priority}</span>
       </div>
     </article>
   );

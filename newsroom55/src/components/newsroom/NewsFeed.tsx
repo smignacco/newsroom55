@@ -59,7 +59,7 @@ export function NewsFeed({
       </div>
       <div className="nr-filters">
         <button type="button" className={`nr-filter ${category === null ? "active" : ""}`} onClick={() => onCategory(null)}>
-          All
+          Tout
         </button>
         {CATEGORIES.map((c) => (
           <button
@@ -75,7 +75,9 @@ export function NewsFeed({
       <FeaturedStory story={featured} timezone={timezone} onOpen={onOpen} />
       <div className="nr-headlines">
         {headlines.length === 0 ? (
-          <div className="nr-empty-news">Waiting for publisher items in this category.</div>
+          <div className="nr-empty-news">
+            En attente de nouvelles des éditeurs dans cette catégorie.
+          </div>
         ) : (
           headlines.map((story) => (
             <button

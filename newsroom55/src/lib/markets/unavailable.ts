@@ -3,7 +3,7 @@ import { unconfiguredQuotes } from "@/lib/markets/provider";
 
 export class UnavailableProvider implements MarketProvider {
   id = "none";
-  name = "Unconfigured";
+  name = "Non configuré";
   configured = false;
   delayed = false;
 

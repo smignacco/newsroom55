@@ -119,7 +119,7 @@ textarea {
 .nr-header {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1.5rem;
   padding: 0 var(--nr-gutter);

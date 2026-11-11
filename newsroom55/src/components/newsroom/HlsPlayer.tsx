@@ -55,7 +55,7 @@ export function HlsPlayer({
       try {
         await video.play();
       } catch {
-        fail("Lecture automatique bloquée. Touchez Audio ready puis réessayez.");
+        fail("Lecture automatique bloquée. Touchez « Audio actif », puis réessayez.");
       }
     };
     const start = async () => {

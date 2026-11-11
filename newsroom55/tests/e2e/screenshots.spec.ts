@@ -48,7 +48,9 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto("/", { waitUntil: "networkidle" });
     await page.getByTestId("iptv-wait").click();
-    await expect(page.getByRole("dialog", { name: "Channel selection" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("dialog", { name: "Sélection des chaînes" })).toBeVisible({
+      timeout: 10_000,
+    });
     const dest = path.join(media, "newsroom-iptv-wait.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);

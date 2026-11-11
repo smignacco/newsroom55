@@ -10,14 +10,14 @@ function direction(q: Quote): "up" | "down" | "flat" {
 function formatPx(q: Quote): string {
   if (q.price == null) return "—";
   const decimals = Math.abs(q.price) < 0.1 ? 5 : Math.abs(q.price) < 10 ? 4 : 2;
-  return q.price.toLocaleString("en-CA", {
+  return q.price.toLocaleString("fr-CA", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
 function formatChg(q: Quote): string {
-  if (q.changePct == null) return "n/a";
+  if (q.changePct == null) return "n/d";
   const sign = q.changePct > 0 ? "+" : "";
   const arrow = q.changePct > 0 ? "▲" : q.changePct < 0 ? "▼" : "•";
   return `${arrow} ${sign}${q.changePct.toFixed(2)}%`;
@@ -40,6 +40,14 @@ export function MarketTicker({
 }) {
   const unconfigured = board === "UNCONFIGURED";
   const noQuotes = quotes.length === 0;
+  const boardLabel =
+    board === "LIVE"
+      ? "DIRECT"
+      : board === "DELAYED"
+        ? "DIFFÉRÉ"
+        : board === "UNAVAILABLE"
+          ? "INDISPONIBLE"
+          : "NON CONFIGURÉ";
   const seq = (
     <>
       {quotes.map((q) => (
@@ -65,7 +73,7 @@ export function MarketTicker({
     <section className={`nr-ticker ${paused ? "paused" : ""}`} style={{ ["--ticker-speed" as string]: "42s" }}>
       <div className="nr-ticker-label">
         <strong>Marchés</strong>
-        <span>{board}</span>
+        <span>{boardLabel}</span>
       </div>
       {unconfigured || noQuotes ? (
         <div className="nr-unconfigured" data-testid="markets-unconfigured">
@@ -87,7 +95,7 @@ export function MarketTicker({
         </div>
       )}
       <button type="button" className="nr-ticker-status" onClick={onTogglePause}>
-        {providerName} · {paused ? "Hold" : "Scroll"}
+        {providerName} · {paused ? "Pause" : "Défilement"}
       </button>
     </section>
   );

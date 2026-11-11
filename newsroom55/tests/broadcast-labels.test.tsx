@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { BroadcastHeader } from "../src/components/newsroom/BroadcastHeader";
 import { LiveChannel } from "../src/components/newsroom/LiveChannel";
 import { MarketTicker } from "../src/components/newsroom/MarketTicker";
 import type { Quote } from "../src/lib/markets/provider";
@@ -38,6 +39,16 @@ const quote: Quote = {
 };
 
 describe("broadcast labels", () => {
+  it("removes the desk status inscriptions from the header", () => {
+    const html = renderToStaticMarkup(
+      <BroadcastHeader timezone="America/Toronto" />,
+    );
+
+    expect(html).not.toContain("Board online");
+    expect(html).not.toContain("Montréal desk");
+    expect(html).not.toContain("STANDBY");
+  });
+
   it("identifies focus sources by screen number and channel name", () => {
     const html = renderToStaticMarkup(
       <LiveChannel
@@ -61,6 +72,10 @@ describe("broadcast labels", () => {
     expect(html).toContain("nr-multiview-focus");
     expect(html).toContain("ÉCRAN 01");
     expect(html).toContain("Canal Savoir");
+    expect(html).toContain("Vue principale");
+    expect(html).toContain("Choisir une source");
+    expect(html).toContain("Audio actif");
+    expect(html).toContain("Plein écran");
   });
 
   it("shows the full company name beneath the ticker symbol", () => {
@@ -77,5 +92,6 @@ describe("broadcast labels", () => {
 
     expect(html).toContain('<span class="nr-sym">CSCO</span>');
     expect(html).toContain('<span class="nr-company">Cisco Systems, Inc.</span>');
+    expect(html).toContain("Défilement");
   });
 });
