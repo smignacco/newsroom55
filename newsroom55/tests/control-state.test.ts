@@ -54,4 +54,24 @@ describe("board control state", () => {
     expect(updated.focusChannelId).toBe(allIds[1]);
     expect(updated.channelId).toBe(allIds[0]);
   });
+
+  it("persists display commands with an independent revision", async () => {
+    const {
+      getBoardControlState,
+      issueBoardDisplayCommand,
+      updateBoardControlState,
+    } = await import("@/lib/control/state");
+    const before = getBoardControlState();
+    const commanded = issueBoardDisplayCommand("open-story", 42);
+    expect(commanded).toMatchObject({
+      displayCommand: "open-story",
+      displayStoryId: 42,
+      displayCommandRevision: before.displayCommandRevision + 1,
+      revision: before.revision + 1,
+    });
+
+    const regularUpdate = updateBoardControlState({ muted: !commanded.muted });
+    expect(regularUpdate.displayCommandRevision).toBe(commanded.displayCommandRevision);
+    expect(regularUpdate.revision).toBe(commanded.revision + 1);
+  });
 });

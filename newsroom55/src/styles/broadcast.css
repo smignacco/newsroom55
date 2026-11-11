@@ -1831,6 +1831,113 @@ textarea {
   color: var(--nr-accent);
 }
 
+.nr-story-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.8rem, 2vw, 2rem);
+  background: rgba(3, 9, 18, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+.nr-story-modal-panel {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.85fr) minmax(24rem, 1.15fr);
+  width: min(92rem, 100%);
+  height: min(48rem, 88%);
+  overflow: hidden;
+  border: 1px solid var(--nr-line);
+  background: #07111d;
+  box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.55);
+}
+
+.nr-story-modal-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(1.2rem, 2.5vw, 2.6rem);
+  border-right: 1px solid var(--nr-line-dim);
+}
+
+.nr-story-modal-copy h3 {
+  margin: 0.9rem 0 1rem;
+  font-family: var(--font-sora), sans-serif;
+  font-size: clamp(1.25rem, 2vw, 2.3rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+
+.nr-story-modal-copy > p {
+  max-height: 45%;
+  overflow: auto;
+  color: var(--nr-text-2);
+  font-size: clamp(0.82rem, 1.2vw, 1.1rem);
+  line-height: 1.55;
+}
+
+.nr-story-modal-copy .nr-meta {
+  margin-top: auto;
+}
+
+.nr-story-modal-copy a {
+  color: var(--nr-accent);
+}
+
+.nr-story-modal-copy .nr-chip {
+  align-self: flex-start;
+  margin-top: 1.2rem;
+}
+
+.nr-story-modal-site {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+  min-height: 0;
+  background: #eef2f4;
+}
+
+.nr-story-modal-site iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.nr-story-modal-site p {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  color: #41515c;
+  background: #dfe6ea;
+  font-size: 0.65rem;
+  line-height: 1.3;
+}
+
+@media (max-width: 65rem), (max-height: 42rem) {
+  .nr-story-modal-panel {
+    grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
+    height: 94%;
+  }
+}
+
+@media (max-width: 48rem) {
+  .nr-story-modal-panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .nr-story-modal-copy {
+    padding: 1rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--nr-line-dim);
+  }
+
+  .nr-story-modal-copy > p {
+    display: none;
+  }
+}
+
 .nr-demo-ribbon {
   position: absolute;
   top: 0.55rem;
@@ -3364,6 +3471,80 @@ textarea {
   margin-top: 1rem;
 }
 
+.remote-health-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.remote-health-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(130, 184, 211, 0.16);
+  border-radius: 0.7rem;
+  color: #dce8ef;
+  background: rgba(13, 32, 48, 0.88);
+  font-size: 0.8rem;
+}
+
+.remote-health-toggle input {
+  width: 2.8rem;
+  height: 1.55rem;
+  margin: 0;
+  accent-color: var(--remote-cyan);
+}
+
+.remote-board-reload,
+.remote-close-story {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.55rem;
+  border: 1px solid rgba(53, 198, 244, 0.35);
+  border-radius: 0.7rem;
+  color: #d9f5ff;
+  background: rgba(53, 198, 244, 0.08);
+  font: 600 0.78rem/1 "IBM Plex Sans", sans-serif;
+}
+
+.remote-close-story {
+  margin: 0 0 0.55rem;
+  border-color: rgba(243, 189, 97, 0.32);
+  color: #ffe7bd;
+  background: rgba(243, 189, 97, 0.08);
+}
+
+.remote-story-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.remote-story-list button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 4rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(130, 184, 211, 0.14);
+  border-radius: 0.7rem;
+  color: #dce8ef;
+  background: rgba(13, 32, 48, 0.88);
+  text-align: left;
+}
+
+.remote-story-list span {
+  color: var(--remote-cyan);
+  font: 500 0.58rem/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.remote-story-list strong {
+  font: 500 0.78rem/1.3 "IBM Plex Sans", sans-serif;
+}
+
 .remote-layout-picker {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3571,7 +3752,11 @@ textarea {
 .remote-layout-picker button:disabled,
 .remote-view-picker button:disabled,
 .remote-source-actions button:disabled,
-.remote-source-grid select:disabled {
+.remote-source-grid select:disabled,
+.remote-health-toggle input:disabled,
+.remote-board-reload:disabled,
+.remote-close-story:disabled,
+.remote-story-list button:disabled {
   cursor: wait;
   opacity: 0.58;
 }

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { RemoteControl } from "@/components/remote/RemoteControl";
 import { boot } from "@/lib/boot";
 import { getBoardControlState } from "@/lib/control/state";
+import { healthSettings } from "@/lib/health/service";
+import { listStories } from "@/lib/news/aggregator";
 import { publicChannels } from "@/lib/video/player";
 import { readSession } from "@/lib/security/auth";
 
@@ -20,6 +22,8 @@ export default async function RemotePage() {
       csrf={session.csrf}
       initialState={getBoardControlState()}
       channels={channels}
+      initialHealth={healthSettings()}
+      stories={listStories(20)}
     />
   );
 }

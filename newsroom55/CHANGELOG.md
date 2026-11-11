@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.0.0-ha.9
+
+- Ajoute à la télécommande les contrôles d’affichage Activity & Sleep et une
+  commande pour recharger le tableau.
+- Permet de sélectionner une nouvelle depuis la télécommande, de l’afficher
+  dans une fenêtre détaillée sur le Board et de la fermer à distance.
+- Tente d’afficher le site de l’éditeur dans un cadre isolé, avec un lien de
+  remplacement lorsque l’éditeur interdit l’intégration.
+
 ## 1.0.0-ha.8
 
 - Remplace les grandes cases à cocher de l’administration Activity & Sleep par

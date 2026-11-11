@@ -1,5 +1,7 @@
 import { getDb } from "@/lib/database";
 
+export type BoardDisplayCommand = "reload" | "open-story" | "close-story";
+
 export type BoardControlState = {
   channelId: number | null;
   channelIds: number[];
@@ -8,6 +10,9 @@ export type BoardControlState = {
   focusChannelId: number | null;
   muted: boolean;
   powerState: "active" | "standby" | "halfwake";
+  displayCommand: BoardDisplayCommand | null;
+  displayStoryId: number | null;
+  displayCommandRevision: number;
   revision: number;
   updatedAt: string;
 };
@@ -18,6 +23,9 @@ type Row = {
   audio_channel_id: number | null;
   layout_mode: "grid" | "focus";
   focus_channel_id: number | null;
+  display_command: BoardDisplayCommand | null;
+  display_story_id: number | null;
+  display_command_revision: number;
   muted: number;
   power_state: "active" | "standby" | "halfwake";
   revision: number;
@@ -29,7 +37,8 @@ export function getBoardControlState(): BoardControlState {
   const row = database
     .prepare(
       `SELECT channel_id, channel_ids, audio_channel_id, layout_mode,
-              focus_channel_id, muted,
+              focus_channel_id, display_command, display_story_id,
+              display_command_revision, muted,
               power_state, revision, updated_at
        FROM board_control WHERE id = 1`,
     )
@@ -87,9 +96,30 @@ export function getBoardControlState(): BoardControlState {
     focusChannelId,
     muted: Boolean(row.muted),
     powerState: row.power_state,
+    displayCommand: row.display_command,
+    displayStoryId: row.display_story_id,
+    displayCommandRevision: row.display_command_revision,
     revision: row.revision,
     updatedAt: row.updated_at,
   };
+}
+
+export function issueBoardDisplayCommand(
+  command: BoardDisplayCommand,
+  storyId: number | null = null,
+) {
+  getDb()
+    .prepare(
+      `UPDATE board_control SET
+        display_command = ?,
+        display_story_id = ?,
+        display_command_revision = display_command_revision + 1,
+        revision = revision + 1,
+        updated_at = ?
+       WHERE id = 1`,
+    )
+    .run(command, storyId, new Date().toISOString());
+  return getBoardControlState();
 }
 
 export function updateBoardControlState(input: {

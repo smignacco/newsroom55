@@ -3,7 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { BoardControlState } from "@/lib/control/state";
+import type { NewsStory } from "@/lib/news/aggregator";
 import type { PublicChannel } from "@/lib/video/player";
+
+type HealthDisplaySettings = {
+  enabled: boolean;
+  privacyMode: boolean;
+  showAverage: boolean;
+  showPhases: boolean;
+  showActiveEnergy: boolean;
+};
+
+type HealthToggleKey = keyof HealthDisplaySettings;
 
 type Action =
   | "mute"
@@ -15,19 +26,28 @@ type Action =
   | `source-${number}`
   | `audio-${number}`
   | `focus-${number}`
+  | `health-${HealthToggleKey}`
+  | `story-${number}`
   | "mode-grid"
-  | "mode-focus";
+  | "mode-focus"
+  | "reload-board"
+  | "close-story";
 
 export function RemoteControl({
   csrf,
   initialState,
   channels,
+  initialHealth,
+  stories,
 }: {
   csrf: string;
   initialState: BoardControlState;
   channels: PublicChannel[];
+  initialHealth: HealthDisplaySettings;
+  stories: NewsStory[];
 }) {
   const [state, setState] = useState(initialState);
+  const [health, setHealth] = useState(initialHealth);
   const [pending, setPending] = useState<Action | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -52,6 +72,43 @@ export function RemoteControl({
       }
       setState(data as BoardControlState);
       if (success) setNotice(success);
+    } catch {
+      setError("Impossible de joindre le serveur.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function updateHealth(key: HealthToggleKey, value: boolean) {
+    const action: Action = `health-${key}`;
+    setPending(action);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/health", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-csrf-token": csrf },
+        body: JSON.stringify({ settings: { [key]: value } }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      if (!response.ok) {
+        setError(data?.error || "La configuration n’a pas pu être enregistrée.");
+        return;
+      }
+      setHealth((current) => ({ ...current, [key]: value }));
+      const reload = await fetch("/api/admin/control", {
+        method: "PATCH",
+        headers: { "content-type": "application/json", "x-csrf-token": csrf },
+        body: JSON.stringify({ displayCommand: "reload" }),
+      });
+      if (!reload.ok) {
+        setError("Configuration enregistrée, mais le tableau n’a pas pu être rechargé.");
+        return;
+      }
+      setState((await reload.json()) as BoardControlState);
+      setNotice("Affichage personnel mis à jour sur le tableau.");
     } catch {
       setError("Impossible de joindre le serveur.");
     } finally {
@@ -255,6 +312,88 @@ export function RemoteControl({
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="remote-control-section" aria-label="Affichage du tableau">
+        <div className="remote-section-title">
+          <h2>Affichage</h2>
+          <span>Activity & Sleep</span>
+        </div>
+        <div className="remote-health-grid">
+          {(
+            [
+              ["enabled", "Afficher le panneau"],
+              ["privacyMode", "Mode confidentiel"],
+              ["showAverage", "Moyenne sommeil"],
+              ["showPhases", "Phases sommeil"],
+              ["showActiveEnergy", "Énergie active"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="remote-health-toggle">
+              <span>{label}</span>
+              <input
+                type="checkbox"
+                checked={health[key]}
+                disabled={pending !== null}
+                onChange={(event) => void updateHealth(key, event.target.checked)}
+              />
+            </label>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="remote-board-reload"
+          disabled={pending !== null}
+          onClick={() =>
+            void update(
+              { displayCommand: "reload" },
+              "reload-board",
+              "Rechargement du tableau demandé.",
+            )
+          }
+        >
+          {pending === "reload-board" ? "Rechargement…" : "Recharger NEWSROOM"}
+        </button>
+      </section>
+
+      <section className="remote-control-section" aria-label="Nouvelles à l’écran">
+        <div className="remote-section-title">
+          <h2>Nouvelles</h2>
+          <span>Ouvrir sur le Board</span>
+        </div>
+        <button
+          type="button"
+          className="remote-close-story"
+          disabled={pending !== null}
+          onClick={() =>
+            void update(
+              { displayCommand: "close-story" },
+              "close-story",
+              "Nouvelle fermée sur le tableau.",
+            )
+          }
+        >
+          {pending === "close-story" ? "Fermeture…" : "Fermer la nouvelle à l’écran"}
+        </button>
+        <div className="remote-story-list">
+          {stories.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              disabled={pending !== null}
+              onClick={() =>
+                void update(
+                  { displayCommand: "open-story", storyId: item.id },
+                  `story-${item.id}`,
+                  "Nouvelle affichée sur le tableau.",
+                )
+              }
+            >
+              <span>{item.category} · {item.source}</span>
+              <strong>{item.title}</strong>
+            </button>
+          ))}
         </div>
       </section>
 

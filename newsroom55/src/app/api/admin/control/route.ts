@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { boot } from "@/lib/boot";
 import { getDb } from "@/lib/database";
-import { getBoardControlState, updateBoardControlState } from "@/lib/control/state";
+import {
+  getBoardControlState,
+  issueBoardDisplayCommand,
+  updateBoardControlState,
+} from "@/lib/control/state";
 import { sendRoomOsCommand, type RoomOsAction } from "@/lib/roomos/client";
 import { requireAdmin } from "@/lib/security/auth";
 
@@ -24,8 +28,26 @@ const schema = z
     muted: z.boolean().optional(),
     power: z.enum(["standby", "signage", "wake"]).optional(),
     volume: z.enum(["up", "down"]).optional(),
+    displayCommand: z.enum(["reload", "open-story", "close-story"]).optional(),
+    storyId: z.number().int().positive().optional(),
   })
-  .refine((value) => Object.keys(value).length > 0);
+  .refine((value) => Object.keys(value).length > 0)
+  .superRefine((value, context) => {
+    if (value.displayCommand === "open-story" && value.storyId === undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "storyId is required to open a story",
+        path: ["storyId"],
+      });
+    }
+    if (value.storyId !== undefined && value.displayCommand !== "open-story") {
+      context.addIssue({
+        code: "custom",
+        message: "storyId is only valid with open-story",
+        path: ["storyId"],
+      });
+    }
+  });
 
 export async function GET(req: NextRequest) {
   await boot();
@@ -40,6 +62,24 @@ export async function PATCH(req: NextRequest) {
   if (!auth.ok) return auth.response;
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  if (parsed.data.displayCommand === "open-story") {
+    const story = getDb()
+      .prepare("SELECT id FROM news_items WHERE id = ?")
+      .get(parsed.data.storyId) as { id: number } | undefined;
+    if (!story) {
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
+    }
+  }
+
+  if (parsed.data.displayCommand) {
+    return NextResponse.json(
+      issueBoardDisplayCommand(
+        parsed.data.displayCommand,
+        parsed.data.displayCommand === "open-story" ? parsed.data.storyId : null,
+      ),
+    );
+  }
 
   const current = getBoardControlState();
   const requestedIds =

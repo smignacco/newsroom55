@@ -180,6 +180,12 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.getByRole("heading", { name: "Sources" })).toBeVisible();
     await expect(page.getByLabel("Chaîne de la source 1")).toBeVisible();
     await expect(page.locator(".remote-view-picker")).toContainText("Focus");
+    await expect(page.getByRole("heading", { name: "Affichage" })).toBeVisible();
+    await expect(page.getByLabel("Afficher le panneau")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Recharger NEWSROOM" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Nouvelles" })).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Audio actif|Écouter/ }),
     ).toBeVisible();
@@ -221,5 +227,32 @@ test.describe("Centre de nouvelles visual board", () => {
       await audio.click();
       await expect(audio).toContainText("Réactiver le son");
     }
+
+    const storyButton = page.locator(".remote-story-list button").first();
+    await expect(storyButton).toBeVisible();
+    const board = await page.context().newPage();
+    await board.setViewportSize({ width: 1920, height: 1080 });
+    await board.goto("/", { waitUntil: "domcontentloaded" });
+    const videoBefore = await board.locator("video").first().elementHandle();
+    await storyButton.click();
+    await expect(board.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
+    await expect(board.locator(".nr-story-modal-site")).toBeVisible();
+    const videoAfter = await board.locator("video").first().elementHandle();
+    if (videoBefore && videoAfter) {
+      expect(
+        await videoBefore.evaluate((node, comparison) => node === comparison, videoAfter),
+      ).toBe(true);
+    }
+    const modalDest = path.join(media, "newsroom-remote-story-modal.png");
+    await board.screenshot({ path: modalDest, fullPage: false });
+    expect(fs.existsSync(modalDest)).toBe(true);
+
+    await page.getByRole("button", { name: "Fermer la nouvelle à l’écran" }).click();
+    await expect(board.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
+    const boardReloaded = board.waitForEvent("load");
+    await page.getByRole("button", { name: "Recharger NEWSROOM" }).click();
+    await boardReloaded;
+    await expect(board.getByText("CENTRE DE NOUVELLES")).toBeVisible();
+    await board.close();
   });
 });

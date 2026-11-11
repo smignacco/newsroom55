@@ -26,6 +26,9 @@ const BOARD_CONTROL_COLUMNS: Record<string, string> = {
   audio_channel_id: "INTEGER",
   layout_mode: "TEXT NOT NULL DEFAULT 'grid'",
   focus_channel_id: "INTEGER",
+  display_command: "TEXT",
+  display_story_id: "INTEGER",
+  display_command_revision: "INTEGER NOT NULL DEFAULT 0",
 };
 
 function migrate(database: Database.Database) {

@@ -14,6 +14,16 @@ import { MarketTicker } from "@/components/newsroom/MarketTicker";
 import { StatusStrip } from "@/components/newsroom/StatusStrip";
 import type { PlaybackState } from "@/components/newsroom/HlsPlayer";
 
+function articleUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export function NewsroomBoard({
   initial,
   initialControl,
@@ -48,6 +58,8 @@ export function NewsroomBoard({
   const [interacting, setInteracting] = useState(false);
   const [videoState, setVideoState] = useState<PlaybackState>("idle");
   const controlRevision = useRef(initialControl.revision);
+  const displayCommandRevision = useRef(initialControl.displayCommandRevision);
+  const stories = useRef(initial.stories);
 
   const refresh = useCallback(async () => {
     try {
@@ -81,12 +93,34 @@ export function NewsroomBoard({
   }, [refresh]);
 
   useEffect(() => {
+    stories.current = snapshot.stories;
+  }, [snapshot.stories]);
+
+  useEffect(() => {
     const pollControl = async () => {
       if (document.hidden) return;
       try {
         const response = await fetch("/api/control", { cache: "no-store" });
         if (!response.ok) return;
         const control = (await response.json()) as BoardControlState;
+        if (control.displayCommandRevision !== displayCommandRevision.current) {
+          displayCommandRevision.current = control.displayCommandRevision;
+          if (control.displayCommand === "reload") {
+            window.location.reload();
+            return;
+          }
+          if (control.displayCommand === "close-story") {
+            setStory(null);
+          } else if (
+            control.displayCommand === "open-story" &&
+            control.displayStoryId !== null
+          ) {
+            const selectedStory = stories.current.find(
+              (candidate) => candidate.id === control.displayStoryId,
+            );
+            if (selectedStory) setStory(selectedStory);
+          }
+        }
         if (control.revision === controlRevision.current) return;
         controlRevision.current = control.revision;
         setSelectedChannelIds(control.channelIds);
@@ -127,6 +161,7 @@ export function NewsroomBoard({
   }, [category, snapshot]);
 
   const performance = snapshot.appearance.animations === "reduced";
+  const selectedArticleUrl = articleUrl(story?.url ?? null);
   const selectedChannels = selectedChannelIds.flatMap((id) => {
     const channel = snapshot.channels.find((candidate) => candidate.id === id);
     return channel ? [channel] : [];
@@ -197,29 +232,54 @@ export function NewsroomBoard({
       />
 
       {story ? (
-        <div className="nr-drawer" onClick={() => setStory(null)}>
-          <div className="nr-drawer-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="nr-kicker">
-              {story.category} · {story.priority === "BREAKING" ? "ALERTE" : story.priority}
-            </div>
-            <h3>{story.title}</h3>
-            <p>
-              {story.summary ||
-                "Ouvrez la page de l’éditeur pour lire l’article complet. Seuls le titre et les métadonnées sont affichés ici."}
-            </p>
-            <div className="nr-meta">
-              <span>{story.source}</span>
-              {story.url ? (
-                <a href={story.url} target="_blank" rel="noopener noreferrer">
-                  Article original
-                </a>
-              ) : null}
-            </div>
-            <div style={{ marginTop: "1rem" }}>
+        <div className="nr-story-modal" onClick={() => setStory(null)}>
+          <div
+            className="nr-story-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nr-story-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <section className="nr-story-modal-copy">
+              <div className="nr-kicker">
+                {story.category} · {story.priority === "BREAKING" ? "ALERTE" : story.priority}
+              </div>
+              <h3 id="nr-story-title">{story.title}</h3>
+              <p>
+                {story.summary ||
+                  "Ouvrez la page de l’éditeur pour lire l’article complet. Seuls le titre et les métadonnées sont affichés ici."}
+              </p>
+              <div className="nr-meta">
+                <span>{story.source}</span>
+                {selectedArticleUrl ? (
+                  <a href={selectedArticleUrl} target="_blank" rel="noopener noreferrer">
+                    Article original
+                  </a>
+                ) : null}
+              </div>
               <button type="button" className="nr-chip" onClick={() => setStory(null)}>
                 Fermer
               </button>
-            </div>
+            </section>
+            <section className="nr-story-modal-site" aria-label="Site de l’éditeur">
+              {selectedArticleUrl ? (
+                <>
+                  <iframe
+                    title={`Article de ${story.source}`}
+                    src={selectedArticleUrl}
+                    sandbox="allow-scripts allow-forms allow-popups"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                  />
+                  <p>
+                    Certains éditeurs bloquent l’affichage intégré. Utilisez « Article
+                    original » dans ce cas.
+                  </p>
+                </>
+              ) : (
+                <p>Aucune page Web valide n’est disponible pour cette nouvelle.</p>
+              )}
+            </section>
           </div>
         </div>
       ) : null}
