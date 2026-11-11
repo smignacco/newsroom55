@@ -7,8 +7,9 @@ import { CATEGORIES } from "@/lib/news/classify";
 import { TIMEZONES } from "@/lib/time";
 import { TelevisionManager } from "@/components/admin/TelevisionManager";
 import { FinanceManager } from "@/components/admin/FinanceManager";
+import { HealthManager } from "@/components/admin/HealthManager";
 
-type Tab = "news" | "finance" | "tv" | "look" | "alerts";
+type Tab = "news" | "finance" | "health" | "tv" | "look" | "alerts";
 
 async function api(path: string, csrf: string, init?: RequestInit) {
   const res = await fetch(path, {
@@ -99,6 +100,7 @@ export function AdminConsole({ username, csrf }: { username: string; csrf: strin
             [
               ["news", "News"],
               ["finance", "Finance"],
+              ["health", "Activity & Sleep"],
               ["tv", "Television"],
               ["look", "Appearance"],
               ["alerts", "Alerts"],
@@ -164,6 +166,8 @@ export function AdminConsole({ username, csrf }: { username: string; csrf: strin
           ) : null}
 
           {tab === "finance" ? <FinanceManager csrf={csrf} /> : null}
+
+          {tab === "health" ? <HealthManager csrf={csrf} /> : null}
 
           {tab === "tv" ? <TelevisionManager csrf={csrf} /> : null}
 

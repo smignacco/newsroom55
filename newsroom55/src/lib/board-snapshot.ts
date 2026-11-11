@@ -2,6 +2,7 @@ import { listStories, featuredStory, sourceHealth } from "@/lib/news/aggregator"
 import { marketStatusPayload } from "@/lib/markets/service";
 import { publicChannels } from "@/lib/video/player";
 import { getSetting } from "@/lib/database";
+import { pulseEnabled } from "@/lib/health/service";
 
 export async function getBoardSnapshot() {
   const timezone = getSetting("timezone", "America/Montreal");
@@ -24,6 +25,9 @@ export async function getBoardSnapshot() {
     video: {
       state: "waiting" as const,
       message: "Authorized IPTV source not connected",
+    },
+    personalPulse: {
+      enabled: pulseEnabled(),
     },
     appearance: {
       layout: getSetting("layout", "broadcast-classic"),

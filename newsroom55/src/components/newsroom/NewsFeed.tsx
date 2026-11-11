@@ -52,7 +52,7 @@ export function NewsFeed({
             .padStart(2, "0")}:${(remaining % 60).toString().padStart(2, "0")}`;
 
   return (
-    <aside className="nr-news">
+    <section className="nr-news">
       <div className="nr-section-head">
         <h2>Fil de nouvelles</h2>
         <span className="nr-kicker nr-refresh-indicator">{refreshLabel}</span>
@@ -96,6 +96,6 @@ export function NewsFeed({
           ))
         )}
       </div>
-    </aside>
+    </section>
   );
 }

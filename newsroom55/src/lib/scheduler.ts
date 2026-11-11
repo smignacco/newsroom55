@@ -3,10 +3,17 @@ import { refreshQuotes, getMarketProvider } from "@/lib/markets/service";
 import { marketRefreshIntervalMs, marketsProviderName } from "@/lib/config";
 import { getSetting } from "@/lib/database";
 import { syncDueIptvPlaylists } from "@/lib/video/playlist-service";
+import {
+  healthSyncIntervalMs,
+  pulseEnabled,
+  syncHealthData,
+} from "@/lib/health/service";
+import { homeAssistantConfigured } from "@/lib/home-assistant/client";
 
 let newsTimer: NodeJS.Timeout | null = null;
 let marketsTimer: NodeJS.Timeout | null = null;
 let iptvTimer: NodeJS.Timeout | null = null;
+let healthTimer: NodeJS.Timeout | null = null;
 
 declare global {
   var __newsroomSchedulerStarted: boolean | undefined;
@@ -43,6 +50,18 @@ export function startScheduler() {
     }
   };
 
+  const runHealth = async () => {
+    if (!pulseEnabled() || !homeAssistantConfigured()) return;
+    try {
+      await syncHealthData();
+    } catch (err) {
+      console.warn(
+        "[newsroom55] health cycle failed",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  };
+
   const runNewsAndSchedule = async () => {
     await runNews();
     const seconds = Math.min(3600, Math.max(60, Number(getSetting("news_interval_sec", "180")) || 180));
@@ -59,8 +78,15 @@ export function startScheduler() {
     marketsTimer.unref?.();
   };
 
+  const runHealthAndSchedule = async () => {
+    await runHealth();
+    healthTimer = setTimeout(runHealthAndSchedule, healthSyncIntervalMs());
+    healthTimer.unref?.();
+  };
+
   void runNewsAndSchedule();
   void runMarketsAndSchedule();
+  void runHealthAndSchedule();
   void runIptv();
   iptvTimer = setInterval(runIptv, 60_000);
   iptvTimer.unref?.();

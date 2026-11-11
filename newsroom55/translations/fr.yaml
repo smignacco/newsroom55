@@ -23,6 +23,18 @@ configuration:
   twelve_data_max_symbols:
     name: "Maximum de symboles Twelve Data"
     description: "Plafond de 6 pour limiter les crédits API."
+  ha_base_url:
+    name: "URL de Home Assistant"
+    description: "URL locale complète, par exemple http://homeassistant.local:8123."
+  ha_token:
+    name: "Jeton Home Assistant"
+    description: "Jeton d’accès longue durée dédié. Il reste privé dans le conteneur."
+  ha_sync_interval_seconds:
+    name: "Intervalle de synchronisation santé"
+    description: "Secondes entre les lectures Home Assistant (300 recommandé)."
+  activity_pulse_enabled:
+    name: "Activer Activity & Sleep Pulse"
+    description: "Autorise le module personnel. Son affichage demeure contrôlé dans /admin."
   roomos_device_ip:
     name: "Adresse du Cisco Board"
     description: "IP locale du Board, seulement si /remote doit le piloter."

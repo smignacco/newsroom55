@@ -132,4 +132,52 @@ CREATE TABLE IF NOT EXISTS breaking_rules (
   level TEXT NOT NULL,
   enabled INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE IF NOT EXISTS health_sensor_mappings (
+  metric TEXT PRIMARY KEY,
+  entity_id TEXT NOT NULL,
+  unit TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activity_daily_totals (
+  activity_date TEXT PRIMARY KEY,
+  timezone TEXT NOT NULL,
+  steps INTEGER,
+  exercise_minutes REAL,
+  active_energy_kcal REAL,
+  move_goal_kcal REAL,
+  exercise_goal_minutes REAL,
+  stand_hours REAL,
+  source_updated_at TEXT,
+  synced_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sleep_nightly_totals (
+  night_date TEXT PRIMARY KEY,
+  timezone TEXT NOT NULL,
+  total_minutes REAL NOT NULL,
+  in_bed_minutes REAL,
+  awake_minutes REAL,
+  core_minutes REAL,
+  deep_minutes REAL,
+  rem_minutes REAL,
+  source_updated_at TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  reliable INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_daily_date
+  ON activity_daily_totals(activity_date DESC);
+CREATE INDEX IF NOT EXISTS idx_sleep_nightly_date
+  ON sleep_nightly_totals(night_date DESC);
+
+CREATE TABLE IF NOT EXISTS health_sync_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  last_attempt_at TEXT,
+  last_success_at TEXT,
+  last_error TEXT,
+  last_discovery_at TEXT,
+  discovered_entities TEXT NOT NULL DEFAULT '[]'
+);
 `;

@@ -44,6 +44,12 @@ This folder is a self-contained Home Assistant app. Add
 required). Do not create a `.env` file on Home Assistant OS: options are stored
 by Supervisor and the session secret is generated under `/data`.
 
+Activity & Sleep Pulse is disabled by default. Configure its Home Assistant
+URL and dedicated long-lived token in **Configuration**, then use
+`/admin` → **Activity & Sleep** to discover and map Apple Health entities.
+The token is server-only and personal aggregates never enter `/api/board`.
+See [DOCS.md](./DOCS.md) for the complete setup.
+
 ## What is live vs unconfigured
 
 | Module | State |
@@ -51,6 +57,7 @@ by Supervisor and the session secret is generated under `/data`.
 | News | Live when publisher RSS fetches succeed (Radio-Canada, BBC, La Presse, CNBC, TechCrunch, The Verge — verified 2026-11-10) |
 | Markets | Cboe delayed US quotes work without a key. Optional Twelve Data symbols are routed separately in `hybrid` mode. No prices are invented. |
 | IPTV | 1–4 concurrent protected HLS streams; other adapter types remain stubs. |
+| Activity & Sleep | Optional Apple Health summaries through Home Assistant; private display authorization and privacy mode required. |
 | RoomOS | Documented, **not proven on a Board Pro 55 G2 in this project** |
 
 ## Tests

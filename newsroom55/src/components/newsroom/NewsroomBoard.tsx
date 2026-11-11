@@ -8,7 +8,7 @@ import type { NewsStory } from "@/lib/news/aggregator";
 import type { Quote } from "@/lib/markets/provider";
 import { BroadcastHeader } from "@/components/newsroom/BroadcastHeader";
 import { LiveChannel } from "@/components/newsroom/LiveChannel";
-import { NewsFeed } from "@/components/newsroom/NewsFeed";
+import { RightRail } from "@/components/newsroom/RightRail";
 import { BreakingNews } from "@/components/newsroom/BreakingNews";
 import { MarketTicker } from "@/components/newsroom/MarketTicker";
 import { StatusStrip } from "@/components/newsroom/StatusStrip";
@@ -164,15 +164,19 @@ export function NewsroomBoard({
           else void document.exitFullscreen?.();
         }}
       />
-      <NewsFeed
-        featured={featured}
-        headlines={headlines}
-        category={category}
-        timezone={snapshot.appearance.timezone}
-        lastRefresh={snapshot.newsHealth.lastFetch}
-        refreshIntervalSec={snapshot.appearance.newsRefreshIntervalSec}
-        onCategory={setCategory}
-        onOpen={setStory}
+      <RightRail
+        pulseEnabled={snapshot.personalPulse.enabled}
+        breaking={Boolean(snapshot.alert)}
+        newsFeed={{
+          featured,
+          headlines,
+          category,
+          timezone: snapshot.appearance.timezone,
+          lastRefresh: snapshot.newsHealth.lastFetch,
+          refreshIntervalSec: snapshot.appearance.newsRefreshIntervalSec,
+          onCategory: setCategory,
+          onOpen: setStory,
+        }}
       />
       <BreakingNews story={snapshot.alert} timezone={snapshot.appearance.timezone} />
       <MarketTicker

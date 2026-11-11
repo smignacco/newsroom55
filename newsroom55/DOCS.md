@@ -14,6 +14,32 @@ Le port sert HTTP sur le réseau local. Ne l’exposez jamais directement à
 Internet. Pour un accès distant, utilisez le VPN Home Assistant ou un proxy
 HTTPS correctement configuré.
 
+## Activity & Sleep Pulse
+
+Le module personnel est facultatif et désactivé par défaut.
+
+1. Sur l’iPhone, ouvrir **Home Assistant Companion → Réglages → Companion App
+   → Capteurs → Apple Santé**, puis activer les capteurs d’activité et de
+   sommeil voulus. Les noms d’entités réels peuvent différer des exemples.
+2. Dans le profil Home Assistant, créer un jeton d’accès longue durée dédié.
+   Ne jamais le coller dans une URL, un fichier Git ou le navigateur du Board.
+3. Dans la **Configuration** de NEWSROOM55, renseigner l’URL locale Home
+   Assistant, le jeton, conserver l’intervalle de 300 secondes et activer
+   Activity & Sleep Pulse. Enregistrer puis redémarrer l’application.
+4. Ouvrir `/admin` → **Activity & Sleep**, tester la connexion, découvrir les
+   capteurs, vérifier les associations et enregistrer les objectifs désirés.
+   Aucun objectif n’est obligatoire.
+5. Depuis le navigateur qui affiche le tableau (le Board lui-même), se
+   connecter une fois à `/admin` et choisir **Autoriser cet écran**. Le jeton
+   Home Assistant reste côté serveur; seul un cookie signé `HttpOnly` autorise
+   la lecture de la synthèse.
+
+Le mode confidentiel masque immédiatement toutes les mesures. L’historique
+Recorder de Home Assistant améliore la reconstruction des sept dernières
+nuits; si son historique est incomplet, NEWSROOM affiche le nombre réel de
+nuits utilisées. Les phases absentes restent absentes et ne sont jamais
+transformées en zéro.
+
 ## Marchés
 
 Le fournisseur `hybrid` utilise gratuitement les données différées Cboe pour

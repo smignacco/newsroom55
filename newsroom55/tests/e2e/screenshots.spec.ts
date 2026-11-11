@@ -12,7 +12,7 @@ test.describe("Centre de nouvelles visual board", () => {
   test("1920x1080 board", async ({ page }) => {
     ensureDir();
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("CENTRE DE NOUVELLES")).toBeVisible();
     await expect(page.locator('img[src="/cisco-logo.png"]')).toBeVisible();
     await expect(page.getByText(/Actualisation (\d{2}:\d{2}|imminente)/)).toBeVisible();
@@ -26,7 +26,7 @@ test.describe("Centre de nouvelles visual board", () => {
   test("3840x2160 board", async ({ page }) => {
     ensureDir();
     await page.setViewportSize({ width: 3840, height: 2160 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("INFORMATION EN CONTINU")).toBeVisible();
     const dest = path.join(media, "newsroom-3840x2160.png");
     await page.screenshot({ path: dest, fullPage: false });
@@ -36,7 +36,7 @@ test.describe("Centre de nouvelles visual board", () => {
   test("1366x768 board", async ({ page }) => {
     ensureDir();
     await page.setViewportSize({ width: 1366, height: 768 });
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("CENTRE DE NOUVELLES")).toBeVisible();
     const dest = path.join(media, "newsroom-1366x768.png");
     await page.screenshot({ path: dest, fullPage: false });
@@ -46,8 +46,8 @@ test.describe("Centre de nouvelles visual board", () => {
   test("IPTV channel overlay", async ({ page }) => {
     ensureDir();
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto("/", { waitUntil: "networkidle" });
-    await page.getByTestId("iptv-wait").click();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Choisir une source" }).click();
     await expect(page.getByRole("dialog", { name: "Sélection des chaînes" })).toBeVisible({
       timeout: 10_000,
     });

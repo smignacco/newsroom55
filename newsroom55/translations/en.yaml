@@ -23,6 +23,18 @@ configuration:
   twelve_data_max_symbols:
     name: "Maximum Twelve Data symbols"
     description: "Hard cap of 6 to protect API credits."
+  ha_base_url:
+    name: "Home Assistant URL"
+    description: "Full local URL, for example http://homeassistant.local:8123."
+  ha_token:
+    name: "Home Assistant token"
+    description: "Dedicated long-lived access token. It remains private in the container."
+  ha_sync_interval_seconds:
+    name: "Health sync interval"
+    description: "Seconds between Home Assistant reads (300 recommended)."
+  activity_pulse_enabled:
+    name: "Enable Activity & Sleep Pulse"
+    description: "Allows the personal module. Its display remains controlled in /admin."
   roomos_device_ip:
     name: "Cisco Board address"
     description: "Local Board IP, only if /remote should control the device."

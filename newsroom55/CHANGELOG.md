@@ -1,5 +1,17 @@
 # Journal des modifications
 
+## 1.0.0-ha.6
+
+- Ajout du panneau compact **Activity & Sleep Pulse** dans le rail droit, sans
+  modifier la grille vidéo ni exposer les données dans `/api/board`.
+- Connexion serveur à Apple Santé par l’API REST Home Assistant, découverte et
+  association manuelle des capteurs, synchronisation périodique et historique
+  SQLite sans doublons de nuit.
+- Nouvel onglet d’administration pour la confidentialité, les objectifs
+  facultatifs, les phases de sommeil et l’autorisation explicite de l’écran.
+- Options Home Assistant pour l’URL, le jeton privé, l’intervalle et
+  l’activation du module.
+
 ## 1.0.0-ha.5
 
 - Retrait des mentions « Board online », « Montréal desk » et « STANDBY » du

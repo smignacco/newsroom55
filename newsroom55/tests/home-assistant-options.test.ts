@@ -31,6 +31,10 @@ describe("Home Assistant options", () => {
     expect(env.MARKETS_PROVIDER).toBe("cboe");
     expect(env.TWELVE_DATA_REFRESH_MINUTES).toBe("45");
     expect(env.TWELVE_DATA_MAX_SYMBOLS).toBe("4");
+    expect(env.HA_BASE_URL).toBe("http://homeassistant.local:8123");
+    expect(env.HA_TOKEN).toBe("test-only-placeholder");
+    expect(env.HA_SYNC_INTERVAL_SECONDS).toBe("300");
+    expect(env.ACTIVITY_PULSE_ENABLED).toBe("1");
     expect(env.ROOMOS_PROTOCOL).toBe("https");
     expect(env.ROOMOS_INSECURE_TLS).toBe("0");
     expect(env.FINNHUB_API_KEY).toBeUndefined();
