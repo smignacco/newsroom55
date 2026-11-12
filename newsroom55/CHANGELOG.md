@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.12
+
+- Rend la détection facultative des sous-titres tolérante aux implémentations
+  partielles de `TextTrackList` dans les Web Engines intégrés.
+- Une API de sous-titres indisponible ne peut plus interrompre le rendu du
+  tableau ou des flux vidéo.
+
 ## 1.0.0-ha.11
 
 - Retire automatiquement le bandeau **ALERTE / IMPORTANT** lorsque la nouvelle

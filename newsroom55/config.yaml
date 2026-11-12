@@ -1,5 +1,5 @@
 name: "NEWSROOM55"
-version: "1.0.0-ha.11"
+version: "1.0.0-ha.12"
 slug: "newsroom55"
 description: "Centre de nouvelles, marchés et multivue pour Cisco Board. Configurez le mot de passe administrateur dans l’onglet Configuration — aucun fichier .env."
 stage: "experimental"

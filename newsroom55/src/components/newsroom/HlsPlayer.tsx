@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import Hls from "hls.js";
 import type { PublicChannel } from "@/lib/video/player";
 import { hlsBufferProfile } from "@/lib/video/buffer-profile";
-import { isCaptionTextTrack } from "@/lib/video/captions";
+import { captionTextTracks } from "@/lib/video/captions";
 
 export type PlaybackState = "idle" | "loading" | "playing" | "error";
 
@@ -32,22 +32,39 @@ export function HlsPlayer({
     const video = videoRef.current;
     if (!video) return;
     const hls = hlsRef.current;
-    const hlsTrackCount = hls?.subtitleTracks.length ?? 0;
-    const captionTracks = Array.from(video.textTracks).filter(
-      isCaptionTextTrack,
-    );
+    let hlsTrackCount = 0;
+    try {
+      hlsTrackCount = hls?.subtitleTracks?.length ?? 0;
+    } catch {
+      // Some embedded Web Engines expose only part of the HLS text-track API.
+    }
+    let nativeTracks: TextTrackList | undefined;
+    try {
+      nativeTracks = video.textTracks;
+    } catch {
+      // Treat an incomplete embedded implementation as no caption support.
+    }
+    const captionTracks = captionTextTracks(nativeTracks);
     const available = hlsTrackCount > 0 || captionTracks.length > 0;
     onCaptionsAvailableRef.current(available);
     if (hls) {
-      hls.subtitleDisplay = captionsEnabledRef.current && available;
-      hls.subtitleTrack =
-        captionsEnabledRef.current && hlsTrackCount > 0 ? 0 : -1;
+      try {
+        hls.subtitleDisplay = captionsEnabledRef.current && available;
+        hls.subtitleTrack =
+          captionsEnabledRef.current && hlsTrackCount > 0 ? 0 : -1;
+      } catch {
+        onCaptionsAvailableRef.current(captionTracks.length > 0);
+      }
     }
     captionTracks.forEach((track, index) => {
-      track.mode =
-        captionsEnabledRef.current && available && index === 0
-          ? "showing"
-          : "disabled";
+      try {
+        track.mode =
+          captionsEnabledRef.current && available && index === 0
+            ? "showing"
+            : "disabled";
+      } catch {
+        // Caption support is optional and must never stop video rendering.
+      }
     });
   }, []);
 
