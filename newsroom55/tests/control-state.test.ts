@@ -26,10 +26,24 @@ describe("board control state", () => {
 
   it("persists remote changes and increments the revision", async () => {
     const { getBoardControlState, updateBoardControlState } = await import("@/lib/control/state");
-    expect(getBoardControlState()).toMatchObject({ muted: true, powerState: "active", revision: 0 });
+    expect(getBoardControlState()).toMatchObject({
+      muted: true,
+      captionsEnabled: false,
+      powerState: "active",
+      revision: 0,
+    });
 
-    const updated = updateBoardControlState({ muted: false, powerState: "halfwake" });
-    expect(updated).toMatchObject({ muted: false, powerState: "halfwake", revision: 1 });
+    const updated = updateBoardControlState({
+      muted: false,
+      captionsEnabled: true,
+      powerState: "halfwake",
+    });
+    expect(updated).toMatchObject({
+      muted: false,
+      captionsEnabled: true,
+      powerState: "halfwake",
+      revision: 1,
+    });
   });
 
   it("persists up to four video sources and one audio source", async () => {

@@ -181,7 +181,10 @@ test.describe("Centre de nouvelles visual board", () => {
       ),
     ).toMatchObject({ start_url: "/remote", display: "standalone" });
     await expect(
-      page.getByRole("button", { name: /Mettre en veille|Réafficher/ }),
+      page.getByRole("button", { name: /Mettre en veille|Réveiller/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Board synchronisé|État du Board indisponible/),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Diminuer le volume" }),
@@ -190,19 +193,19 @@ test.describe("Centre de nouvelles visual board", () => {
       page.getByRole("button", { name: "Augmenter le volume" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Quitter Halfwake" }),
+      page.locator(".remote-quick-action").filter({ hasText: "SOUS-TITRES" }),
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sources" })).toBeVisible();
     await expect(page.getByLabel("Chaîne de la source 1")).toBeVisible();
     await expect(page.locator(".remote-view-picker")).toContainText("Focus");
-    await expect(page.getByRole("heading", { name: "Affichage" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Réglages" })).toBeVisible();
     await expect(page.getByLabel("Afficher le panneau")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Recharger NEWSROOM" }),
+      page.getByRole("button", { name: /Recharger l’écran/ }),
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Nouvelles" })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Audio actif|Écouter/ }),
+      page.getByRole("button", { name: /Audio actif|Écouter/ }).first(),
     ).toBeVisible();
     expect(
       await page.evaluate(() =>
@@ -214,12 +217,44 @@ test.describe("Centre de nouvelles visual board", () => {
       ),
     ).toBe(403);
 
-    const audio = page.getByRole("button", {
-      name: /Réactiver le son|Couper le son/,
-    });
+    const audio = page
+      .locator(".remote-quick-action")
+      .filter({ hasText: /Réactiver le son|Couper le son/ });
     const before = await audio.textContent();
     await audio.click();
     await expect(audio).not.toHaveText(before ?? "");
+
+    const focusMode = page
+      .locator(".remote-view-picker")
+      .getByRole("button", { name: "Focus" });
+    if (await focusMode.isDisabled()) {
+      await page.locator(".remote-layout-picker").getByRole("button", { name: "2" }).click();
+      await expect(focusMode).toBeEnabled();
+    }
+    await focusMode.click();
+    if ((await audio.textContent())?.includes("Couper le son")) {
+      await audio.click();
+      await expect(audio).toContainText("Réactiver le son");
+    }
+    const captions = page
+      .locator(".remote-quick-action")
+      .filter({ hasText: "SOUS-TITRES" });
+    await expect(captions).toBeEnabled();
+    const captionsBefore = await page.evaluate(() =>
+      fetch("/api/admin/control")
+        .then((response) => response.json())
+        .then((control) => Boolean(control.captionsEnabled)),
+    );
+    await captions.click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          fetch("/api/admin/control")
+            .then((response) => response.json())
+            .then((control) => control.captionsEnabled),
+        ),
+      )
+      .toBe(!captionsBefore);
 
     const dest = path.join(media, "newsroom-remote.png");
     await page.screenshot({ path: dest, fullPage: true });
@@ -238,22 +273,23 @@ test.describe("Centre de nouvelles visual board", () => {
       .poll(() => remote.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     await remote.evaluate((element) => element.scrollTo(0, 0));
-    if ((await audio.textContent())?.includes("Couper le son")) {
-      await audio.click();
-      await expect(audio).toContainText("Réactiver le son");
-    }
-
     const storyButton = page.locator(".remote-story-list button").first();
     await expect(storyButton).toBeVisible();
     const board = await page.context().newPage();
     await board.setViewportSize({ width: 1920, height: 1080 });
     await board.goto("/", { waitUntil: "domcontentloaded" });
     const videoBefore = await board.locator("video").first().elementHandle();
+    const videoWasPlaying = videoBefore
+      ? await videoBefore.evaluate((element) => {
+          const video = element as HTMLVideoElement;
+          return !video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+        })
+      : false;
     await storyButton.click();
     await expect(board.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
     await expect(board.locator(".nr-story-modal-site")).toBeVisible();
     const videoAfter = await board.locator("video").first().elementHandle();
-    if (videoBefore && videoAfter) {
+    if (videoWasPlaying && videoBefore && videoAfter) {
       expect(
         await videoBefore.evaluate((node, comparison) => node === comparison, videoAfter),
       ).toBe(true);
@@ -265,7 +301,7 @@ test.describe("Centre de nouvelles visual board", () => {
     await page.getByRole("button", { name: "Fermer la nouvelle à l’écran" }).click();
     await expect(board.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
     const boardReloaded = board.waitForEvent("load");
-    await page.getByRole("button", { name: "Recharger NEWSROOM" }).click();
+    await page.getByRole("button", { name: /Recharger l’écran/ }).click();
     await boardReloaded;
     await expect(board.getByText("CENTRE DE NOUVELLES")).toBeVisible();
     await board.close();

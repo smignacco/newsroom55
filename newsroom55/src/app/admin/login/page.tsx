@@ -1,10 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,8 +24,7 @@ export default function AdminLoginPage() {
         return;
       }
       const requested = new URLSearchParams(window.location.search).get("next");
-      router.push(requested === "/remote" ? "/remote" : "/admin");
-      router.refresh();
+      window.location.assign(requested === "/remote" ? "/remote" : "/admin");
     } catch {
       setError("Network error");
       setPending(false);

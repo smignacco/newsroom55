@@ -78,6 +78,8 @@ export function LiveChannel({
   onPlaybackState,
   muted,
   onToggleMute,
+  captionsEnabled,
+  onToggleCaptions,
   onFullscreen,
 }: {
   channels: PublicChannel[];
@@ -93,13 +95,14 @@ export function LiveChannel({
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
   onToggleMute: () => void;
+  captionsEnabled: boolean;
+  onToggleCaptions: () => void;
   onFullscreen: () => void;
 }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [playback, setPlayback] = useState<
     Record<number, { state: PlaybackState; message: string }>
   >({});
-  const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [captionsAvailable, setCaptionsAvailable] = useState<
     Record<number, boolean>
   >({});
@@ -279,7 +282,7 @@ export function LiveChannel({
                 type="button"
                 className={`nr-chip ${captionsEnabled ? "nr-chip-accent" : ""}`}
                 disabled={focusedCaptionsAvailable === false}
-                onClick={() => setCaptionsEnabled((enabled) => !enabled)}
+                onClick={onToggleCaptions}
               >
                 {focusedCaptionsAvailable === false
                   ? "Sous-titres indisponibles"

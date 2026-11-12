@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## 1.0.0-ha.13
+
+- Revoit la télécommande pour une utilisation simple sur iPhone avec contrôles
+  rapides, grandes zones tactiles, navigation fixe et sections hiérarchisées.
+- Ajoute le contrôle distant des sous-titres en mode focus lorsque le son est
+  coupé; l’activation reste conditionnelle à la présence d’une piste dans le
+  flux.
+- Synchronise périodiquement l’état de veille affiché avec le statut réel du
+  Webex Board par l’API RoomOS, sans exposer ses identifiants au navigateur.
+- Fiabilise le retour vers la télécommande après la connexion administrateur.
+
 ## 1.0.0-ha.12
 
 - Rend la détection facultative des sous-titres tolérante aux implémentations

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { BoardControlState } from "@/lib/control/state";
 import type { NewsStory } from "@/lib/news/aggregator";
@@ -15,15 +15,20 @@ type HealthDisplaySettings = {
 };
 
 type HealthToggleKey = keyof HealthDisplaySettings;
+type RemoteControlState = BoardControlState & {
+  roomOsSynchronized?: boolean;
+};
 
 type Action =
   | "mute"
+  | "captions"
   | "power"
   | "wake"
   | "volume-up"
   | "volume-down"
   | `layout-${number}`
   | `source-${number}`
+  | "audio"
   | `audio-${number}`
   | `focus-${number}`
   | `health-${HealthToggleKey}`
@@ -46,11 +51,50 @@ export function RemoteControl({
   initialHealth: HealthDisplaySettings;
   stories: NewsStory[];
 }) {
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState<RemoteControlState>(initialState);
   const [health, setHealth] = useState(initialHealth);
   const [pending, setPending] = useState<Action | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [connected, setConnected] = useState(true);
+  const [roomOsSynchronized, setRoomOsSynchronized] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(new Date());
+
+  useEffect(() => {
+    if (pending !== null) return;
+    let cancelled = false;
+    const sync = async () => {
+      try {
+        const response = await fetch("/api/admin/control", {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("sync failed");
+        const next = (await response.json()) as RemoteControlState;
+        if (!cancelled) {
+          setState(next);
+          setConnected(true);
+          setRoomOsSynchronized(Boolean(next.roomOsSynchronized));
+          setLastSyncedAt(new Date());
+        }
+      } catch {
+        if (!cancelled) setConnected(false);
+      }
+    };
+    void sync();
+    const interval = window.setInterval(() => {
+      if (!document.hidden) void sync();
+    }, 5_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [pending]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 3_000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
   async function update(payload: object, action: Action, success = "") {
     setPending(action);
@@ -71,6 +115,8 @@ export function RemoteControl({
         return;
       }
       setState(data as BoardControlState);
+      setConnected(true);
+      setLastSyncedAt(new Date());
       if (success) setNotice(success);
     } catch {
       setError("Impossible de joindre le serveur.");
@@ -122,6 +168,12 @@ export function RemoteControl({
       ? [state.channelId]
       : [];
   const activeChannel = channels.find((channel) => channel.id === state.audioChannelId);
+  const selectedChannels = selectedIds.flatMap((channelId) => {
+    const channel = channels.find((candidate) => candidate.id === channelId);
+    return channel ? [channel] : [];
+  });
+  const canUseCaptions =
+    state.layoutMode === "focus" && state.muted && selectedIds.length > 1;
 
   function setLayout(count: number) {
     const next = selectedIds.slice(0, count);
@@ -178,24 +230,192 @@ export function RemoteControl({
           <span className="remote-eyebrow">CISCO · BOARD 55</span>
           <h1>Télécommande</h1>
         </div>
-        <span
-          className={`remote-dot ${
-            state.powerState === "active"
-              ? "is-active"
-              : state.powerState === "halfwake"
-                ? "is-halfwake"
-                : ""
-          }`}
-        />
+        <div className="remote-connection" aria-live="polite">
+          <span>
+            {!connected
+              ? "Serveur hors ligne"
+              : roomOsSynchronized
+                ? `Board synchronisé${
+                  lastSyncedAt
+                    ? ` · ${lastSyncedAt.toLocaleTimeString("fr-CA", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : ""
+                  }`
+                : "État du Board indisponible"}
+          </span>
+          <i
+            className={`remote-dot ${
+              !connected
+                ? "is-offline"
+                : !roomOsSynchronized
+                  ? ""
+                  : state.powerState === "active"
+                  ? "is-active"
+                  : state.powerState === "halfwake"
+                    ? "is-halfwake"
+                    : ""
+            }`}
+          />
+        </div>
       </header>
 
       <section className="remote-now">
         <span>MULTIVUE EN ONDES</span>
         <strong>{selectedIds.length} source(s) · {activeChannel?.name ?? "Audio non sélectionné"}</strong>
-        <small>{state.muted ? "Audio général coupé" : "Audio de la source sélectionnée"}</small>
+        <div className="remote-status-chips">
+          <small>{state.layoutMode === "focus" ? "Focus" : "Grille"}</small>
+          <small>{state.muted ? "Son coupé" : "Audio actif"}</small>
+          <small>
+            {state.captionsEnabled
+              ? "Sous-titres demandés"
+              : "Sous-titres désactivés"}
+          </small>
+        </div>
       </section>
 
-      <section className="remote-control-section" aria-label="Gestion multivue">
+      <section
+        className="remote-control-section remote-section-card"
+        id="remote-live"
+        aria-label="Contrôles rapides"
+      >
+        <div className="remote-section-title">
+          <h2>Contrôles rapides</h2>
+          <span>Affichage et audio</span>
+        </div>
+        <div className="remote-quick-grid">
+          <button
+            type="button"
+            className={`remote-quick-action ${state.muted ? "is-on" : ""}`}
+            aria-pressed={state.muted}
+            disabled={pending !== null}
+            onClick={() =>
+              void update(
+                { muted: !state.muted },
+                "mute",
+                state.muted ? "Son activé." : "Son coupé.",
+              )
+            }
+          >
+            <span>{state.muted ? "SON COUPÉ" : "AUDIO"}</span>
+            <strong>{state.muted ? "Réactiver le son" : "Couper le son"}</strong>
+          </button>
+          <button
+            type="button"
+            className={`remote-quick-action ${state.captionsEnabled ? "is-on" : ""}`}
+            aria-pressed={state.captionsEnabled}
+            disabled={pending !== null || (!canUseCaptions && !state.captionsEnabled)}
+            onClick={() =>
+              void update(
+                { captionsEnabled: !state.captionsEnabled },
+                "captions",
+                state.captionsEnabled
+                  ? "Sous-titres désactivés."
+                  : "Sous-titres activés si le flux en fournit.",
+              )
+            }
+          >
+            <span>SOUS-TITRES</span>
+            <strong>{state.captionsEnabled ? "Désactiver" : "Activer"}</strong>
+            {!canUseCaptions && !state.captionsEnabled ? (
+              <small>Focus + son coupé requis</small>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="remote-quick-action"
+            disabled={pending !== null}
+            onClick={() =>
+              void update(
+                { displayCommand: "reload" },
+                "reload-board",
+                "Rechargement du tableau demandé.",
+              )
+            }
+          >
+            <span>AFFICHAGE</span>
+            <strong>Recharger l’écran</strong>
+          </button>
+          <button
+            type="button"
+            className={`remote-quick-action ${state.powerState !== "active" ? "is-on" : ""}`}
+            disabled={pending !== null}
+            onClick={() =>
+              void update(
+                { power: state.powerState === "active" ? "standby" : "wake" },
+                "power",
+                state.powerState === "active" ? "Board mis en veille." : "Board réveillé.",
+              )
+            }
+          >
+            <span>WEBEX BOARD</span>
+            <strong>{state.powerState === "active" ? "Mettre en veille" : "Réveiller"}</strong>
+          </button>
+        </div>
+        <div className="remote-volume-row">
+          <button
+            type="button"
+            disabled={pending !== null}
+            aria-label="Diminuer le volume"
+            onClick={() =>
+              void update(
+                { volume: "down" },
+                "volume-down",
+                "Volume du Board diminué.",
+              )
+            }
+          >
+            −
+          </button>
+          <div>
+            <span>VOLUME</span>
+            <strong>{state.muted ? "Son coupé" : "Contrôle du Board"}</strong>
+          </div>
+          <button
+            type="button"
+            disabled={pending !== null}
+            aria-label="Augmenter le volume"
+            onClick={() =>
+              void update(
+                { volume: "up" },
+                "volume-up",
+                "Volume du Board augmenté.",
+              )
+            }
+          >
+            +
+          </button>
+        </div>
+        <label className="remote-audio-source">
+          <span>Source audio</span>
+          <select
+            value={state.audioChannelId ?? ""}
+            disabled={pending !== null || selectedIds.length === 0}
+            onChange={(event) => {
+              const next = event.target.value ? Number(event.target.value) : null;
+              void update(
+                { audioChannelId: next, muted: next === null },
+                "audio",
+                next === null ? "Audio coupé." : "Source audio modifiée.",
+              );
+            }}
+          >
+            <option value="">Aucune</option>
+            {selectedChannels.map((channel) => (
+              <option key={channel.id} value={channel.id}>
+                {channel.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      <section
+        className="remote-control-section remote-section-card"
+        id="remote-sources"
+        aria-label="Gestion multivue"
+      >
         <div className="remote-section-title">
           <h2>Sources</h2>
           <span>Une à quatre chaînes simultanées</span>
@@ -315,49 +535,11 @@ export function RemoteControl({
         </div>
       </section>
 
-      <section className="remote-control-section" aria-label="Affichage du tableau">
-        <div className="remote-section-title">
-          <h2>Affichage</h2>
-          <span>Activity & Sleep</span>
-        </div>
-        <div className="remote-health-grid">
-          {(
-            [
-              ["enabled", "Afficher le panneau"],
-              ["privacyMode", "Mode confidentiel"],
-              ["showAverage", "Moyenne sommeil"],
-              ["showPhases", "Phases sommeil"],
-              ["showActiveEnergy", "Énergie active"],
-            ] as const
-          ).map(([key, label]) => (
-            <label key={key} className="remote-health-toggle">
-              <span>{label}</span>
-              <input
-                type="checkbox"
-                checked={health[key]}
-                disabled={pending !== null}
-                onChange={(event) => void updateHealth(key, event.target.checked)}
-              />
-            </label>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="remote-board-reload"
-          disabled={pending !== null}
-          onClick={() =>
-            void update(
-              { displayCommand: "reload" },
-              "reload-board",
-              "Rechargement du tableau demandé.",
-            )
-          }
-        >
-          {pending === "reload-board" ? "Rechargement…" : "Recharger NEWSROOM"}
-        </button>
-      </section>
-
-      <section className="remote-control-section" aria-label="Nouvelles à l’écran">
+      <section
+        className="remote-control-section remote-section-card"
+        id="remote-news"
+        aria-label="Nouvelles à l’écran"
+      >
         <div className="remote-section-title">
           <h2>Nouvelles</h2>
           <span>Ouvrir sur le Board</span>
@@ -397,113 +579,35 @@ export function RemoteControl({
         </div>
       </section>
 
-      <section className="remote-control-section" aria-label="Contrôles audio">
+      <section
+        className="remote-control-section remote-section-card"
+        id="remote-settings"
+        aria-label="Affichage du tableau"
+      >
         <div className="remote-section-title">
-          <h2>Audio</h2>
-          <span>Flux et volume du Board</span>
+          <h2>Réglages</h2>
+          <span>Activity & Sleep</span>
         </div>
-        <div className="remote-audio-grid">
-        <button
-          type="button"
-          className={`remote-command remote-command-audio ${!state.muted ? "is-on" : ""}`}
-          disabled={pending !== null}
-          onClick={() =>
-            void update(
-              { muted: !state.muted },
-              "mute",
-              state.muted ? "Audio du flux activé." : "Audio du flux coupé.",
-            )
-          }
-        >
-          <span className="remote-command-icon" aria-hidden>{state.muted ? "M" : "A"}</span>
-          <span>{pending === "mute" ? "Envoi…" : state.muted ? "Réactiver le son" : "Couper le son"}</span>
-        </button>
-          <div className="remote-volume-control">
-            <span>VOLUME DU BOARD</span>
-            <div>
-              <button
-                type="button"
-                aria-label="Diminuer le volume"
+        <div className="remote-health-grid">
+          {(
+            [
+              ["enabled", "Afficher le panneau"],
+              ["privacyMode", "Mode confidentiel"],
+              ["showAverage", "Moyenne sommeil"],
+              ["showPhases", "Phases sommeil"],
+              ["showActiveEnergy", "Énergie active"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="remote-health-toggle">
+              <span>{label}</span>
+              <input
+                type="checkbox"
+                checked={health[key]}
                 disabled={pending !== null}
-                onClick={() =>
-                  void update(
-                    { volume: "down" },
-                    "volume-down",
-                    "Volume du Board diminué.",
-                  )
-                }
-              >
-                {pending === "volume-down" ? "…" : "−"}
-              </button>
-              <button
-                type="button"
-                aria-label="Augmenter le volume"
-                disabled={pending !== null}
-                onClick={() =>
-                  void update(
-                    { volume: "up" },
-                    "volume-up",
-                    "Volume du Board augmenté.",
-                  )
-                }
-              >
-                {pending === "volume-up" ? "…" : "+"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="remote-control-section" aria-label="État du Board">
-        <div className="remote-section-title">
-          <h2>Énergie</h2>
-          <span>
-            {state.powerState === "halfwake"
-              ? "Mode Halfwake"
-              : state.powerState === "standby"
-                ? "En veille"
-                : "Mode actif"}
-          </span>
-        </div>
-        <div className="remote-power-grid">
-        <button
-          type="button"
-          className={`remote-command ${state.powerState === "standby" ? "remote-command-wake" : "remote-command-standby"}`}
-          disabled={pending !== null}
-          onClick={() =>
-            void update(
-              { power: state.powerState === "standby" ? "signage" : "standby" },
-              "power",
-              state.powerState === "standby"
-                ? "Signalisation réaffichée en Halfwake."
-                : "Board mis en veille.",
-            )
-          }
-        >
-          <span className="remote-command-icon" aria-hidden>◉</span>
-          <span>
-            {pending === "power"
-              ? "Commande RoomOS…"
-              : state.powerState === "standby"
-                ? "Réafficher"
-                : "Mettre en veille"}
-          </span>
-        </button>
-          <button
-            type="button"
-            className="remote-command remote-command-active"
-            disabled={pending !== null}
-            onClick={() =>
-              void update(
-                { power: "wake" },
-                "wake",
-                "Halfwake quitté; Board en mode actif.",
-              )
-            }
-          >
-            <span className="remote-command-icon" aria-hidden>↗</span>
-            <span>{pending === "wake" ? "Activation…" : "Quitter Halfwake"}</span>
-          </button>
+                onChange={(event) => void updateHealth(key, event.target.checked)}
+              />
+            </label>
+          ))}
         </div>
       </section>
 
@@ -519,6 +623,13 @@ export function RemoteControl({
         <Link href="/">Voir le tableau</Link>
         <Link href="/admin">Administration</Link>
       </footer>
+
+      <nav className="remote-bottom-nav" aria-label="Navigation de la télécommande">
+        <a href="#remote-live">Direct</a>
+        <a href="#remote-sources">Sources</a>
+        <a href="#remote-news">Nouvelles</a>
+        <a href="#remote-settings">Réglages</a>
+      </nav>
     </main>
   );
 }

@@ -8,7 +8,12 @@ export type RoomOsAction =
   | "volume-up"
   | "volume-down";
 
-function requestRoomOs(path: string, method: "GET" | "POST", body?: string): Promise<string> {
+function requestRoomOs(
+  path: string,
+  method: "GET" | "POST",
+  body?: string,
+  timeoutMs = 10_000,
+): Promise<string> {
   const hostname = process.env.ROOMOS_DEVICE_IP?.trim();
   const username = process.env.ROOMOS_USERNAME?.trim();
   const password = process.env.ROOMOS_PASSWORD;
@@ -26,7 +31,7 @@ function requestRoomOs(path: string, method: "GET" | "POST", body?: string): Pro
         port: protocol === "https" ? 443 : 80,
         path,
         method,
-        timeout: 10_000,
+        timeout: timeoutMs,
         rejectUnauthorized: process.env.ROOMOS_INSECURE_TLS !== "1",
         headers: {
           authorization,
@@ -78,4 +83,30 @@ export function roomOsCommandXml(action: RoomOsAction): string {
 
 export async function sendRoomOsCommand(action: RoomOsAction): Promise<void> {
   await requestRoomOs("/putxml", "POST", roomOsCommandXml(action));
+}
+
+export function parseRoomOsPowerState(
+  xml: string,
+): "active" | "standby" | "halfwake" | null {
+  const value = xml.match(/<State(?:\s[^>]*)?>([^<]+)<\/State>/i)?.[1]
+    ?.trim()
+    .toLowerCase();
+  if (value === "off") return "active";
+  if (value === "halfwake") return "halfwake";
+  if (value === "standby" || value === "enteringstandby") return "standby";
+  return null;
+}
+
+export async function getRoomOsPowerState(): Promise<
+  "active" | "standby" | "halfwake"
+> {
+  const xml = await requestRoomOs(
+    "/getxml?location=%2FStatus%2FStandby%2FState",
+    "GET",
+    undefined,
+    2_500,
+  );
+  const state = parseRoomOsPowerState(xml);
+  if (!state) throw new Error("RoomOS returned an unknown standby state");
+  return state;
 }

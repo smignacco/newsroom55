@@ -51,6 +51,9 @@ export function NewsroomBoard({
     initialControl.focusChannelId,
   );
   const [muted, setMuted] = useState(initialControl.muted);
+  const [captionsEnabled, setCaptionsEnabled] = useState(
+    initialControl.captionsEnabled,
+  );
   const [paused, setPaused] = useState(false);
   const [story, setStory] = useState<NewsStory | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -156,6 +159,7 @@ export function NewsroomBoard({
         setLayoutMode(control.layoutMode);
         setFocusChannelId(control.focusChannelId);
         setMuted(control.muted);
+        setCaptionsEnabled(control.captionsEnabled);
       } catch {
         // The regular board health poll reports connectivity.
       }
@@ -221,6 +225,8 @@ export function NewsroomBoard({
         onPlaybackState={setVideoState}
         muted={muted}
         onToggleMute={() => setMuted((m) => !m)}
+        captionsEnabled={captionsEnabled}
+        onToggleCaptions={() => setCaptionsEnabled((enabled) => !enabled)}
         onFullscreen={() => {
           const el = document.documentElement;
           if (!document.fullscreenElement) void el.requestFullscreen?.();
