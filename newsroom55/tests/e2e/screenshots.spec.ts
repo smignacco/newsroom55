@@ -181,7 +181,9 @@ test.describe("Centre de nouvelles visual board", () => {
       ),
     ).toMatchObject({ start_url: "/remote", display: "standalone" });
     await expect(
-      page.getByRole("button", { name: /Mettre en veille|Réveiller/ }),
+      page.getByRole("button", {
+        name: /Mettre en veille|Réafficher NEWSROOM|Activer le Board/,
+      }),
     ).toBeVisible();
     await expect(
       page.getByText(/Board synchronisé|État du Board indisponible/),
@@ -216,6 +218,34 @@ test.describe("Centre de nouvelles visual board", () => {
         }).then((response) => response.status),
       ),
     ).toBe(403);
+
+    const audioSource = page.getByLabel("Source audio");
+    const configuredAudioValue = await audioSource
+      .locator("option")
+      .nth(1)
+      .getAttribute("value");
+    expect(configuredAudioValue).toBeTruthy();
+    await audioSource.selectOption(configuredAudioValue!);
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          fetch("/api/admin/control")
+            .then((response) => response.json())
+            .then((control) => control.muted),
+        ),
+      )
+      .toBe(false);
+    await audioSource.selectOption("");
+    await expect(audioSource).toHaveValue("");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          fetch("/api/admin/control")
+            .then((response) => response.json())
+            .then((control) => control.muted),
+        ),
+      )
+      .toBe(true);
 
     const audio = page
       .locator(".remote-quick-action")

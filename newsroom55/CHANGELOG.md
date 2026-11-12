@@ -9,6 +9,8 @@
   flux.
 - Synchronise périodiquement l’état de veille affiché avec le statut réel du
   Webex Board par l’API RoomOS, sans exposer ses identifiants au navigateur.
+- Restaure la signalisation en mode Halfwake depuis la veille et rend l’option
+  de source audio **Aucune** réellement fonctionnelle.
 - Fiabilise le retour vers la télécommande après la connexion administrateur.
 
 ## 1.0.0-ha.12

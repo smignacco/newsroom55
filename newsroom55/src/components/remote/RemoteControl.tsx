@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { BoardControlState } from "@/lib/control/state";
+import { nextRemotePowerControl } from "@/lib/control/remote";
 import type { NewsStory } from "@/lib/news/aggregator";
 import type { PublicChannel } from "@/lib/video/player";
 
@@ -174,6 +175,7 @@ export function RemoteControl({
   });
   const canUseCaptions =
     state.layoutMode === "focus" && state.muted && selectedIds.length > 1;
+  const nextPower = nextRemotePowerControl(state.powerState);
 
   function setLayout(count: number) {
     const next = selectedIds.slice(0, count);
@@ -343,14 +345,18 @@ export function RemoteControl({
             disabled={pending !== null}
             onClick={() =>
               void update(
-                { power: state.powerState === "active" ? "standby" : "wake" },
+                { power: nextPower.command },
                 "power",
-                state.powerState === "active" ? "Board mis en veille." : "Board réveillé.",
+                state.powerState === "active"
+                  ? "Board mis en veille."
+                  : state.powerState === "standby"
+                    ? "Signalisation réaffichée en Halfwake."
+                    : "Board activé.",
               )
             }
           >
             <span>WEBEX BOARD</span>
-            <strong>{state.powerState === "active" ? "Mettre en veille" : "Réveiller"}</strong>
+            <strong>{nextPower.label}</strong>
           </button>
         </div>
         <div className="remote-volume-row">
@@ -390,12 +396,14 @@ export function RemoteControl({
         <label className="remote-audio-source">
           <span>Source audio</span>
           <select
-            value={state.audioChannelId ?? ""}
+            value={state.muted ? "" : (state.audioChannelId ?? "")}
             disabled={pending !== null || selectedIds.length === 0}
             onChange={(event) => {
               const next = event.target.value ? Number(event.target.value) : null;
               void update(
-                { audioChannelId: next, muted: next === null },
+                next === null
+                  ? { muted: true }
+                  : { audioChannelId: next, muted: false },
                 "audio",
                 next === null ? "Audio coupé." : "Source audio modifiée.",
               );
