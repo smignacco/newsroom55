@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 1.0.0-ha.10
+
+- Remplace l’autorisation déposée dans le navigateur d’administration par un
+  code temporaire affiché sur le Board et approuvé dans l’onglet
+  **Activity & Sleep**.
+- Le cookie confidentiel est maintenant émis directement au navigateur du
+  Board, même lorsque l’administration utilise un autre appareil ou un autre
+  nom d’hôte.
+- Permet de révoquer en une fois toutes les autorisations d’écran existantes.
+
 ## 1.0.0-ha.9
 
 - Ajoute à la télécommande les contrôles d’affichage Activity & Sleep et une

@@ -154,6 +154,7 @@ export function HealthManager({ csrf }: { csrf: string }) {
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
 
   const mappingsByMetric = useMemo(
     () => new Map(mappings.map((mapping) => [mapping.metric, mapping])),
@@ -268,7 +269,8 @@ export function HealthManager({ csrf }: { csrf: string }) {
               <p>
                 Le panneau est désactivé par défaut. Activez le mode
                 confidentiel seulement lorsque vous souhaitez masquer
-                temporairement les mesures.
+                temporairement les mesures. Le Board affiche un code
+                d’association à six chiffres lorsqu’il doit être autorisé.
               </p>
             </div>
           </div>
@@ -320,25 +322,45 @@ export function HealthManager({ csrf }: { csrf: string }) {
           ))}
         </div>
         <div className="health-actions">
+          <label className="health-pairing-code">
+            Code affiché sur le Board
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={7}
+              placeholder="123 456"
+              value={pairingCode}
+              onChange={(event) =>
+                setPairingCode(
+                  event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 6)
+                    .replace(/(\d{3})(\d+)/, "$1 $2"),
+                )
+              }
+            />
+          </label>
           <button
             className="nr-chip nr-chip-accent"
             type="button"
-            disabled={pending !== null}
+            disabled={pending !== null || pairingCode.replace(/\D/g, "").length !== 6}
             onClick={() =>
               void run(
                 "display-on",
                 async () => {
                   await healthApi("/api/admin/health/display-access", csrf, {
                     method: "POST",
-                    body: JSON.stringify({ enabled: true }),
+                    body: JSON.stringify({ code: pairingCode }),
                   });
-                  return "Cet écran est autorisé à lire la synthèse personnelle.";
+                  setPairingCode("");
+                  return "Le Board est autorisé à lire la synthèse personnelle.";
                 },
                 false,
               )
             }
           >
-            Autoriser cet écran
+            Autoriser le Board
           </button>
           <button
             className="nr-chip"
@@ -351,15 +373,22 @@ export function HealthManager({ csrf }: { csrf: string }) {
                   await healthApi("/api/admin/health/display-access", csrf, {
                     method: "DELETE",
                   });
-                  return "L’autorisation de cet écran a été retirée.";
+                  return "Toutes les autorisations d’écran ont été retirées.";
                 },
                 false,
               )
             }
           >
-            Retirer l’autorisation
+            Révoquer tous les écrans
           </button>
         </div>
+        <p className="health-help">
+          Utilisez sur le Board l’adresse réseau réellement configurée dans
+          RoomOS, par exemple <code>http://adresse-ip-du-pi:3000/</code>. Le
+          code est approuvé sur le serveur, puis le Board reçoit lui-même son
+          autorisation; le navigateur d’administration peut utiliser une autre
+          adresse.
+        </p>
       </section>
 
       <section className="health-panel">

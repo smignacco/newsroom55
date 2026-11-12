@@ -8,6 +8,12 @@ type PulseResponse =
   | { generatedAt: string; privacyMode: true }
   | { error: string };
 
+type DisplayPairing = {
+  id: string;
+  code: string;
+  expiresAt: string;
+};
+
 function duration(minutes: number | null | undefined) {
   if (minutes == null) return "—";
   const rounded = Math.round(minutes);
@@ -31,6 +37,8 @@ export function ActivitySleepPulse() {
   const [snapshot, setSnapshot] = useState<PulseSnapshot | null>(null);
   const [privacy, setPrivacy] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [pairing, setPairing] = useState<DisplayPairing | null>(null);
+  const [pairingError, setPairingError] = useState("");
   const [details, setDetails] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -38,6 +46,7 @@ export function ActivitySleepPulse() {
       const response = await fetch("/api/pulse", { cache: "no-store" });
       if (response.status === 401) {
         setUnauthorized(true);
+        setPrivacy(false);
         setSnapshot(null);
         return;
       }
@@ -64,6 +73,80 @@ export function ActivitySleepPulse() {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
+  useEffect(() => {
+    if (!unauthorized || pairing) return;
+    let cancelled = false;
+    let retryTimer: number | undefined;
+    const createPairing = async () => {
+      try {
+        const response = await fetch("/api/pulse/display-pairing", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "create" }),
+        });
+        if (!response.ok) throw new Error("pairing unavailable");
+        const data = (await response.json()) as {
+          id: string;
+          code: string;
+          expiresAt: string;
+        };
+        if (!cancelled) {
+          setPairing(data);
+          setPairingError("");
+        }
+      } catch {
+        if (!cancelled) {
+          setPairingError("Code d’association temporairement indisponible.");
+          retryTimer = window.setTimeout(() => void createPairing(), 30_000);
+        }
+      }
+    };
+    void createPairing();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retryTimer);
+    };
+  }, [pairing, unauthorized]);
+
+  useEffect(() => {
+    if (!pairing) return;
+    let cancelled = false;
+    const checkPairing = async () => {
+      try {
+        const response = await fetch("/api/pulse/display-pairing", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "status",
+            pairingId: pairing.id,
+          }),
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          status: "pending" | "approved" | "expired" | "missing";
+        };
+        if (cancelled) return;
+        if (data.status === "approved") {
+          setUnauthorized(false);
+          setPairing(null);
+          await refresh();
+        } else if (data.status === "expired" || data.status === "missing") {
+          setPairing(null);
+        }
+      } catch {
+        // Keep the current code visible and retry while it remains valid.
+      }
+    };
+    void checkPairing();
+    const timer = window.setInterval(() => void checkPairing(), 3_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [pairing, refresh]);
+
   if (privacy) {
     return (
       <section
@@ -89,7 +172,19 @@ export function ActivitySleepPulse() {
           <strong>ACTIVITÉ & SOMMEIL</strong>
           <span>VERROUILLÉ</span>
         </div>
-        <p>Autorisez cet écran depuis l’administration.</p>
+        {pairing ? (
+          <>
+            <p>
+              Dans <strong>Administration → Activity &amp; Sleep</strong>,
+              entrez ce code puis choisissez « Autoriser le Board ».
+            </p>
+            <strong className="nr-pulse-pairing-code">
+              {pairing.code.slice(0, 3)} {pairing.code.slice(3)}
+            </strong>
+          </>
+        ) : (
+          <p>{pairingError || "Création du code d’association…"}</p>
+        )}
       </section>
     );
   }

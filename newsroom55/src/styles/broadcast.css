@@ -639,6 +639,14 @@ textarea {
   letter-spacing: 0.04em;
 }
 
+.nr-pulse-pairing-code {
+  display: block;
+  margin-top: 0.7rem;
+  color: var(--nr-warning);
+  font: 700 clamp(1.35rem, 2.2vw, 2.1rem)/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.16em;
+}
+
 .nr-pulse-private::before {
   background: var(--nr-pulse-sleep);
 }
@@ -2952,8 +2960,27 @@ textarea {
 .health-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: end;
   gap: 0.55rem;
   margin-top: 0.85rem;
+}
+
+.health-pairing-code {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--nr-text-2);
+  font-size: 0.7rem;
+}
+
+.health-pairing-code input {
+  width: 9rem;
+  border: 1px solid var(--nr-line);
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  color: var(--nr-text);
+  background: rgba(3, 10, 18, 0.72);
+  font: 600 0.85rem/1.2 var(--font-plex-mono), monospace;
+  letter-spacing: 0.12em;
 }
 
 .health-help {

@@ -7,6 +7,7 @@ const media =
 
 test("health administration, privacy and display authorization", async ({
   page,
+  context,
 }) => {
   const user = process.env.ADMIN_USERNAME;
   const password = process.env.ADMIN_PASSWORD;
@@ -47,15 +48,35 @@ test("health administration, privacy and display authorization", async ({
     ),
   ).toBe(401);
 
-  await page.getByRole("button", { name: "Autoriser cet écran" }).click();
-  await expect(page.getByText(/Cet écran est autorisé/)).toBeVisible();
-  const privatePayload = await page.evaluate(() =>
-    fetch("/api/pulse").then(async (response) => ({
-      status: response.status,
-      cache: response.headers.get("cache-control"),
-      body: await response.json(),
-    })),
-  );
+  const board = await context.newPage();
+  await board.setViewportSize({ width: 1920, height: 1080 });
+  await board.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(
+    board.getByRole("region", { name: "Écran non autorisé" }),
+  ).toBeVisible();
+  const pairingCode = (
+    await board.locator(".nr-pulse-pairing-code").textContent()
+  )?.trim();
+  expect(pairingCode).toMatch(/^\d{3} \d{3}$/);
+  const pairingDestination = path.join(media, "newsroom-health-board-pairing.png");
+  await board.screenshot({ path: pairingDestination, fullPage: false });
+  expect(fs.existsSync(pairingDestination)).toBe(true);
+  await page
+    .getByRole("textbox", { name: "Code affiché sur le Board" })
+    .fill(pairingCode!);
+  await page.getByRole("button", { name: "Autoriser le Board" }).click();
+  await expect(page.getByText(/Le Board est autorisé/)).toBeVisible();
+  await expect(board.getByText("Indicateurs personnels masqués.")).toBeVisible({
+    timeout: 10_000,
+  });
+  const privatePayload = await page.evaluate(async () => {
+    const pulse = await fetch("/api/pulse");
+    return {
+      status: pulse.status,
+      cache: pulse.headers.get("cache-control"),
+      body: await pulse.json(),
+    };
+  });
   expect(privatePayload).toMatchObject({
     status: 200,
     cache: "private, no-store",
@@ -67,4 +88,5 @@ test("health administration, privacy and display authorization", async ({
   const destination = path.join(media, "newsroom-health-admin.png");
   await page.screenshot({ path: destination, fullPage: true });
   expect(fs.existsSync(destination)).toBe(true);
+  await board.close();
 });

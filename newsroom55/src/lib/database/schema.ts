@@ -183,4 +183,16 @@ CREATE TABLE IF NOT EXISTS health_sync_state (
   last_discovery_at TEXT,
   discovered_entities TEXT NOT NULL DEFAULT '[]'
 );
+
+CREATE TABLE IF NOT EXISTS health_display_pairings (
+  id TEXT PRIMARY KEY,
+  code_hash TEXT NOT NULL UNIQUE,
+  approved INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  approved_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_health_display_pairings_expiry
+  ON health_display_pairings(expires_at);
 `;
