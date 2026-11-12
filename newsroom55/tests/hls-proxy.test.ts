@@ -24,6 +24,7 @@ describe("HLS playback proxy", () => {
     const rewritten = rewriteHlsManifest(
       `#EXTM3U
 #EXT-X-KEY:METHOD=AES-128,URI="keys/live.key"
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Français",URI="captions/fr.m3u8"
 #EXT-X-STREAM-INF:BANDWIDTH=1280000
 quality/720p.m3u8
 #EXTINF:5,
@@ -36,9 +37,10 @@ segments/one.ts
     const tokens = Array.from(rewritten.matchAll(/token=([A-Za-z0-9._%-]+)/g), (match) =>
       decodeURIComponent(match[1]),
     );
-    expect(tokens).toHaveLength(3);
+    expect(tokens).toHaveLength(4);
     expect(tokens.map((token) => verifyPlaybackToken(token)?.url)).toEqual([
       "https://video.example/live/keys/live.key",
+      "https://video.example/live/captions/fr.m3u8",
       "https://video.example/live/quality/720p.m3u8",
       "https://video.example/live/segments/one.ts",
     ]);

@@ -7,6 +7,23 @@ export type BreakingRule = {
   enabled: number | boolean;
 };
 
+export const ALERT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export function isFreshAlert(
+  story: {
+    priority: Priority;
+    published_at: string | null;
+    fetched_at: string;
+  },
+  now = Date.now(),
+) {
+  if (story.priority !== "BREAKING" && story.priority !== "IMPORTANT") {
+    return false;
+  }
+  const timestamp = Date.parse(story.published_at || story.fetched_at);
+  return Number.isFinite(timestamp) && now - timestamp < ALERT_MAX_AGE_MS;
+}
+
 export function applyBreakingRules(
   title: string,
   summary: string | null | undefined,

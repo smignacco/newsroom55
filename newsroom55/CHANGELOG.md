@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.0.0-ha.11
+
+- Retire automatiquement le bandeau **ALERTE / IMPORTANT** lorsque la nouvelle
+  a plus de 24 heures et normalise ces priorités au prochain cycle RSS.
+- Ajoute un contrôle de sous-titres en mode focus lorsque l’audio est coupé,
+  uniquement lorsque le flux HLS fournit réellement une piste.
+- Ajoute dans le coin inférieur droit un bouton de veille visuelle de
+  NEWSROOM, avec réactivation tactile.
+
 ## 1.0.0-ha.10
 
 - Remplace l’autorisation déposée dans le navigateur d’administration par un

@@ -24,6 +24,21 @@ test.describe("Centre de nouvelles visual board", () => {
     const dest = path.join(media, "newsroom-1920x1080.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);
+    await page
+      .getByRole("button", { name: "Mettre l’affichage en veille" })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Réactiver l’affichage" }),
+    ).toBeVisible();
+    const standbyDest = path.join(media, "newsroom-display-standby.png");
+    await page.screenshot({ path: standbyDest, fullPage: false });
+    expect(fs.existsSync(standbyDest)).toBe(true);
+    await page
+      .getByRole("button", { name: "Réactiver l’affichage" })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Réactiver l’affichage" }),
+    ).toBeHidden();
   });
 
   test("3840x2160 board", async ({ page }) => {

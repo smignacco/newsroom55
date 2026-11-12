@@ -27,6 +27,17 @@ declare global {
   var __newsroomNewsFetching: boolean | undefined;
 }
 
+export function expireStaleAlertPriorities() {
+  return getDb()
+    .prepare(
+      `UPDATE news_items SET priority = 'NORMAL'
+       WHERE priority IN ('BREAKING', 'IMPORTANT')
+         AND datetime(COALESCE(published_at, fetched_at))
+             <= datetime('now', '-24 hours')`,
+    )
+    .run().changes;
+}
+
 export async function aggregateNews(force = false): Promise<{ fetched: number; stored: number; errors: number }> {
   if (globalThis.__newsroomNewsFetching) return { fetched: 0, stored: 0, errors: 0 };
   globalThis.__newsroomNewsFetching = true;
@@ -103,6 +114,7 @@ export async function aggregateNews(force = false): Promise<{ fetched: number; s
         ).run(nowIso(), message.slice(0, 300), source.id);
       }
     }
+    expireStaleAlertPriorities();
   } finally {
     globalThis.__newsroomNewsFetching = false;
   }
@@ -133,6 +145,7 @@ export function storyById(id: number): NewsStory | null {
 }
 
 export function listStories(limit = 18, category?: string | null): NewsStory[] {
+  expireStaleAlertPriorities();
   const db = getDb();
   const sql = category
     ? `SELECT n.id, n.title, n.url, n.summary, n.category, n.published_at, n.fetched_at, n.priority, s.name as source

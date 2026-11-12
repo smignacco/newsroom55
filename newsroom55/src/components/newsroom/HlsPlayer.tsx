@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Hls from "hls.js";
 import type { PublicChannel } from "@/lib/video/player";
 import { hlsBufferProfile } from "@/lib/video/buffer-profile";
@@ -10,15 +10,48 @@ export type PlaybackState = "idle" | "loading" | "playing" | "error";
 export function HlsPlayer({
   channel,
   muted,
+  captionsEnabled,
   concurrentStreams,
   onState,
+  onCaptionsAvailable,
 }: {
   channel: PublicChannel;
   muted: boolean;
+  captionsEnabled: boolean;
   concurrentStreams: number;
   onState: (state: PlaybackState, message?: string) => void;
+  onCaptionsAvailable: (available: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const captionsEnabledRef = useRef(captionsEnabled);
+  const onCaptionsAvailableRef = useRef(onCaptionsAvailable);
+
+  const syncCaptions = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const hls = hlsRef.current;
+    const hlsTrackCount = hls?.subtitleTracks.length ?? 0;
+    const available = hlsTrackCount > 0 || video.textTracks.length > 0;
+    onCaptionsAvailableRef.current(available);
+    if (hls) {
+      hls.subtitleDisplay = captionsEnabledRef.current && available;
+      hls.subtitleTrack =
+        captionsEnabledRef.current && hlsTrackCount > 0 ? 0 : -1;
+    }
+    Array.from(video.textTracks).forEach((track, index) => {
+      track.mode =
+        captionsEnabledRef.current && available && index === 0
+          ? "showing"
+          : "disabled";
+    });
+  }, []);
+
+  useEffect(() => {
+    captionsEnabledRef.current = captionsEnabled;
+    onCaptionsAvailableRef.current = onCaptionsAvailable;
+    syncCaptions();
+  }, [captionsEnabled, onCaptionsAvailable, syncCaptions]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -84,7 +117,14 @@ export function HlsPlayer({
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
           usingNativeHls = true;
           video.src = playbackUrl;
-          video.addEventListener("loadedmetadata", play, { once: true });
+          video.addEventListener(
+            "loadedmetadata",
+            () => {
+              syncCaptions();
+              void play();
+            },
+            { once: true },
+          );
           return;
         }
         if (!Hls.isSupported()) throw new Error("Ce navigateur ne prend en charge ni HLS natif ni Media Source.");
@@ -100,9 +140,14 @@ export function HlsPlayer({
           liveMaxLatencyDurationCount: 12,
           maxBufferHole: 0.5,
         });
+        hlsRef.current = hls;
         hls.loadSource(playbackUrl);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => void play());
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          syncCaptions();
+          void play();
+        });
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, syncCaptions);
         hls.on(Hls.Events.ERROR, (_event, details) => {
           if (!details.fatal) return;
           if (details.type === Hls.ErrorTypes.NETWORK_ERROR) {
@@ -127,6 +172,7 @@ export function HlsPlayer({
           }
           hls?.destroy();
           hls = null;
+          hlsRef.current = null;
         });
       } catch (error) {
         fail(error instanceof Error ? error.message : "Impossible de démarrer le flux.");
@@ -163,6 +209,8 @@ export function HlsPlayer({
       controller.abort();
       for (const timer of timers) clearTimeout(timer);
       hls?.destroy();
+      hlsRef.current = null;
+      onCaptionsAvailableRef.current(false);
       video.pause();
       video.removeAttribute("src");
       video.load();
@@ -171,7 +219,7 @@ export function HlsPlayer({
       video.removeEventListener("error", onVideoError);
       onState("idle");
     };
-  }, [channel.id, concurrentStreams, onState]);
+  }, [channel.id, concurrentStreams, onState, syncCaptions]);
 
   return (
     <video

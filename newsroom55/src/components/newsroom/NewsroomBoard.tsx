@@ -55,6 +55,7 @@ export function NewsroomBoard({
   const [story, setStory] = useState<NewsStory | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [settings, setSettings] = useState(false);
+  const [displaySleeping, setDisplaySleeping] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const [videoState, setVideoState] = useState<PlaybackState>("idle");
   const controlRevision = useRef(initialControl.revision);
@@ -257,6 +258,27 @@ export function NewsroomBoard({
         timezone={snapshot.appearance.timezone}
         onDesk={() => setSettings(true)}
       />
+      <button
+        type="button"
+        className="nr-board-sleep-button"
+        onClick={() => setDisplaySleeping(true)}
+        aria-label="Mettre l’affichage en veille"
+        title="Mettre l’affichage NEWSROOM en veille"
+      >
+        <span aria-hidden>◉</span>
+        Veille
+      </button>
+
+      {displaySleeping ? (
+        <button
+          type="button"
+          className="nr-board-sleep-overlay"
+          onClick={() => setDisplaySleeping(false)}
+          aria-label="Réactiver l’affichage"
+        >
+          <span>Toucher pour réactiver NEWSROOM</span>
+        </button>
+      ) : null}
 
       {story ? (
         <div className="nr-story-modal" onClick={() => setStory(null)}>

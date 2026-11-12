@@ -278,6 +278,44 @@ textarea {
   color: var(--nr-text-2);
 }
 
+.nr-board-sleep-button {
+  position: absolute;
+  right: var(--nr-gutter);
+  bottom: calc(var(--nr-ticker-h) + var(--nr-status-h) + 0.55rem);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 2rem;
+  padding: 0.38rem 0.65rem;
+  border: 1px solid var(--nr-line);
+  border-radius: 999px;
+  color: var(--nr-text-2);
+  background: rgba(6, 13, 24, 0.82);
+  font: 600 0.58rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nr-board-sleep-button span {
+  color: var(--nr-info);
+}
+
+.nr-board-sleep-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #607080;
+  background: #000;
+  font: 500 0.72rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 .nr-tv {
   position: relative;
   min-height: 0;

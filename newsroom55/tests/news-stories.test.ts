@@ -31,6 +31,9 @@ describe("story lookup", () => {
         "older-story",
       ).lastInsertRowid,
     );
+    database
+      .prepare("UPDATE news_items SET priority = 'BREAKING' WHERE id = ?")
+      .run(olderStoryId);
     insert.run(
       source.lastInsertRowid,
       "newer",
@@ -48,6 +51,7 @@ describe("story lookup", () => {
       id: olderStoryId,
       title: "Older story",
       source: "Test source",
+      priority: "NORMAL",
     });
   });
 });
