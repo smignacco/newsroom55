@@ -22,7 +22,6 @@ type RemoteControlState = BoardControlState & {
 
 type Action =
   | "mute"
-  | "captions"
   | "power"
   | "wake"
   | "volume-up"
@@ -173,8 +172,6 @@ export function RemoteControl({
     const channel = channels.find((candidate) => candidate.id === channelId);
     return channel ? [channel] : [];
   });
-  const canUseCaptions =
-    state.layoutMode === "focus" && state.muted && selectedIds.length > 1;
   const nextPower = nextRemotePowerControl(state.powerState);
 
   function setLayout(count: number) {
@@ -269,11 +266,6 @@ export function RemoteControl({
         <div className="remote-status-chips">
           <small>{state.layoutMode === "focus" ? "Focus" : "Grille"}</small>
           <small>{state.muted ? "Son coupé" : "Audio actif"}</small>
-          <small>
-            {state.captionsEnabled
-              ? "Sous-titres demandés"
-              : "Sous-titres désactivés"}
-          </small>
         </div>
       </section>
 
@@ -289,7 +281,9 @@ export function RemoteControl({
         <div className="remote-quick-grid">
           <button
             type="button"
-            className={`remote-quick-action ${state.muted ? "is-on" : ""}`}
+            className={`remote-quick-action remote-quick-action-wide ${
+              state.muted ? "is-on" : ""
+            }`}
             aria-pressed={state.muted}
             disabled={pending !== null}
             onClick={() =>
@@ -302,27 +296,6 @@ export function RemoteControl({
           >
             <span>{state.muted ? "SON COUPÉ" : "AUDIO"}</span>
             <strong>{state.muted ? "Réactiver le son" : "Couper le son"}</strong>
-          </button>
-          <button
-            type="button"
-            className={`remote-quick-action ${state.captionsEnabled ? "is-on" : ""}`}
-            aria-pressed={state.captionsEnabled}
-            disabled={pending !== null || (!canUseCaptions && !state.captionsEnabled)}
-            onClick={() =>
-              void update(
-                { captionsEnabled: !state.captionsEnabled },
-                "captions",
-                state.captionsEnabled
-                  ? "Sous-titres désactivés."
-                  : "Sous-titres activés si le flux en fournit.",
-              )
-            }
-          >
-            <span>SOUS-TITRES</span>
-            <strong>{state.captionsEnabled ? "Désactiver" : "Activer"}</strong>
-            {!canUseCaptions && !state.captionsEnabled ? (
-              <small>Focus + son coupé requis</small>
-            ) : null}
           </button>
           <button
             type="button"

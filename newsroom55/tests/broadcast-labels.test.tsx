@@ -65,8 +65,6 @@ describe("broadcast labels", () => {
         onPlaybackState={vi.fn()}
         muted={false}
         onToggleMute={vi.fn()}
-        captionsEnabled={false}
-        onToggleCaptions={vi.fn()}
         onFullscreen={vi.fn()}
       />,
     );

@@ -34,17 +34,13 @@ function Globe() {
 function ChannelPlayer({
   channel,
   muted,
-  captionsEnabled,
   concurrentStreams,
   onState,
-  onCaptionsAvailable,
 }: {
   channel: PublicChannel;
   muted: boolean;
-  captionsEnabled: boolean;
   concurrentStreams: number;
   onState: (channelId: number, state: PlaybackState, message?: string) => void;
-  onCaptionsAvailable: (channelId: number, available: boolean) => void;
 }) {
   const reportState = useCallback(
     (state: PlaybackState, message = "") => onState(channel.id, state, message),
@@ -54,12 +50,8 @@ function ChannelPlayer({
     <HlsPlayer
       channel={channel}
       muted={muted}
-      captionsEnabled={captionsEnabled}
       concurrentStreams={concurrentStreams}
       onState={reportState}
-      onCaptionsAvailable={(available) =>
-        onCaptionsAvailable(channel.id, available)
-      }
     />
   );
 }
@@ -78,8 +70,6 @@ export function LiveChannel({
   onPlaybackState,
   muted,
   onToggleMute,
-  captionsEnabled,
-  onToggleCaptions,
   onFullscreen,
 }: {
   channels: PublicChannel[];
@@ -95,16 +85,11 @@ export function LiveChannel({
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
   onToggleMute: () => void;
-  captionsEnabled: boolean;
-  onToggleCaptions: () => void;
   onFullscreen: () => void;
 }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [playback, setPlayback] = useState<
     Record<number, { state: PlaybackState; message: string }>
-  >({});
-  const [captionsAvailable, setCaptionsAvailable] = useState<
-    Record<number, boolean>
   >({});
   const selectedIdsRef = useRef(selectedChannels.map((channel) => channel.id));
   useEffect(() => {
@@ -130,16 +115,6 @@ export function LiveChannel({
     },
     [onPlaybackState],
   );
-  const updateCaptionsAvailability = useCallback(
-    (channelId: number, available: boolean) => {
-      setCaptionsAvailable((current) =>
-        current[channelId] === available
-          ? current
-          : { ...current, [channelId]: available },
-      );
-    },
-    [],
-  );
   const playbackStates = selectedChannels.map(
     (channel) => playback[channel.id]?.state ?? "idle",
   );
@@ -150,11 +125,6 @@ export function LiveChannel({
       : playbackStates.includes("error")
         ? "Signal indisponible"
         : "En attente";
-  const focusMuted =
-    layoutMode === "focus" && selectedChannels.length > 1 && muted;
-  const focusedCaptionsAvailable =
-    focusChannelId === null ? false : captionsAvailable[focusChannelId];
-
   const selectChannel = (channel: PublicChannel) => {
     const next = [...selectedChannels];
     const existingIndex = next.findIndex((candidate) => candidate.id === channel.id);
@@ -217,14 +187,8 @@ export function LiveChannel({
                   <ChannelPlayer
                     channel={channel}
                     muted={muted || channel.id !== audioChannelId}
-                    captionsEnabled={
-                      captionsEnabled &&
-                      focusMuted &&
-                      channel.id === focusChannelId
-                    }
                     concurrentStreams={selectedChannels.length}
                     onState={updatePlaybackState}
-                    onCaptionsAvailable={updateCaptionsAvailability}
                   />
                 ) : null}
                 <Globe />
@@ -277,20 +241,6 @@ export function LiveChannel({
             Choisir une source
           </button>
           <div style={{ display: "flex", gap: "0.45rem" }}>
-            {focusMuted ? (
-              <button
-                type="button"
-                className={`nr-chip ${captionsEnabled ? "nr-chip-accent" : ""}`}
-                disabled={focusedCaptionsAvailable === false}
-                onClick={onToggleCaptions}
-              >
-                {focusedCaptionsAvailable === false
-                  ? "Sous-titres indisponibles"
-                  : captionsEnabled
-                    ? "Désactiver les sous-titres"
-                    : "Activer les sous-titres"}
-              </button>
-            ) : null}
             <button type="button" className="nr-chip" onClick={onToggleMute}>
               {muted ? "Son coupé" : "Audio actif"}
             </button>

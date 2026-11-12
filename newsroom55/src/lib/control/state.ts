@@ -9,7 +9,6 @@ export type BoardControlState = {
   layoutMode: "grid" | "focus";
   focusChannelId: number | null;
   muted: boolean;
-  captionsEnabled: boolean;
   powerState: "active" | "standby" | "halfwake";
   displayCommand: BoardDisplayCommand | null;
   displayStoryId: number | null;
@@ -27,7 +26,6 @@ type Row = {
   display_command: BoardDisplayCommand | null;
   display_story_id: number | null;
   display_command_revision: number;
-  captions_enabled: number;
   muted: number;
   power_state: "active" | "standby" | "halfwake";
   revision: number;
@@ -40,7 +38,7 @@ export function getBoardControlState(): BoardControlState {
     .prepare(
       `SELECT channel_id, channel_ids, audio_channel_id, layout_mode,
               focus_channel_id, display_command, display_story_id,
-              display_command_revision, captions_enabled, muted,
+              display_command_revision, muted,
               power_state, revision, updated_at
        FROM board_control WHERE id = 1`,
     )
@@ -97,7 +95,6 @@ export function getBoardControlState(): BoardControlState {
       row.layout_mode === "focus" && channelIds.length > 1 ? "focus" : "grid",
     focusChannelId,
     muted: Boolean(row.muted),
-    captionsEnabled: Boolean(row.captions_enabled),
     powerState: row.power_state,
     displayCommand: row.display_command,
     displayStoryId: row.display_story_id,
@@ -132,7 +129,6 @@ export function updateBoardControlState(input: {
   layoutMode?: "grid" | "focus";
   focusChannelId?: number;
   muted?: boolean;
-  captionsEnabled?: boolean;
   powerState?: "active" | "standby" | "halfwake";
 }): BoardControlState {
   const current = getBoardControlState();
@@ -161,7 +157,6 @@ export function updateBoardControlState(input: {
         layout_mode = COALESCE(?, layout_mode),
         focus_channel_id = ?,
         muted = COALESCE(?, muted),
-        captions_enabled = COALESCE(?, captions_enabled),
         power_state = COALESCE(?, power_state),
         revision = revision + 1,
         updated_at = ?
@@ -174,7 +169,6 @@ export function updateBoardControlState(input: {
       input.layoutMode ?? null,
       focusChannelId,
       input.muted === undefined ? null : input.muted ? 1 : 0,
-      input.captionsEnabled === undefined ? null : input.captionsEnabled ? 1 : 0,
       input.powerState ?? null,
       new Date().toISOString(),
     );

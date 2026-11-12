@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.14
+
+- Retire entièrement les contrôles et la détection des sous-titres du tableau
+  et de la télécommande afin de préserver la stabilité du Web Engine RoomOS.
+- Désactive explicitement le traitement WebVTT, IMSC1 et CEA-708 dans le
+  lecteur HLS; aucun accès à `video.textTracks` n’est conservé.
+
 ## 1.0.0-ha.13
 
 - Revoit la télécommande pour une utilisation simple sur iPhone avec contrôles

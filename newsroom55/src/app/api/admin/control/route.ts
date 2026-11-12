@@ -30,7 +30,6 @@ const schema = z
     layoutMode: z.enum(["grid", "focus"]).optional(),
     focusChannelId: z.number().int().positive().optional(),
     muted: z.boolean().optional(),
-    captionsEnabled: z.boolean().optional(),
     power: z.enum(["standby", "signage", "wake"]).optional(),
     volume: z.enum(["up", "down"]).optional(),
     displayCommand: z.enum(["reload", "open-story", "close-story"]).optional(),
@@ -167,7 +166,6 @@ export async function PATCH(req: NextRequest) {
     layoutMode: parsed.data.layoutMode,
     focusChannelId: parsed.data.focusChannelId,
     muted: parsed.data.muted,
-    captionsEnabled: parsed.data.captionsEnabled,
     powerState: parsed.data.power
       ? parsed.data.power === "standby"
         ? "standby"

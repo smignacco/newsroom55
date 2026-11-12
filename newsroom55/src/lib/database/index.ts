@@ -29,7 +29,6 @@ const BOARD_CONTROL_COLUMNS: Record<string, string> = {
   display_command: "TEXT",
   display_story_id: "INTEGER",
   display_command_revision: "INTEGER NOT NULL DEFAULT 0",
-  captions_enabled: "INTEGER NOT NULL DEFAULT 0",
 };
 
 function migrate(database: Database.Database) {

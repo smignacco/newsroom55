@@ -119,7 +119,6 @@ CREATE TABLE IF NOT EXISTS board_control (
   display_command TEXT,
   display_story_id INTEGER,
   display_command_revision INTEGER NOT NULL DEFAULT 0,
-  captions_enabled INTEGER NOT NULL DEFAULT 0,
   muted INTEGER NOT NULL DEFAULT 1,
   power_state TEXT NOT NULL DEFAULT 'active',
   revision INTEGER NOT NULL DEFAULT 0,

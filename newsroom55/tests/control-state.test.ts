@@ -28,19 +28,16 @@ describe("board control state", () => {
     const { getBoardControlState, updateBoardControlState } = await import("@/lib/control/state");
     expect(getBoardControlState()).toMatchObject({
       muted: true,
-      captionsEnabled: false,
       powerState: "active",
       revision: 0,
     });
 
     const updated = updateBoardControlState({
       muted: false,
-      captionsEnabled: true,
       powerState: "halfwake",
     });
     expect(updated).toMatchObject({
       muted: false,
-      captionsEnabled: true,
       powerState: "halfwake",
       revision: 1,
     });

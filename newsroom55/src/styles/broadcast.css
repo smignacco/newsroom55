@@ -4066,6 +4066,11 @@ textarea {
   box-shadow: inset 0 0 0 1px rgba(53, 198, 244, 0.08);
 }
 
+.remote-quick-action-wide {
+  grid-column: 1 / -1;
+  min-height: 4.75rem;
+}
+
 .remote-volume-row {
   display: grid;
   grid-template-columns: 3rem 1fr 3rem;
