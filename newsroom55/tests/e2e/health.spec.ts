@@ -61,6 +61,22 @@ test("health administration, privacy and display authorization", async ({
   const pairingDestination = path.join(media, "newsroom-health-board-pairing.png");
   await board.screenshot({ path: pairingDestination, fullPage: false });
   expect(fs.existsSync(pairingDestination)).toBe(true);
+  const repeatedCodes = await page.evaluate(async () => {
+    const codes: string[] = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await fetch("/api/pulse/display-pairing", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "create" }),
+      });
+      const data = (await response.json()) as { code: string };
+      codes.push(data.code);
+    }
+    return codes;
+  });
+  expect(new Set(repeatedCodes)).toEqual(
+    new Set([pairingCode!.replace(/\s/g, "")]),
+  );
   await page
     .getByRole("textbox", { name: "Code affiché sur le Board" })
     .fill(pairingCode!);

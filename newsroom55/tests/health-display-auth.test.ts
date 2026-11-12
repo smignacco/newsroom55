@@ -21,13 +21,33 @@ describe("health display pairing", () => {
       consumePulseDisplayPairing,
       createPulseDisplayPairing,
     } = await import("@/lib/health/display-auth");
-    const pairing = createPulseDisplayPairing();
+    const pairing = createPulseDisplayPairing("board-requester-a");
     expect(pairing.code).toMatch(/^\d{6}$/);
     expect(consumePulseDisplayPairing(pairing.id)).toBe("pending");
     expect(approvePulseDisplayPairing("000 000")).toBe(false);
     expect(approvePulseDisplayPairing(pairing.code)).toBe(true);
     expect(consumePulseDisplayPairing(pairing.id)).toBe("approved");
     expect(consumePulseDisplayPairing(pairing.id)).toBe("missing");
+  });
+
+  it("reuses one pending pairing for repeated requests from one Board", async () => {
+    const { createPulseDisplayPairing } = await import(
+      "@/lib/health/display-auth"
+    );
+    const { getDb } = await import("@/lib/database");
+    const first = createPulseDisplayPairing("repeated-board-requester");
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      expect(createPulseDisplayPairing("repeated-board-requester")).toEqual(
+        first,
+      );
+    }
+    const row = getDb()
+      .prepare(
+        `SELECT COUNT(*) as count FROM health_display_pairings
+         WHERE requester_hash IS NOT NULL`,
+      )
+      .get() as { count: number };
+    expect(row.count).toBe(1);
   });
 
   it("revokes previously issued display tokens", async () => {

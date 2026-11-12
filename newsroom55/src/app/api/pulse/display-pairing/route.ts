@@ -1,11 +1,14 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { boot } from "@/lib/boot";
 import {
   attachPulseDisplayCookie,
+  attachPulsePairingRequesterCookie,
   consumePulseDisplayPairing,
   createPulseDisplayPairing,
   createPulseDisplayToken,
+  PULSE_PAIRING_REQUESTER_COOKIE,
 } from "@/lib/health/display-auth";
 import { healthSettings } from "@/lib/health/service";
 
@@ -35,8 +38,23 @@ export async function POST(req: NextRequest) {
   }
   if (parsed.data.action === "create") {
     try {
-      const pairing = createPulseDisplayPairing();
-      return privateJson(pairing, { status: 201 });
+      const savedRequester = req.cookies.get(
+        PULSE_PAIRING_REQUESTER_COOKIE,
+      )?.value;
+      const requesterToken =
+        savedRequester && z.uuid().safeParse(savedRequester).success
+          ? savedRequester
+          : randomUUID();
+      const pairing = createPulseDisplayPairing(requesterToken);
+      const response = privateJson(pairing, { status: 201 });
+      if (requesterToken !== savedRequester) {
+        attachPulsePairingRequesterCookie(
+          response,
+          requesterToken,
+          req.nextUrl.protocol === "https:",
+        );
+      }
+      return response;
     } catch (error) {
       return privateJson(
         {

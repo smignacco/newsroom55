@@ -8,6 +8,8 @@
 - Le cookie confidentiel est maintenant émis directement au navigateur du
   Board, même lorsque l’administration utilise un autre appareil ou un autre
   nom d’hôte.
+- Les demandes répétées d’un même Board réutilisent son code en attente au
+  lieu d’occuper de nouvelles places d’association.
 - Permet de révoquer en une fois toutes les autorisations d’écran existantes.
 
 ## 1.0.0-ha.9

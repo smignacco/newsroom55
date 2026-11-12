@@ -1,10 +1,11 @@
-import { createHash, randomInt, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionSecret } from "@/lib/config";
 import { getDb, getSetting, setSetting } from "@/lib/database";
 
 export const PULSE_DISPLAY_COOKIE = "nr_pulse_display";
+export const PULSE_PAIRING_REQUESTER_COOKIE = "nr_pulse_pairing_requester";
 const MAX_AGE = 60 * 60 * 24 * 30;
 const PAIRING_MAX_AGE_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_PAIRINGS = 50;
@@ -20,6 +21,17 @@ function displayGeneration() {
 
 function codeHash(code: string) {
   return createHash("sha256").update(code).digest("hex");
+}
+
+function requesterHash(requesterToken: string) {
+  return createHmac("sha256", sessionSecret())
+    .update(requesterToken)
+    .digest("hex");
+}
+
+function pairingCode(id: string) {
+  const digest = createHmac("sha256", sessionSecret()).update(id).digest();
+  return String(100000 + (digest.readUInt32BE(0) % 900000));
 }
 
 export async function createPulseDisplayToken() {
@@ -53,12 +65,24 @@ export async function verifyPulseDisplayRequest(req: NextRequest) {
   }
 }
 
-export function createPulseDisplayPairing() {
+export function createPulseDisplayPairing(requesterToken: string) {
   const database = getDb();
   const now = new Date();
+  const requester = requesterHash(requesterToken);
   database
     .prepare("DELETE FROM health_display_pairings WHERE expires_at <= ?")
     .run(now.toISOString());
+  const existing = database
+    .prepare(
+      `SELECT id, created_at as createdAt, expires_at as expiresAt
+       FROM health_display_pairings WHERE requester_hash = ?`,
+    )
+    .get(requester) as
+    | { id: string; createdAt: string; expiresAt: string }
+    | undefined;
+  if (existing) {
+    return { ...existing, code: pairingCode(existing.id) };
+  }
   const active = database
     .prepare("SELECT COUNT(*) as count FROM health_display_pairings")
     .get() as { count: number };
@@ -66,9 +90,10 @@ export function createPulseDisplayPairing() {
     throw new Error("Trop de demandes d’association actives");
   }
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = String(randomInt(100000, 1000000));
+    const id = randomUUID();
+    const code = pairingCode(id);
     const pairing = {
-      id: randomUUID(),
+      id,
       code,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + PAIRING_MAX_AGE_MS).toISOString(),
@@ -77,11 +102,12 @@ export function createPulseDisplayPairing() {
       database
         .prepare(
           `INSERT INTO health_display_pairings
-            (id, code_hash, created_at, expires_at)
-           VALUES (?, ?, ?, ?)`,
+            (id, requester_hash, code_hash, created_at, expires_at)
+           VALUES (?, ?, ?, ?, ?)`,
         )
         .run(
           pairing.id,
+          requester,
           codeHash(pairing.code),
           pairing.createdAt,
           pairing.expiresAt,
@@ -94,6 +120,20 @@ export function createPulseDisplayPairing() {
     }
   }
   throw new Error("Impossible de créer un code d’association");
+}
+
+export function attachPulsePairingRequesterCookie(
+  response: NextResponse,
+  requesterToken: string,
+  secure: boolean,
+) {
+  response.cookies.set(PULSE_PAIRING_REQUESTER_COOKIE, requesterToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/api/pulse/display-pairing",
+    maxAge: MAX_AGE,
+  });
 }
 
 export function approvePulseDisplayPairing(input: string) {
