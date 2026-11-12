@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyCaptionSelection,
   captionTextTracks,
   isCaptionTextTrack,
 } from "@/lib/video/captions";
@@ -31,5 +32,27 @@ describe("caption track selection", () => {
       },
     );
     expect(captionTextTracks(broken)).toEqual([]);
+  });
+
+  it("reports one final fallback result when HLS caption setters fail", () => {
+    const controller = {
+      subtitleTracks: [{}],
+      get subtitleDisplay() {
+        return false;
+      },
+      set subtitleDisplay(_value: boolean) {
+        throw new Error("unsupported subtitle setter");
+      },
+      subtitleTrack: -1,
+    };
+    expect(applyCaptionSelection(controller, undefined, true)).toBe(false);
+
+    const metadata = { kind: "metadata", mode: "hidden" };
+    const subtitles = { kind: "subtitles", mode: "disabled" };
+    expect(
+      applyCaptionSelection(null, [metadata, subtitles], true),
+    ).toBe(true);
+    expect(metadata.mode).toBe("hidden");
+    expect(subtitles.mode).toBe("showing");
   });
 });
