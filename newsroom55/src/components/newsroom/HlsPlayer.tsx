@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import Hls from "hls.js";
 import type { PublicChannel } from "@/lib/video/player";
 import { hlsBufferProfile } from "@/lib/video/buffer-profile";
+import { isCaptionTextTrack } from "@/lib/video/captions";
 
 export type PlaybackState = "idle" | "loading" | "playing" | "error";
 
@@ -32,14 +33,17 @@ export function HlsPlayer({
     if (!video) return;
     const hls = hlsRef.current;
     const hlsTrackCount = hls?.subtitleTracks.length ?? 0;
-    const available = hlsTrackCount > 0 || video.textTracks.length > 0;
+    const captionTracks = Array.from(video.textTracks).filter(
+      isCaptionTextTrack,
+    );
+    const available = hlsTrackCount > 0 || captionTracks.length > 0;
     onCaptionsAvailableRef.current(available);
     if (hls) {
       hls.subtitleDisplay = captionsEnabledRef.current && available;
       hls.subtitleTrack =
         captionsEnabledRef.current && hlsTrackCount > 0 ? 0 : -1;
     }
-    Array.from(video.textTracks).forEach((track, index) => {
+    captionTracks.forEach((track, index) => {
       track.mode =
         captionsEnabledRef.current && available && index === 0
           ? "showing"
