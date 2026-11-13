@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parsePriceField,
+  rankTwelveTargets,
   recommendQuoteProvider,
   resolveListedInstrument,
   searchTicker,
@@ -40,7 +41,7 @@ describe("listed instrument resolution", () => {
     });
   });
 
-  it("keeps US equities on Cboe and preserves index provider codes", () => {
+  it("keeps US equities Cboe-eligible and preserves index provider codes", () => {
     const apple = resolveListedInstrument("AAPL", null, "AAPL", "USD", "equity");
     expect(apple.cboeEligible).toBe(true);
     expect(apple.finnhubSymbol).toBe("AAPL");
@@ -76,7 +77,7 @@ describe("listed instrument resolution", () => {
     expect(vod.cboeEligible).toBe(false);
   });
 
-  it("recommends Twelve Data then Finnhub for Canadian listings", () => {
+  it("prefers live vendors while they are available, then delayed Cboe for US names", () => {
     const xeqt = resolveListedInstrument("XEQT.TO");
     expect(
       recommendQuoteProvider(xeqt, { twelve: true, finnhub: true }),
@@ -84,11 +85,52 @@ describe("listed instrument resolution", () => {
     expect(
       recommendQuoteProvider(xeqt, { twelve: false, finnhub: true }),
     ).toBe("finnhub");
-    expect(
-      recommendQuoteProvider(resolveListedInstrument("AAPL", null, "AAPL", "USD", "equity"), {
-        twelve: true,
-        finnhub: true,
-      }),
-    ).toBe("cboe");
+    const apple = resolveListedInstrument("AAPL", null, "AAPL", "USD", "equity");
+    expect(recommendQuoteProvider(apple, { twelve: true, finnhub: true })).toBe(
+      "finnhub",
+    );
+    expect(recommendQuoteProvider(apple, { twelve: true, finnhub: false })).toBe(
+      "twelvedata",
+    );
+    expect(recommendQuoteProvider(apple, { twelve: false, finnhub: false })).toBe(
+      "cboe",
+    );
+  });
+
+  it("gives Twelve Data slots to listings Cboe cannot serve first", () => {
+    const ranked = rankTwelveTargets(
+      [
+        {
+          id: 1,
+          symbol: "AAPL",
+          displayName: "Apple",
+          kind: "equity",
+          currency: "USD",
+          providerSymbol: "AAPL",
+          quoteProvider: "cboe",
+        },
+        {
+          id: 2,
+          symbol: "XEQT",
+          displayName: "XEQT",
+          kind: "fund",
+          currency: "CAD",
+          providerSymbol: "XEQT.TO",
+          exchange: "TSX",
+          quoteProvider: "twelvedata",
+        },
+        {
+          id: 3,
+          symbol: "MSFT",
+          displayName: "Microsoft",
+          kind: "equity",
+          currency: "USD",
+          providerSymbol: "MSFT",
+          quoteProvider: "twelvedata",
+        },
+      ],
+      2,
+    );
+    expect(ranked.map((row) => row.symbol)).toEqual(["XEQT", "MSFT"]);
   });
 });

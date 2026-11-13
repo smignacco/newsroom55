@@ -37,6 +37,24 @@ describe("Twelve Data quotes", () => {
     expect(quote).toMatchObject({ price: null, status: "UNAVAILABLE", provider: "twelvedata" });
   });
 
+  it("stops further Twelve Data calls when the credit quota is exhausted", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: "error", code: 429, message: "run out of API credits" }), {
+        status: 429,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = new TwelveDataProvider("test-key");
+    const quotes = await provider.fetchQuotes([
+      xeqt,
+      { ...xeqt, id: 10, symbol: "SHOP", providerSymbol: "SHOP.TO" },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(provider.quotaExhausted).toBe(true);
+    expect(quotes.every((quote) => quote.status === "UNAVAILABLE")).toBe(true);
+  });
+
   it("does not treat a zero close as a real last price", async () => {
     vi.stubGlobal(
       "fetch",

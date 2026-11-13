@@ -166,12 +166,36 @@ export function providerSymbolFor(vendor: QuoteVendor, instrument: ListedInstrum
   return instrument.twelveSymbol;
 }
 
+export function quoteHasPrice(quote: {
+  price: number | null | undefined;
+  status?: string;
+}): boolean {
+  return quote.status !== "UNAVAILABLE" && usableMarketPrice(quote.price);
+}
+
+export function twelveSlotPriority(symbol: SymbolConfig): number {
+  const listed = resolveSymbolConfig(symbol);
+  if (!listed.cboeEligible) return 0;
+  if (symbol.quoteProvider === "twelvedata") return 1;
+  return 2;
+}
+
+export function rankTwelveTargets(symbols: SymbolConfig[], limit: number): SymbolConfig[] {
+  return [...symbols]
+    .sort((left, right) => twelveSlotPriority(left) - twelveSlotPriority(right) || left.id - right.id)
+    .slice(0, Math.max(0, limit));
+}
+
 export function recommendQuoteProvider(
   instrument: ListedInstrument,
   available: { twelve: boolean; finnhub: boolean },
 ): QuoteVendor {
-  if (instrument.cboeEligible) return "cboe";
-  if (available.twelve) return "twelvedata";
+  if (!instrument.cboeEligible) {
+    if (available.twelve) return "twelvedata";
+    if (available.finnhub) return "finnhub";
+    return "twelvedata";
+  }
   if (available.finnhub) return "finnhub";
-  return "twelvedata";
+  if (available.twelve) return "twelvedata";
+  return "cboe";
 }

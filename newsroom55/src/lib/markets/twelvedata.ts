@@ -3,11 +3,18 @@ import { unavailableQuote, unconfiguredQuotes } from "@/lib/markets/provider";
 import { twelveDataMaxSymbols } from "@/lib/config";
 import { parsePriceField, parseSignedNumber, resolveSymbolConfig } from "@/lib/markets/resolve";
 
+function twelveQuotaError(status: number, data: { status?: string; code?: number; message?: string }) {
+  if (status === 429 || data.code === 429) return true;
+  const message = `${data.message || ""} ${data.code || ""}`.toLowerCase();
+  return /credit|quota|rate limit|limit reached/.test(message);
+}
+
 export class TwelveDataProvider implements MarketProvider {
   id = "twelvedata";
   name = "Twelve Data";
   delayed = true;
   configured: boolean;
+  quotaExhausted = false;
   private key: string | null;
 
   constructor(key: string | null | undefined) {
@@ -16,12 +23,13 @@ export class TwelveDataProvider implements MarketProvider {
   }
 
   async fetchQuotes(symbols: SymbolConfig[]): Promise<Quote[]> {
+    this.quotaExhausted = false;
     if (!this.key) return unconfiguredQuotes(symbols, this.id);
     const limit = twelveDataMaxSymbols();
     const selected = symbols.slice(0, limit);
     const overflow = symbols.slice(limit);
     const out: Quote[] = [];
-    for (const symbol of selected) {
+    for (const [index, symbol] of selected.entries()) {
       try {
         const listed = resolveSymbolConfig(symbol);
         const url = new URL("https://api.twelvedata.com/quote");
@@ -30,11 +38,7 @@ export class TwelveDataProvider implements MarketProvider {
         if (listed.micCode) url.searchParams.set("mic_code", listed.micCode);
         url.searchParams.set("apikey", this.key);
         const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) {
-          out.push(unavailableQuote(symbol, this.id));
-          continue;
-        }
-        const data = (await res.json()) as {
+        const data = (await res.json().catch(() => ({}))) as {
           close?: string | number;
           change?: string | number;
           percent_change?: string | number;
@@ -43,6 +47,18 @@ export class TwelveDataProvider implements MarketProvider {
           code?: number;
           message?: string;
         };
+        if (!res.ok || twelveQuotaError(res.status, data)) {
+          if (res.status === 429 || twelveQuotaError(res.status, data)) {
+            this.quotaExhausted = true;
+            return [
+              ...out,
+              ...unconfiguredQuotes(selected.slice(index), this.id),
+              ...unconfiguredQuotes(overflow, this.id),
+            ];
+          }
+          out.push(unavailableQuote(symbol, this.id));
+          continue;
+        }
         const price = parsePriceField(data.close);
         if (data.status === "error" || price == null) {
           out.push(unavailableQuote(symbol, this.id));

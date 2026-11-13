@@ -2,6 +2,7 @@ import { getDb, getSetting, setSetting } from "@/lib/database";
 import {
   marketRefreshIntervalMs,
   marketsProviderName,
+  twelveDataMaxSymbols,
 } from "@/lib/config";
 import type { MarketProvider, Quote, SymbolConfig } from "@/lib/markets/provider";
 import { unavailableQuote } from "@/lib/markets/provider";
@@ -10,13 +11,34 @@ import { TwelveDataProvider } from "@/lib/markets/twelvedata";
 import { BankOfCanadaProvider } from "@/lib/markets/bank-of-canada";
 import { CboeProvider } from "@/lib/markets/cboe";
 import { tsxSession, usEquitySession } from "@/lib/markets/session";
-import { usableMarketPrice } from "@/lib/markets/resolve";
+import {
+  quoteHasPrice,
+  rankTwelveTargets,
+  resolveSymbolConfig,
+  usableMarketPrice,
+} from "@/lib/markets/resolve";
 
 function hybridProviderName() {
-  const parts = ["Cboe"];
-  if (process.env.TWELVE_DATA_API_KEY) parts.push("Twelve Data");
-  if (process.env.FINNHUB_API_KEY) parts.push("Finnhub");
-  return parts.join(" + ");
+  const live = [
+    process.env.TWELVE_DATA_API_KEY ? "Twelve Data" : null,
+    process.env.FINNHUB_API_KEY ? "Finnhub" : null,
+  ].filter(Boolean);
+  return live.length > 0 ? `${live.join(" + ")}, repli Cboe` : "Cboe";
+}
+
+function quotaBlocked(key: string) {
+  const until = Date.parse(getSetting(key, ""));
+  return Number.isFinite(until) && until > Date.now();
+}
+
+function markQuota(key: string, durationMs: number) {
+  setSetting(key, new Date(Date.now() + durationMs).toISOString());
+}
+
+function collectUsable(quotes: Quote[], into: Map<number, Quote>) {
+  for (const quote of quotes) {
+    if (quoteHasPrice(quote)) into.set(quote.symbolId, quote);
+  }
 }
 
 export function getMarketProvider(): MarketProvider {
@@ -54,6 +76,53 @@ export function listSymbols(providerId = getMarketProvider().id): SymbolConfig[]
   return rows;
 }
 
+export async function refreshHybridQuotes(
+  symbols: SymbolConfig[],
+  twelveDue: boolean,
+): Promise<Quote[]> {
+  const twelve = new TwelveDataProvider(process.env.TWELVE_DATA_API_KEY);
+  const finnhub = new FinnhubProvider(process.env.FINNHUB_API_KEY);
+  const cboe = new CboeProvider();
+  const usable = new Map<number, Quote>();
+
+  if (twelve.configured && twelveDue && !quotaBlocked("markets_twelve_quota_until")) {
+    const twelveTargets = rankTwelveTargets(symbols, twelveDataMaxSymbols());
+    if (twelveTargets.length > 0) {
+      const twelveQuotes = await twelve.fetchQuotes(twelveTargets);
+      if (twelve.quotaExhausted) {
+        markQuota("markets_twelve_quota_until", marketRefreshIntervalMs("twelvedata"));
+      }
+      collectUsable(twelveQuotes, usable);
+      setSetting("markets_last_fetch_twelvedata", new Date().toISOString());
+    }
+  }
+
+  const afterTwelve = symbols.filter((symbol) => !usable.has(symbol.id));
+  if (
+    finnhub.configured &&
+    afterTwelve.length > 0 &&
+    !quotaBlocked("markets_finnhub_quota_until")
+  ) {
+    const finnhubQuotes = await finnhub.fetchQuotes(afterTwelve);
+    if (finnhub.quotaExhausted) {
+      markQuota("markets_finnhub_quota_until", 5 * 60_000);
+    }
+    collectUsable(finnhubQuotes, usable);
+    setSetting("markets_last_fetch_finnhub", new Date().toISOString());
+  }
+
+  const cboeTargets = symbols.filter(
+    (symbol) => !usable.has(symbol.id) && resolveSymbolConfig(symbol).cboeEligible,
+  );
+  if (cboeTargets.length > 0) {
+    collectUsable(await cboe.fetchQuotes(cboeTargets), usable);
+  }
+
+  return symbols.map(
+    (symbol) => usable.get(symbol.id) ?? unavailableQuote(symbol, "hybrid"),
+  );
+}
+
 export async function refreshQuotes(): Promise<Quote[]> {
   const provider = getMarketProvider();
   const isTwelveDue = () => {
@@ -67,30 +136,7 @@ export async function refreshQuotes(): Promise<Quote[]> {
 
   let quotes: Quote[];
   if (provider.id === "hybrid") {
-    const symbols = listSymbols("hybrid");
-    const cboeSymbols = symbols.filter((symbol) => symbol.quoteProvider === "cboe");
-    const twelveSymbols = symbols.filter((symbol) => symbol.quoteProvider === "twelvedata");
-    const finnhubSymbols = symbols.filter((symbol) => symbol.quoteProvider === "finnhub");
-    const unknown = symbols.filter(
-      (symbol) => !["cboe", "twelvedata", "finnhub"].includes(symbol.quoteProvider ?? ""),
-    );
-    const cboe = new CboeProvider();
-    const twelve = new TwelveDataProvider(process.env.TWELVE_DATA_API_KEY);
-    const finnhub = new FinnhubProvider(process.env.FINNHUB_API_KEY);
-    const [cboeQuotes, twelveQuotes, finnhubQuotes] = await Promise.all([
-      cboe.fetchQuotes(cboeSymbols),
-      isTwelveDue() ? twelve.fetchQuotes(twelveSymbols) : Promise.resolve([]),
-      finnhub.fetchQuotes(finnhubSymbols),
-    ]);
-    quotes = [
-      ...cboeQuotes,
-      ...twelveQuotes,
-      ...finnhubQuotes,
-      ...unknown.map((symbol) => unavailableQuote(symbol, "hybrid")),
-    ];
-    if (twelveQuotes.length > 0) {
-      setSetting("markets_last_fetch_twelvedata", new Date().toISOString());
-    }
+    quotes = await refreshHybridQuotes(listSymbols("hybrid"), isTwelveDue());
   } else {
     quotes = await provider.fetchQuotes(listSymbols(provider.id));
   }
@@ -124,7 +170,7 @@ export async function refreshQuotes(): Promise<Quote[]> {
       });
     }
   });
-  tx(quotes);
+  tx(provider.id === "hybrid" ? quotes.filter(quoteHasPrice) : quotes);
   return readQuotes(provider.id);
 }
 

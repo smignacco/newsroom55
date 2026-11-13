@@ -54,7 +54,7 @@ const schema = z.object({
   kind: z.enum(["equity", "fund", "index"]),
   currency: z.string().regex(/^[A-Z]{3}$/),
   provider_symbol: z.string().min(1).max(32),
-  quote_provider: z.enum(["cboe", "twelvedata", "finnhub"]),
+  quote_provider: z.enum(["cboe", "twelvedata", "finnhub"]).optional(),
   exchange: z.string().max(40).nullable().optional(),
   sort_order: z.number().int().min(0).max(99).optional(),
 });
@@ -72,10 +72,18 @@ export async function POST(req: NextRequest) {
     parsed.data.currency,
     parsed.data.kind,
   );
+  const twelveActive = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS count FROM market_symbols
+       WHERE enabled = 1 AND quote_provider = 'twelvedata'`,
+    )
+    .get() as { count: number };
   const quoteProvider: QuoteVendor =
     parsed.data.quote_provider ??
     recommendQuoteProvider(listed, {
-      twelve: Boolean(process.env.TWELVE_DATA_API_KEY),
+      twelve:
+        Boolean(process.env.TWELVE_DATA_API_KEY) &&
+        twelveActive.count < twelveDataMaxSymbols(),
       finnhub: Boolean(process.env.FINNHUB_API_KEY),
     });
   if (quoteProvider === "cboe" && !listed.cboeEligible) {
@@ -98,13 +106,7 @@ export async function POST(req: NextRequest) {
     );
   }
   if (quoteProvider === "twelvedata") {
-    const active = getDb()
-      .prepare(
-        `SELECT COUNT(*) AS count FROM market_symbols
-         WHERE enabled = 1 AND quote_provider = 'twelvedata'`,
-      )
-      .get() as { count: number };
-    if (active.count >= twelveDataMaxSymbols()) {
+    if (twelveActive.count >= twelveDataMaxSymbols()) {
       return NextResponse.json(
         {
           error:

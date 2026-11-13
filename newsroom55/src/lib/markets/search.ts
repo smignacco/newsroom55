@@ -1,4 +1,8 @@
-import { resolveListedInstrument, searchTicker } from "@/lib/markets/resolve";
+import {
+  recommendQuoteProvider,
+  resolveListedInstrument,
+  searchTicker,
+} from "@/lib/markets/resolve";
 
 const CBOE_DIRECTORY_URL =
   "https://www.cboe.com/us/options/symboldir/equity_index_options/?download=csv";
@@ -24,6 +28,7 @@ export type MarketSearchResult = {
   twelveSymbol: string;
   finnhubSymbol: string;
   cboeEligible: boolean;
+  quoteProvider: "cboe" | "twelvedata" | "finnhub";
 };
 
 export type MarketSearchResponse = {
@@ -104,6 +109,10 @@ function mappedResult(input: {
     twelveSymbol: listed.twelveSymbol,
     finnhubSymbol: listed.finnhubSymbol,
     cboeEligible: listed.cboeEligible,
+    quoteProvider: recommendQuoteProvider(listed, {
+      twelve: Boolean(process.env.TWELVE_DATA_API_KEY),
+      finnhub: Boolean(process.env.FINNHUB_API_KEY),
+    }),
   };
 }
 

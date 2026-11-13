@@ -73,6 +73,7 @@ describe("Twelve Data symbol search", () => {
       twelveSymbol: "XEQT",
       finnhubSymbol: "XEQT.TO",
       cboeEligible: false,
+      quoteProvider: "twelvedata",
     });
     delete process.env.TWELVE_DATA_API_KEY;
   });

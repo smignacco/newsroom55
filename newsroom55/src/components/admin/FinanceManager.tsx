@@ -46,17 +46,22 @@ type ProviderInfo = {
 function supportedByProvider(symbol: SymbolRow, provider: ProviderInfo | null): boolean {
   if (symbol.kind === "fx-public") return provider?.id === "bankofcanada";
   if (provider?.id === "hybrid") {
-    if (symbol.quote_provider === "cboe") return true;
-    if (symbol.quote_provider === "twelvedata") return Boolean(provider.twelveConfigured);
-    if (symbol.quote_provider === "finnhub") return Boolean(provider.finnhubConfigured);
-    return false;
+    const listed = resolveListedInstrument(
+      symbol.symbol,
+      symbol.exchange,
+      symbol.provider_symbol,
+      symbol.currency,
+      symbol.kind,
+    );
+    if (listed.cboeEligible) return true;
+    return Boolean(provider.twelveConfigured || provider.finnhubConfigured);
   }
   if (provider?.id === "finnhub") return symbol.quote_provider === "finnhub" || Boolean(provider.finnhubConfigured);
   return symbol.quote_provider === provider?.id;
 }
 
 function providerLabel(id: "cboe" | "twelvedata" | "finnhub") {
-  if (id === "cboe") return "Cboe · gratuit, États-Unis";
+  if (id === "cboe") return "Cboe · gratuit illimité, différé 15 min";
   if (id === "finnhub") return "Finnhub · quota de votre forfait";
   return "Twelve Data · quota protégé";
 }
@@ -161,7 +166,8 @@ export function FinanceManager({ csrf }: { csrf: string }) {
           <span>FOURNISSEURS ACTIFS</span>
           <strong>{provider?.name ?? "Chargement…"}</strong>
           <small>
-            Cboe gratuit · Twelve Data{" "}
+            Priorité Twelve Data / Finnhub tant que le quota tient, puis Cboe
+            différé gratuit. Twelve Data{" "}
             {provider?.twelveConfigured
               ? `${provider.maxSymbols ?? 6} titres / ${provider.twelveRefreshMinutes} min`
               : "non configuré"}
