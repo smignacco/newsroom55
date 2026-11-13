@@ -61,6 +61,22 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).not.toContain("nr-week-bars");
   });
 
+  it("hides recorded sleep phases when the administrator disables them", () => {
+    const html = renderToStaticMarkup(
+      <PulseTelemetry
+        snapshot={{
+          ...fixture,
+          sleep: { ...fixture.sleep, showPhases: false },
+        }}
+      />,
+    );
+    expect(html).toContain("nr-pulse-night-arc");
+    expect(html).not.toContain("#8a79ea");
+    expect(html).not.toContain("#646fe0");
+    expect(html).not.toContain("#438fc0");
+    expect(html).toContain("7 h 00");
+  });
+
   it("keeps missing activity as an incomplete arc instead of a zero fill", () => {
     const html = renderToStaticMarkup(
       <PulseTelemetry

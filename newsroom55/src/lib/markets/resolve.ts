@@ -95,11 +95,13 @@ export function resolveListedInstrument(
   const decorated = parseDecoratedSymbol(provider) ?? parseDecoratedSymbol(symbol);
   const alias = decorated?.alias ?? lookupExchange(exchange);
   const providerUpper = provider.toUpperCase();
+  const symbolUpper = symbol.trim().toUpperCase();
   const ticker = (
     decorated?.ticker ||
     (INDEX_RE.test(providerUpper) ? providerUpper : "") ||
-    symbol.split(/[.:]/)[0] ||
-    symbol
+    (INDEX_RE.test(symbolUpper) ? symbolUpper : "") ||
+    providerUpper ||
+    symbolUpper
   )
     .trim()
     .toUpperCase();
@@ -107,6 +109,7 @@ export function resolveListedInstrument(
     alias?.canadian === true ||
     currency?.toUpperCase() === "CAD" ||
     lookupExchange(exchange)?.canadian === true;
+  const storedExchange = exchange?.trim() || null;
   const twelveSymbol = INDEX_RE.test(providerUpper) ? providerUpper : ticker;
   const finnhubSymbol = finnhubIndexSymbol(
     alias ? `${ticker}.${alias.yahooSuffix}` : provider || symbol.trim(),
@@ -122,12 +125,12 @@ export function resolveListedInstrument(
   return {
     ticker,
     displaySymbol: ticker,
-    exchange: alias?.exchange ?? (exchange?.trim() || null),
+    exchange: alias?.exchange ?? storedExchange,
     micCode: alias?.micCode ?? null,
     yahooSuffix: alias?.yahooSuffix ?? null,
     currencyHint: alias?.currency ?? currency?.toUpperCase() ?? null,
     twelveSymbol,
-    twelveExchange: alias?.exchange ?? (canadian ? exchange?.trim() || null : null),
+    twelveExchange: alias?.exchange ?? storedExchange,
     finnhubSymbol,
     cboeEligible,
     canadian,

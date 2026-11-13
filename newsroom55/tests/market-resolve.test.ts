@@ -57,6 +57,25 @@ describe("listed instrument resolution", () => {
     expect(parsePriceField("45.58")).toBe(45.58);
   });
 
+  it("keeps dots that are part of the ticker and explicit non-Canadian exchanges", () => {
+    const berkshire = resolveListedInstrument("BRK.B", null, "BRK.B", "USD", "equity");
+    expect(berkshire.ticker).toBe("BRK.B");
+    expect(berkshire.twelveSymbol).toBe("BRK.B");
+    expect(berkshire.cboeEligible).toBe(true);
+
+    const dlr = resolveListedInstrument("DLR.U", "TSX", "DLR.U", "CAD", "fund");
+    expect(dlr.ticker).toBe("DLR.U");
+    expect(dlr.twelveSymbol).toBe("DLR.U");
+    expect(dlr.twelveExchange).toBe("TSX");
+    expect(dlr.finnhubSymbol).toBe("DLR.U.TO");
+
+    const vod = resolveListedInstrument("VOD", "LSE", "VOD", "GBP", "equity");
+    expect(vod.twelveSymbol).toBe("VOD");
+    expect(vod.twelveExchange).toBe("LSE");
+    expect(vod.exchange).toBe("LSE");
+    expect(vod.cboeEligible).toBe(false);
+  });
+
   it("recommends Twelve Data then Finnhub for Canadian listings", () => {
     const xeqt = resolveListedInstrument("XEQT.TO");
     expect(

@@ -228,14 +228,15 @@ export function PulseTelemetry({
   const activity = snapshot.activity;
   const sleep = snapshot.sleep;
   const latestSleep = sleep.lastNight;
-  const phases: PulsePhase[] = latestSleep
-    ? [
-        { key: "deep", label: "Profond", value: latestSleep.deepMinutes, tone: "deep" },
-        { key: "rem", label: "REM", value: latestSleep.remMinutes, tone: "rem" },
-        { key: "core", label: "Core", value: latestSleep.coreMinutes, tone: "core" },
-        { key: "awake", label: "Éveillé", value: latestSleep.awakeMinutes, tone: "awake" },
-      ].filter((phase) => phase.value != null)
-    : [];
+  const phases: PulsePhase[] =
+    latestSleep && sleep.showPhases
+      ? [
+          { key: "deep", label: "Profond", value: latestSleep.deepMinutes, tone: "deep" },
+          { key: "rem", label: "REM", value: latestSleep.remMinutes, tone: "rem" },
+          { key: "core", label: "Core", value: latestSleep.coreMinutes, tone: "core" },
+          { key: "awake", label: "Éveillé", value: latestSleep.awakeMinutes, tone: "awake" },
+        ].filter((phase) => phase.value != null)
+      : [];
   const restRatio = ratio(latestSleep?.totalMinutes ?? null, sleep.targetMinutes);
   return (
     <div className="nr-pulse-visual" data-testid="pulse-visual">
