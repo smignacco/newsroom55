@@ -40,40 +40,12 @@ function ratio(value: number | null | undefined, goal: number | null | undefined
   return Math.min(1, value / goal);
 }
 
-function Arc({
-  radius,
-  progress,
-  color,
-  missing,
-}: {
-  radius: number;
-  progress: number | null;
-  color: string;
-  missing: boolean;
-}) {
-  const circumference = 2 * Math.PI * radius;
-  const offset =
-    progress == null ? circumference : circumference * (1 - Math.max(0, Math.min(1, progress)));
-  return (
-    <circle
-      cx="60"
-      cy="60"
-      r={radius}
-      fill="none"
-      stroke={color}
-      strokeWidth={missing ? 3.2 : 5.2}
-      strokeLinecap="round"
-      strokeDasharray={circumference}
-      strokeDashoffset={offset}
-      strokeOpacity={missing ? 0.35 : 0.95}
-      pathLength={circumference}
-      style={missing ? { strokeDasharray: "3 5" } : undefined}
-      transform="rotate(-90 60 60)"
-    />
-  );
+function percent(value: number | null | undefined, goal: number | null | undefined) {
+  if (value == null || goal == null || goal <= 0) return null;
+  return Math.round((value / goal) * 100);
 }
 
-function RecoveryDial({
+function EffortMeters({
   steps,
   stepsGoal,
   exercise,
@@ -86,41 +58,55 @@ function RecoveryDial({
   exerciseGoal: number | null;
   energy: number | null;
 }) {
-  const stepRatio = ratio(steps, stepsGoal);
-  const exerciseRatio = ratio(exercise, exerciseGoal);
-  const energyRatio = energy == null ? null : Math.min(1, energy / Math.max(energy, 400));
+  const meters = [
+    { key: "steps", label: "Pas", value: steps, goal: stepsGoal, tone: "is-steps" },
+    {
+      key: "exercise",
+      label: "Exercice",
+      value: exercise,
+      goal: exerciseGoal,
+      tone: "is-move",
+    },
+    ...(energy != null
+      ? [
+          {
+            key: "energy",
+            label: "Kcal",
+            value: energy,
+            goal: null as number | null,
+            tone: "is-heat",
+          },
+        ]
+      : []),
+  ];
   return (
-    <svg className="nr-pulse-dial" viewBox="0 0 120 120" aria-hidden>
-      <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(244,248,252,0.08)" strokeWidth="5.2" />
-      <circle cx="60" cy="60" r="40" fill="none" stroke="rgba(244,248,252,0.07)" strokeWidth="5.2" />
-      <circle cx="60" cy="60" r="28" fill="none" stroke="rgba(244,248,252,0.06)" strokeWidth="5.2" />
-      {Array.from({ length: 24 }, (_, index) => {
-        const angle = (index / 24) * Math.PI * 2 - Math.PI / 2;
-        const inner = 56.5;
-        const outer = index % 6 === 0 ? 59.5 : 58;
+    <div className="nr-effort-meters" aria-label="Indicateurs d’effort">
+      {meters.map((meter) => {
+        const fill = percent(meter.value, meter.goal);
+        const missing = meter.value == null;
         return (
-          <line
-            key={index}
-            x1={60 + Math.cos(angle) * inner}
-            y1={60 + Math.sin(angle) * inner}
-            x2={60 + Math.cos(angle) * outer}
-            y2={60 + Math.sin(angle) * outer}
-            stroke="#91A8BD"
-            strokeOpacity="0.45"
-            strokeWidth={index % 6 === 0 ? 1.2 : 0.7}
-          />
+          <div key={meter.key} className={`nr-effort-meter ${meter.tone}`}>
+            <span>{meter.label}</span>
+            <b>{number(meter.value)}</b>
+            {missing || fill != null ? (
+              <div className={`nr-effort-track${missing ? " is-missing" : ""}`}>
+                <i
+                  data-fill={fill == null ? "none" : String(Math.min(100, fill))}
+                  style={
+                    fill == null
+                      ? undefined
+                      : { width: `${Math.min(100, Math.max(0, fill))}%` }
+                  }
+                />
+              </div>
+            ) : (
+              <div className="nr-effort-track is-plain" aria-hidden />
+            )}
+            <small>{fill != null ? `${fill} %` : "\u00a0"}</small>
+          </div>
         );
       })}
-      <Arc radius={52} progress={stepRatio} color="#35C6F4" missing={stepRatio == null} />
-      <Arc radius={40} progress={exerciseRatio} color="#32C997" missing={exerciseRatio == null} />
-      <Arc radius={28} progress={energyRatio} color="#F2B85B" missing={energyRatio == null} />
-      <text x="60" y="56" textAnchor="middle" fill="#F4F8FC" fontSize="11" fontWeight="700">
-        {number(steps)}
-      </text>
-      <text x="60" y="68" textAnchor="middle" fill="#91A8BD" fontSize="5.4" letterSpacing="0.8">
-        PAS
-      </text>
-    </svg>
+    </div>
   );
 }
 
@@ -176,40 +162,28 @@ function NightArc({ phases, total }: { phases: PulsePhase[]; total: number }) {
   );
 }
 
-function WeekOrbit({
+function WeekBars({
   days,
+  weeklyGoalMinutes,
 }: {
   days: PulseSnapshot["activity"]["days"];
+  weeklyGoalMinutes: number | null;
 }) {
+  const recorded = days.flatMap((day) => (day.minutes == null ? [] : [day.minutes]));
   const max = Math.max(
-    30,
-    ...days.flatMap((day) => (day.minutes == null ? [] : [day.minutes])),
+    weeklyGoalMinutes && weeklyGoalMinutes > 0 ? weeklyGoalMinutes / 7 : 30,
+    ...recorded,
   );
   return (
-    <div className="nr-week-orbit" aria-label="Repos et activité des sept jours">
+    <div className="nr-week-bars" aria-label="Activité des sept jours">
       {days.map((day) => {
-        const progress = day.minutes == null ? null : Math.min(1, day.minutes / max);
-        const radius = 11;
-        const circumference = 2 * Math.PI * radius;
+        const missing = day.minutes == null;
+        const height = missing
+          ? 0
+          : Math.max(8, Math.min(100, ((day.minutes || 0) / max) * 100));
         return (
-          <span key={day.date} className={`nr-week-orbit-day ${day.status}`}>
-            <svg viewBox="0 0 32 32" aria-hidden>
-              <circle cx="16" cy="16" r={radius} fill="none" stroke="rgba(244,248,252,0.1)" strokeWidth="3" />
-              <circle
-                cx="16"
-                cy="16"
-                r={radius}
-                fill="none"
-                stroke={day.status === "recorded" ? "#35C6F4" : "#91A8BD"}
-                strokeWidth="3"
-                strokeDasharray={circumference}
-                strokeDashoffset={
-                  progress == null ? circumference : circumference * (1 - progress)
-                }
-                strokeOpacity={day.status === "recorded" ? 0.95 : 0.35}
-                transform="rotate(-90 16 16)"
-              />
-            </svg>
+          <span key={day.date} className={`nr-week-day ${day.status}`}>
+            <i style={missing ? undefined : { height: `${height}%` }} />
             <small>{day.label}</small>
           </span>
         );
@@ -239,37 +213,39 @@ export function PulseTelemetry({
       : [];
   const restRatio = ratio(latestSleep?.totalMinutes ?? null, sleep.targetMinutes);
   return (
-    <div className="nr-pulse-visual" data-testid="pulse-visual">
+    <div
+      className={`nr-pulse-visual${compact ? " is-compact" : ""}`}
+      data-testid="pulse-visual"
+    >
       <div className="nr-pulse-broadcast">
         <div className="nr-pulse-effort">
           <div className="nr-pulse-kicker">EFFORT</div>
-          <RecoveryDial
+          <EffortMeters
             steps={activity.steps}
             stepsGoal={activity.dailyStepsGoal}
             exercise={activity.exerciseMinutes}
             exerciseGoal={activity.dailyExerciseGoal}
             energy={activity.activeEnergyKcal}
           />
-          <div className="nr-pulse-legend">
-            <span className="is-steps">Pas</span>
-            <span className="is-move">Exercice</span>
-            <span className="is-heat">Kcal</span>
-          </div>
         </div>
         <div className="nr-pulse-rest">
           <div className="nr-pulse-kicker">REPOS</div>
           <strong className="nr-sleep-duration">{duration(latestSleep?.totalMinutes)}</strong>
-          <span>{latestSleep?.nightDate || "DONNÉES ABSENTES"}</span>
-          <NightArc phases={phases} total={latestSleep?.totalMinutes ?? 0} />
-          {sleep.targetMinutes != null ? (
-            <div className="nr-sleep-target">
-              CIBLE {duration(sleep.targetMinutes)}
-              {restRatio != null ? ` · ${Math.round(restRatio * 100)} %` : ""}
-            </div>
-          ) : null}
+          <span>
+            {latestSleep?.nightDate || "DONNÉES ABSENTES"}
+            {sleep.targetMinutes != null
+              ? ` · CIBLE ${duration(sleep.targetMinutes)}${
+                  restRatio != null ? ` · ${Math.round(restRatio * 100)} %` : ""
+                }`
+              : ""}
+          </span>
         </div>
       </div>
-      <WeekOrbit days={activity.days} />
+      <WeekBars
+        days={activity.days}
+        weeklyGoalMinutes={activity.weeklyGoalMinutes}
+      />
+      <NightArc phases={phases} total={latestSleep?.totalMinutes ?? 0} />
       <div className="nr-pulse-foot">
         <span>
           SEMAINE {number(activity.weeklyExerciseMinutes)} MIN

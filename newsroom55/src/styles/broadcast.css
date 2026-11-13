@@ -349,7 +349,7 @@ textarea {
 }
 
 .nr-right-rail.has-breaking.with-pulse {
-  grid-template-rows: minmax(0, 77fr) minmax(8.5rem, 23fr);
+  grid-template-rows: minmax(0, 74fr) minmax(10.75rem, 26fr);
 }
 
 .nr-pulse {
@@ -718,79 +718,130 @@ textarea {
   display: grid;
   min-height: 0;
   height: calc(100% - 1.2rem);
-  grid-template-rows: minmax(0, 1fr) auto auto auto;
-  padding-top: 0.28rem;
-  gap: 0.18rem;
+  grid-template-rows: auto minmax(3.6rem, 1fr) auto auto auto;
+  padding-top: 0.22rem;
+  gap: 0.14rem;
+}
+
+.nr-pulse-visual.is-compact {
+  grid-template-rows: auto 3.55rem 2.05rem auto;
 }
 
 .nr-pulse-broadcast {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  min-height: 0;
-  gap: 0.35rem;
+  grid-template-columns: minmax(0, 1.55fr) minmax(8.4rem, 0.72fr);
+  overflow: hidden;
+  gap: 0.6rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-broadcast {
+  min-height: min-content;
 }
 
 .nr-pulse-effort,
 .nr-pulse-rest {
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  display: grid;
+}
+
+.nr-pulse-effort {
+  grid-template-rows: auto auto;
+  gap: 0.18rem;
 }
 
 .nr-pulse-rest {
-  padding-left: 0.5rem;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  gap: 0.12rem;
+  padding-left: 0.55rem;
   border-left: 1px solid var(--nr-line-dim);
 }
 
-.nr-pulse-dial {
+.nr-pulse-rest .nr-pulse-kicker {
+  color: var(--nr-pulse-sleep);
+}
+
+.nr-effort-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  min-height: 0;
+  gap: 0.45rem;
+}
+
+.nr-effort-meter {
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.nr-effort-meter span {
+  overflow: hidden;
+  color: var(--nr-text-2);
+  font: 600 0.4rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nr-effort-meter b {
+  overflow: hidden;
+  color: var(--nr-text);
+  font: 700 clamp(0.78rem, 0.86vw, 1.02rem)/1 var(--font-plex-mono), monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nr-effort-meter small {
+  color: inherit;
+  font: 600 0.4rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.03em;
+}
+
+.nr-effort-meter.is-steps { color: var(--nr-accent); }
+.nr-effort-meter.is-move { color: var(--nr-positive); }
+.nr-effort-meter.is-heat { color: var(--nr-info); }
+
+.nr-effort-track {
+  position: relative;
+  height: 0.48rem;
+  overflow: hidden;
+  background: rgba(244, 248, 252, 0.08);
+}
+
+.nr-effort-track i {
   display: block;
-  width: 100%;
-  max-height: 7.1rem;
-  margin: 0.1rem auto 0;
+  height: 100%;
+  width: 0;
+  background: currentColor;
+}
+
+.nr-effort-track.is-plain {
+  height: 0.48rem;
+  background: transparent;
+}
+
+.nr-effort-track.is-missing {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--nr-text-2) 0 2px,
+    transparent 2px 4px
+  );
+  opacity: 0.4;
+}
+
+.nr-effort-track.is-missing i {
+  width: 0;
 }
 
 .nr-pulse-night-arc {
   display: block;
   width: 100%;
-  max-height: 3.4rem;
-  margin-top: 0.15rem;
-}
-
-.nr-pulse-legend {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.2rem;
-  margin-top: 0.12rem;
-  color: var(--nr-text-2);
-  font: 500 0.4rem/1 var(--font-plex-mono), monospace;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.nr-pulse-legend .is-steps { color: var(--nr-accent); }
-.nr-pulse-legend .is-move { color: var(--nr-positive); }
-.nr-pulse-legend .is-heat { color: var(--nr-info); }
-
-.nr-week-orbit {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.15rem;
-  margin-top: 0.12rem;
-}
-
-.nr-week-orbit-day {
-  display: grid;
-  justify-items: center;
-  gap: 0.08rem;
-}
-
-.nr-week-orbit-day svg {
-  width: 100%;
-  max-width: 1.55rem;
-}
-
-.nr-week-orbit-day small {
-  color: var(--nr-text-2);
-  font: 500 0.38rem/1 var(--font-plex-mono), monospace;
+  height: 2.35rem;
+  margin-top: 0.02rem;
 }
 
 .nr-pulse-grid {
@@ -852,9 +903,21 @@ textarea {
 .nr-week-bars {
   display: flex;
   align-items: end;
-  gap: 0.22rem;
-  min-height: 1.65rem;
-  margin-top: 0.3rem;
+  gap: 0.32rem;
+  min-height: 3.4rem;
+  height: 100%;
+  margin-top: 0.02rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--nr-line-dim);
+}
+
+.nr-pulse-visual.is-compact .nr-week-bars {
+  height: 3.55rem;
+  min-height: 3.55rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-night-arc {
+  height: 2.05rem;
 }
 
 .nr-week-day {
@@ -864,7 +927,7 @@ textarea {
   display: grid;
   grid-template-rows: 1fr auto;
   align-items: end;
-  gap: 0.08rem;
+  gap: 0.1rem;
   text-align: center;
 }
 
@@ -872,12 +935,13 @@ textarea {
   display: block;
   width: 100%;
   min-height: 2px;
-  background: color-mix(in srgb, var(--nr-pulse-activity) 76%, transparent);
+  background: color-mix(in srgb, var(--nr-pulse-activity) 82%, transparent);
 }
 
 .nr-week-day small {
   color: var(--nr-text-2);
   font: 500 0.4rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.04em;
 }
 
 .nr-week-day.missing i {
@@ -903,6 +967,7 @@ textarea {
 }
 
 .nr-pulse-sleep > span,
+.nr-pulse-rest > span,
 .nr-sleep-average small {
   display: block;
   color: var(--nr-text-2);
@@ -912,9 +977,9 @@ textarea {
 
 .nr-sleep-duration {
   display: block;
-  margin-top: 0.26rem;
+  margin-top: 0.08rem;
   color: #b4adff;
-  font: 700 clamp(0.9rem, 1.05vw, 1.25rem)/1 var(--font-plex-mono), monospace;
+  font: 700 clamp(0.95rem, 1.15vw, 1.35rem)/1 var(--font-plex-mono), monospace;
 }
 
 .nr-sleep-average {
@@ -933,7 +998,7 @@ textarea {
 }
 
 .nr-sleep-target {
-  margin-top: 0.3rem;
+  margin-top: 0.16rem;
   color: var(--nr-pulse-goal);
   font: 500 0.43rem/1.15 var(--font-plex-mono), monospace;
 }

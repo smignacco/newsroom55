@@ -50,15 +50,24 @@ const fixture: PulseSnapshot = {
 };
 
 describe("Activity & Sleep broadcast treatment", () => {
-  it("renders effort rings, a sleep arc and a week orbit from supplied samples only", () => {
+  it("renders effort meters, a sleep arc and week bars from supplied samples only", () => {
     const html = renderToStaticMarkup(<PulseTelemetry snapshot={fixture} />);
-    expect(html).toContain("nr-pulse-dial");
+    expect(html).toContain("nr-effort-meters");
     expect(html).toContain("nr-pulse-night-arc");
-    expect(html).toContain("nr-week-orbit");
+    expect(html).toContain("nr-week-bars");
     expect(html).toContain("EFFORT");
     expect(html).toContain("REPOS");
     expect(html).toMatch(/6[\s\u00a0\u202f]?400/);
-    expect(html).not.toContain("nr-week-bars");
+    expect(html).toContain("80 %");
+    expect(html).toContain("117 %");
+    expect(html).toContain('data-fill="80"');
+    expect(html).toContain('data-fill="100"');
+    expect(html).toContain("is-heat");
+    expect(html).toContain("nr-effort-track is-plain");
+    expect(html).not.toContain("105 %");
+    expect(html).not.toContain('data-fill="105"');
+    expect(html).not.toContain("nr-pulse-dial");
+    expect(html).not.toContain("nr-week-orbit");
   });
 
   it("hides recorded sleep phases when the administrator disables them", () => {
@@ -77,7 +86,7 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).toContain("7 h 00");
   });
 
-  it("keeps missing activity as an incomplete arc instead of a zero fill", () => {
+  it("keeps missing activity as an incomplete track instead of a zero fill", () => {
     const html = renderToStaticMarkup(
       <PulseTelemetry
         snapshot={{
@@ -99,6 +108,10 @@ describe("Activity & Sleep broadcast treatment", () => {
     );
     expect(html).toContain("DONNÉES ABSENTES");
     expect(html).toContain("—");
+    expect(html).toContain("nr-effort-track is-missing");
+    expect(html).toContain("nr-week-day missing");
     expect(html).not.toContain(">0<");
+    expect(html).not.toContain("nr-pulse-dial");
+    expect(html).not.toContain("nr-week-orbit");
   });
 });
