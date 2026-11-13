@@ -3,6 +3,7 @@ import {
   TILE_FOCUS_LIFT,
   TILE_GRID_DROP,
   fillChannelIds,
+  pointerGestureOpensMenu,
   resolveTilePointer,
 } from "@/lib/control/layout";
 
@@ -99,5 +100,13 @@ describe("resolveTilePointer", () => {
         dy: -120,
       }),
     ).toEqual({ action: "tap", slot: 0 });
+  });
+
+  it("opens the tile menu only for taps, not for drag gestures", () => {
+    expect(pointerGestureOpensMenu({ action: "tap", slot: 1 })).toBe(true);
+    expect(pointerGestureOpensMenu({ action: "focus", slot: 1 })).toBe(false);
+    expect(pointerGestureOpensMenu({ action: "swap", from: 0, to: 1 })).toBe(false);
+    expect(pointerGestureOpensMenu({ action: "grid" })).toBe(false);
+    expect(pointerGestureOpensMenu(null)).toBe(false);
   });
 });

@@ -64,3 +64,7 @@ export function resolveTilePointer(input: {
   }
   return null;
 }
+
+export function pointerGestureOpensMenu(result: TilePointerResult | null) {
+  return result?.action === "tap";
+}

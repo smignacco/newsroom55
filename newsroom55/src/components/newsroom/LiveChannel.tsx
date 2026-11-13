@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import type { PublicChannel } from "@/lib/video/player";
 import { LayoutDock } from "@/components/newsroom/LayoutDock";
 import { TileContextMenu } from "@/components/newsroom/TileContextMenu";
@@ -8,7 +15,9 @@ import { HlsPlayer, type PlaybackState } from "@/components/newsroom/HlsPlayer";
 import {
   TILE_TAP_SLOP,
   fillChannelIds,
+  pointerGestureOpensMenu,
   resolveTilePointer,
+  type TilePointerResult,
 } from "@/lib/control/layout";
 
 function Globe() {
@@ -130,6 +139,20 @@ export function LiveChannel({
     startY: number;
     dragging: boolean;
   } | null>(null);
+  const skipClickRef = useRef(false);
+  const skipClickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const ignoreFollowingClick = () => {
+    skipClickRef.current = true;
+    if (skipClickTimer.current !== undefined) {
+      clearTimeout(skipClickTimer.current);
+    }
+    skipClickTimer.current = setTimeout(() => {
+      skipClickRef.current = false;
+      skipClickTimer.current = undefined;
+    }, 0);
+  };
   useEffect(() => {
     selectedIdsRef.current = selectedChannels.map((channel) => channel.id);
   }, [selectedChannels]);
@@ -199,24 +222,9 @@ export function LiveChannel({
     onSelectChannels(next);
     if (next.length < 2) onSetLayoutMode?.("grid");
   };
-  const applyPointerResult = (fromSlot: number, dx: number, dy: number, overSlot: number | null) => {
-    const focusedSlot = selectedChannels.findIndex(
-      (channel) => channel.id === focusChannelId,
-    );
-    const result = resolveTilePointer({
-      fromSlot,
-      overSlot,
-      dx,
-      dy,
-      layoutMode,
-      selectedCount: selectedChannels.length,
-      focusedSlot: focusedSlot >= 0 ? focusedSlot : null,
-    });
-    if (!result) return;
-    if (result.action === "tap") {
-      openMenu(result.slot);
-      return;
-    }
+  const applyLayoutGesture = (
+    result: Exclude<TilePointerResult, { action: "tap" }>,
+  ) => {
     if (result.action === "swap") {
       const next = [...selectedChannels];
       const left = next[result.from];
@@ -235,6 +243,39 @@ export function LiveChannel({
       return;
     }
     onSetLayoutMode?.("grid");
+  };
+  const finishPointer = (
+    event: PointerEvent<HTMLButtonElement>,
+    cancelled: boolean,
+  ) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gestureRef.current = null;
+    setDrag(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    ignoreFollowingClick();
+    if (cancelled) return;
+    const focusedSlot = selectedChannels.findIndex(
+      (channel) => channel.id === focusChannelId,
+    );
+    const result = resolveTilePointer({
+      fromSlot: gesture.fromSlot,
+      overSlot: slotAtPoint(viewfinderRef.current, event.clientX, event.clientY),
+      dx: event.clientX - gesture.startX,
+      dy: event.clientY - gesture.startY,
+      layoutMode,
+      selectedCount: selectedChannels.length,
+      focusedSlot: focusedSlot >= 0 ? focusedSlot : null,
+    });
+    if (pointerGestureOpensMenu(result)) {
+      openMenu(gesture.fromSlot);
+      return;
+    }
+    if (result) applyLayoutGesture(result);
   };
   const onTilePointerDown = (event: PointerEvent<HTMLButtonElement>, slot: number) => {
     if (event.button !== 0) return;
@@ -262,19 +303,19 @@ export function LiveChannel({
     });
   };
   const onTilePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
-    const gesture = gestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gestureRef.current = null;
-    setDrag(null);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+    finishPointer(event, false);
+  };
+  const onTilePointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
+    finishPointer(event, true);
+  };
+  const onTileClick = (event: MouseEvent<HTMLButtonElement>, slot: number) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (skipClickRef.current) {
+      skipClickRef.current = false;
+      return;
     }
-    applyPointerResult(
-      gesture.fromSlot,
-      event.clientX - gesture.startX,
-      event.clientY - gesture.startY,
-      slotAtPoint(viewfinderRef.current, event.clientX, event.clientY),
-    );
+    openMenu(slot);
   };
   const activeChannel = selectedChannels[activeSlot] ?? null;
   const tileAudioOn = Boolean(
@@ -374,7 +415,8 @@ export function LiveChannel({
                   onPointerDown={(event) => onTilePointerDown(event, index)}
                   onPointerMove={onTilePointerMove}
                   onPointerUp={onTilePointerUp}
-                  onPointerCancel={onTilePointerUp}
+                  onPointerCancel={onTilePointerCancel}
+                  onClick={(event) => onTileClick(event, index)}
                 />
               </div>
             );

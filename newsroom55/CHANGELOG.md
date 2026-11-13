@@ -7,6 +7,8 @@
 - Un cliqué-glissé vers le haut place un écran en mode focus ; relâcher sur
   un autre écran l’échange ou déplace le focus. Glisser le grand écran vers
   le bas revient à la grille.
+- Restaure l’ouverture du menu d’une tuile au clavier (Entrée / Espace)
+  sans doubler un tap ni ouvrir le menu à la fin d’un glisser.
 
 ## 1.0.0-ha.16
 
