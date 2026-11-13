@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { BoardControlState } from "@/lib/control/state";
 import { nextRemotePowerControl } from "@/lib/control/remote";
+import { fillChannelIds } from "@/lib/control/layout";
 import type { NewsStory } from "@/lib/news/aggregator";
 import type { PublicChannel } from "@/lib/video/player";
 
@@ -175,11 +176,11 @@ export function RemoteControl({
   const nextPower = nextRemotePowerControl(state.powerState);
 
   function setLayout(count: number) {
-    const next = selectedIds.slice(0, count);
-    for (const channel of channels) {
-      if (next.length >= count) break;
-      if (!next.includes(channel.id)) next.push(channel.id);
-    }
+    const next = fillChannelIds(
+      selectedIds,
+      channels.map((channel) => channel.id),
+      count,
+    );
     const audioChannelId =
       state.audioChannelId !== null && next.includes(state.audioChannelId)
         ? state.audioChannelId

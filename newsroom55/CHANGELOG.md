@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.0.0-ha.17
+
+- Permet de commander la multivue depuis le Board, sans télécommande : icônes
+  1 / 2 / 3 / 4 écrans, grille ou focus, sélection de chaîne et audio actif.
+- Un cliqué-glissé vers le haut place un écran en mode focus ; relâcher sur
+  un autre écran l’échange ou déplace le focus. Glisser le grand écran vers
+  le bas revient à la grille.
+
 ## 1.0.0-ha.16
 
 - Affiche XEQT et les autres titres TSX même si Twelve Data ou Finnhub

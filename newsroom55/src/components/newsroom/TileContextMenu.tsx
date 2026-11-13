@@ -7,16 +7,22 @@ export function TileContextMenu({
   channels,
   tileChannel,
   audioEnabled,
+  canFocus = false,
+  isFocused = false,
   onSelectChannel,
   onSetAudio,
+  onFocus,
   onClose,
 }: {
   slotIndex: number;
   channels: PublicChannel[];
   tileChannel: PublicChannel | null;
   audioEnabled: boolean;
+  canFocus?: boolean;
+  isFocused?: boolean;
   onSelectChannel: (channel: PublicChannel) => void;
   onSetAudio: (enabled: boolean) => void;
+  onFocus?: () => void;
   onClose: () => void;
 }) {
   const screen = String(slotIndex + 1).padStart(2, "0");
@@ -39,8 +45,8 @@ export function TileContextMenu({
         <div className="nr-kicker">Tuile {screen}</div>
         <h2>{tileChannel?.name ?? "Source"}</h2>
         <p className="nr-tile-menu-lead">
-          Choisissez la chaîne de cet écran et activez ou coupez son audio. Le
-          toucher reste dans NEWSROOM.
+          Choisissez la chaîne et l’audio de cet écran. Glissez un écran vers le
+          haut pour le mode focus, ou sur un autre écran pour l’échanger.
         </p>
 
         <div className="nr-tile-audio" role="group" aria-label="Audio de cette tuile">
@@ -62,6 +68,21 @@ export function TileContextMenu({
             </button>
           </div>
         </div>
+
+        {canFocus ? (
+          <div className="nr-tile-audio" role="group" aria-label="Focus de cette tuile">
+            <span>Disposition</span>
+            <div>
+              <button
+                type="button"
+                className={`nr-chip ${isFocused ? "nr-chip-on" : ""}`}
+                onClick={() => onFocus?.()}
+              >
+                {isFocused ? "Déjà en focus" : "Mettre en focus"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="nr-kicker" style={{ marginTop: "0.85rem" }}>
           Chaîne

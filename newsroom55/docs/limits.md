@@ -75,6 +75,7 @@ Implemented:
 - Editorial waiting state (not a black box, not a fake channel)
 - Simultaneous 1–4 channel multiview with one explicitly selected audio source
 - Remote-controlled focus layout: one large live source plus up to three continuously playing live thumbnails
+- On-Board layout dock (1–4 feeds, grid or focus) and drag-to-focus / drag-to-swap on the Cisco Board itself
 - Adaptive in-memory HLS buffering: 60 seconds for one stream, 45 for two, and 25 per stream for three or four; low-latency mode is disabled and fatal network/media errors are retried
 - Mobile remote layout, per-slot channel, audio-source, mute, Board volume, and power controls
 - Backward-compatible protected import for the Canadian iptv-org playlist:

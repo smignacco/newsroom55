@@ -1135,7 +1135,8 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.45rem 0.75rem;
+  gap: 0.65rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.75rem;
   border-bottom: 1px solid var(--nr-line-dim);
   font-size: 0.68rem;
   letter-spacing: 0.22em;
@@ -1143,10 +1144,73 @@ textarea {
   color: var(--nr-text-2);
 }
 
+.nr-frame-bar > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nr-frame-bar strong {
   color: var(--nr-text);
   font-weight: 500;
   letter-spacing: 0.18em;
+}
+
+.nr-layout-dock {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  flex: 0 0 auto;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.nr-layout-split {
+  display: block;
+  width: 1px;
+  height: 1.35rem;
+  margin: 0 0.18rem;
+  background: rgba(112, 150, 171, 0.35);
+}
+
+.nr-layout-icon {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border: 1px solid rgba(112, 150, 171, 0.28);
+  background: rgba(7, 16, 28, 0.72);
+  color: var(--nr-text-2);
+  cursor: pointer;
+  border-radius: 0.35rem;
+}
+
+.nr-layout-icon svg {
+  width: 1.15rem;
+  height: 0.82rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  pointer-events: none;
+}
+
+.nr-layout-icon.is-selected {
+  border-color: rgba(53, 198, 244, 0.85);
+  color: var(--nr-accent);
+  background: rgba(53, 198, 244, 0.12);
+}
+
+.nr-layout-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.nr-layout-icon:focus-visible {
+  outline: 2px solid var(--nr-accent);
+  outline-offset: 1px;
 }
 
 .nr-viewfinder {
@@ -1253,6 +1317,37 @@ textarea {
 .nr-multiview-tile.is-audio {
   border-color: rgba(50, 201, 151, 0.9);
   box-shadow: inset 0 0 0 1px rgba(50, 201, 151, 0.35);
+}
+
+.nr-multiview-tile.is-dragging {
+  opacity: 0.62;
+  border-color: rgba(53, 198, 244, 0.95);
+}
+
+.nr-multiview-tile.is-drop-target {
+  border-color: rgba(50, 201, 151, 0.95);
+  box-shadow: inset 0 0 0 2px rgba(50, 201, 151, 0.45);
+}
+
+.nr-viewfinder.is-rearranging {
+  cursor: grabbing;
+}
+
+.nr-layout-hint {
+  position: absolute;
+  left: 50%;
+  top: 0.55rem;
+  z-index: 6;
+  max-width: min(92%, 36rem);
+  padding: 0.38rem 0.7rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(53, 198, 244, 0.38);
+  background: rgba(3, 10, 17, 0.82);
+  color: var(--nr-text);
+  font: 500 0.62rem/1.3 var(--font-plex-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .nr-multiview-tile.is-playing .nr-globe {
@@ -1578,8 +1673,8 @@ textarea {
   appearance: none;
   border: 0;
   background: transparent;
-  cursor: pointer;
-  touch-action: manipulation;
+  cursor: grab;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
 }
 

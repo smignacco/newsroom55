@@ -77,7 +77,10 @@ describe("broadcast labels", () => {
     expect(html).toContain("Audio actif");
     expect(html).toContain("Plein écran");
     expect(html).toContain("nr-tile-hit");
-    expect(html).toContain("Menu de l’écran 1: Canal Savoir");
+    expect(html).toContain("Écran 1: Canal Savoir. Toucher pour le menu, glisser pour déplacer.");
+    expect(html).toContain('data-testid="layout-dock"');
+    expect(html).toContain('data-testid="layout-count-1"');
+    expect(html).toContain('data-testid="layout-mode-focus"');
   });
 
   it("opens a RoomOS tile menu for channel and per-tile audio", () => {
@@ -104,6 +107,7 @@ describe("broadcast labels", () => {
     expect(html).toContain('data-testid="tile-context-menu"');
     expect(html).toContain("Activer l’audio");
     expect(html).toContain("Couper l’audio");
+    expect(html).toContain("Mettre en focus");
     expect(html).toContain("Télé-Québec");
     expect(html).not.toContain("Webex");
   });

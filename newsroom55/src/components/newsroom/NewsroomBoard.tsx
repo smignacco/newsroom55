@@ -216,7 +216,19 @@ export function NewsroomBoard({
           if (!channels.some((channel) => channel.id === focusChannelId)) {
             setFocusChannelId(channels[0]?.id ?? null);
           }
+          if (channels.length < 2) setLayoutMode("grid");
           setSelector(false);
+        }}
+        onSetLayoutMode={(mode) => {
+          if (mode === "focus" && selectedChannels.length < 2) return;
+          setLayoutMode(mode);
+          if (mode === "focus" && focusChannelId === null) {
+            setFocusChannelId(selectedChannelIds[0] ?? null);
+          }
+        }}
+        onSetFocusChannel={(channelId) => {
+          setFocusChannelId(channelId);
+          setLayoutMode("focus");
         }}
         onSetTileAudio={(channelId, enabled) => {
           if (enabled) {

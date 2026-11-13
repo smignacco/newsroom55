@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import type { PublicChannel } from "@/lib/video/player";
+import { LayoutDock } from "@/components/newsroom/LayoutDock";
 import { TileContextMenu } from "@/components/newsroom/TileContextMenu";
 import { HlsPlayer, type PlaybackState } from "@/components/newsroom/HlsPlayer";
+import {
+  TILE_TAP_SLOP,
+  fillChannelIds,
+  resolveTilePointer,
+} from "@/lib/control/layout";
 
 function Globe() {
   return (
@@ -56,6 +62,19 @@ function ChannelPlayer({
   );
 }
 
+function slotAtPoint(root: HTMLElement | null, x: number, y: number) {
+  if (!root) return null;
+  const tiles = root.querySelectorAll<HTMLElement>("[data-slot]");
+  for (const tile of tiles) {
+    const box = tile.getBoundingClientRect();
+    if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) {
+      const slot = Number(tile.dataset.slot);
+      return Number.isInteger(slot) ? slot : null;
+    }
+  }
+  return null;
+}
+
 export function LiveChannel({
   channels,
   selectedChannels,
@@ -67,6 +86,8 @@ export function LiveChannel({
   onOpenSelector,
   onCloseSelector,
   onSelectChannels,
+  onSetLayoutMode,
+  onSetFocusChannel,
   onSetTileAudio,
   onPlaybackState,
   muted,
@@ -83,6 +104,8 @@ export function LiveChannel({
   onOpenSelector?: () => void;
   onCloseSelector?: () => void;
   onSelectChannels: (channels: PublicChannel[]) => void;
+  onSetLayoutMode?: (mode: "grid" | "focus") => void;
+  onSetFocusChannel?: (channelId: number) => void;
   onSetTileAudio?: (channelId: number, enabled: boolean) => void;
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
@@ -91,10 +114,22 @@ export function LiveChannel({
 }) {
   const [activeSlot, setActiveSlot] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drag, setDrag] = useState<{
+    fromSlot: number;
+    overSlot: number | null;
+  } | null>(null);
   const [playback, setPlayback] = useState<
     Record<number, { state: PlaybackState; message: string }>
   >({});
   const selectedIdsRef = useRef(selectedChannels.map((channel) => channel.id));
+  const viewfinderRef = useRef<HTMLDivElement>(null);
+  const gestureRef = useRef<{
+    pointerId: number;
+    fromSlot: number;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+  } | null>(null);
   useEffect(() => {
     selectedIdsRef.current = selectedChannels.map((channel) => channel.id);
   }, [selectedChannels]);
@@ -151,10 +186,109 @@ export function LiveChannel({
     onSelectChannels(next.filter(Boolean).slice(0, 4));
     closeMenu();
   };
+  const applyCount = (count: number) => {
+    const nextIds = fillChannelIds(
+      selectedChannels.map((channel) => channel.id),
+      channels.map((channel) => channel.id),
+      count,
+    );
+    const next = nextIds.flatMap((id) => {
+      const channel = channels.find((candidate) => candidate.id === id);
+      return channel ? [channel] : [];
+    });
+    onSelectChannels(next);
+    if (next.length < 2) onSetLayoutMode?.("grid");
+  };
+  const applyPointerResult = (fromSlot: number, dx: number, dy: number, overSlot: number | null) => {
+    const focusedSlot = selectedChannels.findIndex(
+      (channel) => channel.id === focusChannelId,
+    );
+    const result = resolveTilePointer({
+      fromSlot,
+      overSlot,
+      dx,
+      dy,
+      layoutMode,
+      selectedCount: selectedChannels.length,
+      focusedSlot: focusedSlot >= 0 ? focusedSlot : null,
+    });
+    if (!result) return;
+    if (result.action === "tap") {
+      openMenu(result.slot);
+      return;
+    }
+    if (result.action === "swap") {
+      const next = [...selectedChannels];
+      const left = next[result.from];
+      const right = next[result.to];
+      if (!left || !right) return;
+      next[result.from] = right;
+      next[result.to] = left;
+      onSelectChannels(next);
+      return;
+    }
+    if (result.action === "focus") {
+      const channel = selectedChannels[result.slot];
+      if (!channel) return;
+      onSetLayoutMode?.("focus");
+      onSetFocusChannel?.(channel.id);
+      return;
+    }
+    onSetLayoutMode?.("grid");
+  };
+  const onTilePointerDown = (event: PointerEvent<HTMLButtonElement>, slot: number) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      fromSlot: slot,
+      startX: event.clientX,
+      startY: event.clientY,
+      dragging: false,
+    };
+  };
+  const onTilePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const dx = event.clientX - gesture.startX;
+    const dy = event.clientY - gesture.startY;
+    if (!gesture.dragging && Math.hypot(dx, dy) < TILE_TAP_SLOP) return;
+    gesture.dragging = true;
+    setDrag({
+      fromSlot: gesture.fromSlot,
+      overSlot: slotAtPoint(viewfinderRef.current, event.clientX, event.clientY),
+    });
+  };
+  const onTilePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gestureRef.current = null;
+    setDrag(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    applyPointerResult(
+      gesture.fromSlot,
+      event.clientX - gesture.startX,
+      event.clientY - gesture.startY,
+      slotAtPoint(viewfinderRef.current, event.clientX, event.clientY),
+    );
+  };
   const activeChannel = selectedChannels[activeSlot] ?? null;
   const tileAudioOn = Boolean(
     activeChannel && activeChannel.id === audioChannelId && !muted,
   );
+  const tileFocused = Boolean(
+    activeChannel && activeChannel.id === focusChannelId && layoutMode === "focus",
+  );
+  const dragHint =
+    drag == null
+      ? null
+      : layoutMode === "focus"
+        ? "Relâcher sur un écran pour le déplacer · glisser vers le bas pour la grille"
+        : "Glisser vers le haut : focus · relâcher sur un écran : échanger";
 
   return (
     <section className={`nr-tv ${interacting ? "interacting" : ""}`}>
@@ -164,14 +298,21 @@ export function LiveChannel({
             {layoutMode === "focus" && selectedChannels.length > 1 ? "Vue principale" : "Multivue"} ·{" "}
             {selectedChannels.length} source(s) · <strong>{programState}</strong>
           </span>
-          <span>1–4 flux HLS · audio unique</span>
+          <LayoutDock
+            selectedCount={selectedChannels.length || 1}
+            availableCount={channels.length}
+            layoutMode={layoutMode === "focus" && selectedChannels.length > 1 ? "focus" : "grid"}
+            onSetCount={applyCount}
+            onSetMode={(mode) => onSetLayoutMode?.(mode)}
+          />
         </div>
         <div
+          ref={viewfinderRef}
           className={`nr-viewfinder nr-multiview nr-multiview-${selectedChannels.length || 1} ${
             layoutMode === "focus" && selectedChannels.length > 1
               ? "nr-multiview-focus"
               : ""
-          }`}
+          } ${drag ? "is-rearranging" : ""}`}
         >
           {selectedChannels.map((channel, index) => {
             const channelPlayback = playback[channel.id] ?? {
@@ -185,8 +326,11 @@ export function LiveChannel({
                   channelPlayback.state === "playing" ? "is-playing" : ""
                 } ${channel.id === audioChannelId && !muted ? "is-audio" : ""} ${
                   channel.id === focusChannelId ? "is-focused" : ""
+                } ${drag?.fromSlot === index ? "is-dragging" : ""} ${
+                  drag?.overSlot === index && drag.fromSlot !== index ? "is-drop-target" : ""
                 }`}
                 key={channel.id}
+                data-slot={index}
                 data-testid="multiview-tile"
               >
                 {canPlay ? (
@@ -226,20 +370,20 @@ export function LiveChannel({
                 <button
                   type="button"
                   className="nr-tile-hit"
-                  aria-label={`Menu de l’écran ${index + 1}: ${channel.name}`}
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                  }}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openMenu(index);
-                  }}
+                  aria-label={`Écran ${index + 1}: ${channel.name}. Toucher pour le menu, glisser pour déplacer.`}
+                  onPointerDown={(event) => onTilePointerDown(event, index)}
+                  onPointerMove={onTilePointerMove}
+                  onPointerUp={onTilePointerUp}
+                  onPointerCancel={onTilePointerUp}
                 />
               </div>
             );
           })}
+          {dragHint ? (
+            <div className="nr-layout-hint" data-testid="layout-drag-hint">
+              {dragHint}
+            </div>
+          ) : null}
         </div>
         {overlayOpen ? (
           <TileContextMenu
@@ -247,9 +391,17 @@ export function LiveChannel({
             channels={channels}
             tileChannel={activeChannel}
             audioEnabled={tileAudioOn}
+            canFocus={selectedChannels.length > 1}
+            isFocused={tileFocused}
             onSelectChannel={selectChannel}
             onSetAudio={(enabled) => {
               if (activeChannel) onSetTileAudio?.(activeChannel.id, enabled);
+            }}
+            onFocus={() => {
+              if (!activeChannel) return;
+              onSetLayoutMode?.("focus");
+              onSetFocusChannel?.(activeChannel.id);
+              closeMenu();
             }}
             onClose={closeMenu}
           />

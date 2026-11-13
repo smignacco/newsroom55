@@ -142,12 +142,16 @@ test.describe("Centre de nouvelles visual board", () => {
       expect(fs.existsSync(pulseDest)).toBe(true);
     }
 
-    const tile = page.getByRole("button", { name: /Menu de l’écran/ }).first();
+    const tile = page.getByRole("button", { name: /Toucher pour le menu/ }).first();
     if ((await tile.count()) > 0) {
       await tile.click();
     } else {
       await page.getByRole("button", { name: "Choisir une source" }).click();
     }
+    await expect(page.getByTestId("layout-dock")).toBeVisible();
+    await expect(page.getByTestId("layout-count-1")).toBeVisible();
+    await expect(page.getByTestId("layout-count-4")).toBeVisible();
+    await expect(page.getByTestId("layout-mode-focus")).toBeVisible();
     await expect(page.getByTestId("tile-context-menu")).toBeVisible();
     await expect(page.getByRole("button", { name: "Activer l’audio" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Couper l’audio" })).toBeVisible();
