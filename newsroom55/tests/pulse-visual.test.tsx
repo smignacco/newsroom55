@@ -55,6 +55,8 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).toContain("nr-effort-meters");
     expect(html).toContain("nr-sleep-target");
     expect(html).toContain("nr-week-bars");
+    expect(html).toContain("nr-week-goal");
+    expect(html).toContain('data-goal="30"');
     expect(html).toContain("EFFORT");
     expect(html).toContain("REPOS");
     expect(html).toContain("12 nov.");
@@ -84,6 +86,7 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(compact).toContain("12 nov.");
     expect(compact).toContain("cible 8 h 00");
     expect(compact).not.toContain("Profond");
+    expect(compact).toContain("nr-week-goal");
     expect(compact).not.toContain("nr-pulse-night-arc");
 
     const html = renderToStaticMarkup(
@@ -110,6 +113,7 @@ describe("Activity & Sleep broadcast treatment", () => {
             steps: null,
             exerciseMinutes: null,
             activeEnergyKcal: null,
+            dailyExerciseGoal: null,
             days: fixture.activity.days.map((day) => ({
               ...day,
               minutes: null,
@@ -124,6 +128,7 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).toContain("—");
     expect(html).toContain("nr-effort-track is-missing");
     expect(html).toContain("nr-week-day missing");
+    expect(html).not.toContain("nr-week-goal");
     expect(html).not.toContain(">0<");
     expect(html).not.toContain("nr-pulse-dial");
     expect(html).not.toContain("nr-week-orbit");

@@ -937,9 +937,9 @@ textarea {
 }
 
 .nr-week-bars {
-  display: flex;
-  align-items: end;
-  gap: 0.32rem;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 0.12rem;
   min-height: 3.4rem;
   height: 100%;
   margin-top: 0.02rem;
@@ -952,15 +952,48 @@ textarea {
   min-height: 3.2rem;
 }
 
+.nr-week-plot {
+  position: relative;
+  display: flex;
+  align-items: end;
+  gap: 0.32rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.nr-week-goal {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--nr-positive) 78%, var(--nr-text));
+  pointer-events: none;
+}
+
+.nr-week-labels {
+  display: flex;
+  gap: 0.32rem;
+}
+
+.nr-week-labels small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--nr-text-2);
+  font: 500 0.4rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nr-week-day {
   flex: 1;
   min-width: 0;
   height: 100%;
-  display: grid;
-  grid-template-rows: 1fr auto;
+  display: flex;
   align-items: end;
-  gap: 0.1rem;
-  text-align: center;
 }
 
 .nr-week-day i {
@@ -968,12 +1001,6 @@ textarea {
   width: 100%;
   min-height: 2px;
   background: color-mix(in srgb, var(--nr-pulse-activity) 82%, transparent);
-}
-
-.nr-week-day small {
-  color: var(--nr-text-2);
-  font: 500 0.4rem/1 var(--font-plex-mono), monospace;
-  letter-spacing: 0.04em;
 }
 
 .nr-week-day.missing i {

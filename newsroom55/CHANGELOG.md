@@ -10,6 +10,8 @@
 - Remplace l’arc de sommeil sans légende par la date lisible de la nuit
   (ex. 12 nov.) et une barre de cible réelle. Les phases chiffrées restent
   dans le détail, pas sur le Board compact.
+- Trace une ligne pointillée de la cible d’exercice quotidienne sur le
+  diagramme à barres des sept jours, seulement si une cible réelle existe.
 
 ## 1.0.0-ha.15
 

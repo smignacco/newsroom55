@@ -143,30 +143,45 @@ function SleepTarget({
 
 function WeekBars({
   days,
-  weeklyGoalMinutes,
+  dailyGoalMinutes,
 }: {
   days: PulseSnapshot["activity"]["days"];
-  weeklyGoalMinutes: number | null;
+  dailyGoalMinutes: number | null;
 }) {
   const recorded = days.flatMap((day) => (day.minutes == null ? [] : [day.minutes]));
-  const max = Math.max(
-    weeklyGoalMinutes && weeklyGoalMinutes > 0 ? weeklyGoalMinutes / 7 : 30,
-    ...recorded,
-  );
+  const dailyGoal =
+    dailyGoalMinutes != null && dailyGoalMinutes > 0 ? dailyGoalMinutes : null;
+  const peak = Math.max(dailyGoal ?? 0, 30, ...recorded);
+  const max = dailyGoal != null && dailyGoal >= peak ? dailyGoal * 1.15 : peak;
+  const goalTop = dailyGoal != null ? Math.min(100, (dailyGoal / max) * 100) : null;
   return (
-    <div className="nr-week-bars" aria-label="Activité des sept jours">
-      {days.map((day) => {
-        const missing = day.minutes == null;
-        const height = missing
-          ? 0
-          : Math.max(8, Math.min(100, ((day.minutes || 0) / max) * 100));
-        return (
-          <span key={day.date} className={`nr-week-day ${day.status}`}>
-            <i style={missing ? undefined : { height: `${height}%` }} />
-            <small>{day.label}</small>
-          </span>
-        );
-      })}
+    <div className="nr-week-bars" aria-label="Exercice des sept jours">
+      <div className="nr-week-plot">
+        {goalTop != null ? (
+          <b
+            className="nr-week-goal"
+            style={{ bottom: `${goalTop}%` }}
+            data-goal={String(dailyGoal)}
+            aria-label={`Cible quotidienne ${Math.round(dailyGoal)} min`}
+          />
+        ) : null}
+        {days.map((day) => {
+          const missing = day.minutes == null;
+          const height = missing
+            ? 0
+            : Math.max(8, Math.min(100, ((day.minutes || 0) / max) * 100));
+          return (
+            <span key={day.date} className={`nr-week-day ${day.status}`}>
+              <i style={missing ? undefined : { height: `${height}%` }} />
+            </span>
+          );
+        })}
+      </div>
+      <div className="nr-week-labels">
+        {days.map((day) => (
+          <small key={day.date}>{day.label}</small>
+        ))}
+      </div>
     </div>
   );
 }
@@ -218,7 +233,7 @@ export function PulseTelemetry({
       </div>
       <WeekBars
         days={activity.days}
-        weeklyGoalMinutes={activity.weeklyGoalMinutes}
+        dailyGoalMinutes={activity.dailyExerciseGoal}
       />
       {!compact && sleep.showPhases && phases.length > 0 ? (
         <div className="nr-sleep-phases" aria-label="Phases de sommeil">
