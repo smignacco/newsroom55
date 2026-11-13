@@ -39,7 +39,7 @@ export function marketsProviderName(): MarketsProviderName {
   const finnhub = Boolean(process.env.FINNHUB_API_KEY);
   const twelve = Boolean(process.env.TWELVE_DATA_API_KEY);
   const preferred = (process.env.MARKETS_PROVIDER || "hybrid").toLowerCase();
-  if (preferred === "hybrid") return twelve ? "hybrid" : "cboe";
+  if (preferred === "hybrid") return twelve || finnhub ? "hybrid" : "cboe";
   if (preferred === "cboe") return "cboe";
   if (preferred === "bankofcanada") return "bankofcanada";
   if (preferred === "twelvedata" && twelve) return "twelvedata";

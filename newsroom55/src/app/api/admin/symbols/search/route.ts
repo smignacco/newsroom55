@@ -18,11 +18,20 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (requestedProvider !== "cboe" && requestedProvider !== "twelvedata") {
+  if (
+    requestedProvider !== "cboe" &&
+    requestedProvider !== "twelvedata" &&
+    requestedProvider !== "finnhub"
+  ) {
     return NextResponse.json({ error: "Invalid market provider" }, { status: 400 });
   }
   try {
-    return NextResponse.json(await searchMarketInstruments(query, requestedProvider), {
+    return NextResponse.json(
+      await searchMarketInstruments(
+        query,
+        requestedProvider as "cboe" | "twelvedata" | "finnhub",
+      ),
+      {
       headers: { "cache-control": "no-store" },
     });
   } catch (error) {

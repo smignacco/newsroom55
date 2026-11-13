@@ -76,6 +76,36 @@ describe("broadcast labels", () => {
     expect(html).toContain("Choisir une source");
     expect(html).toContain("Audio actif");
     expect(html).toContain("Plein écran");
+    expect(html).toContain("nr-tile-hit");
+    expect(html).toContain("Menu de l’écran 1: Canal Savoir");
+  });
+
+  it("opens a RoomOS tile menu for channel and per-tile audio", () => {
+    const html = renderToStaticMarkup(
+      <LiveChannel
+        channels={channels}
+        selectedChannels={channels}
+        audioChannelId={1}
+        layoutMode="grid"
+        focusChannelId={1}
+        interacting={false}
+        selectorOpen={true}
+        onOpenSelector={vi.fn()}
+        onCloseSelector={vi.fn()}
+        onSelectChannels={vi.fn()}
+        onSetTileAudio={vi.fn()}
+        onPlaybackState={vi.fn()}
+        muted={false}
+        onToggleMute={vi.fn()}
+        onFullscreen={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain('data-testid="tile-context-menu"');
+    expect(html).toContain("Activer l’audio");
+    expect(html).toContain("Couper l’audio");
+    expect(html).toContain("Télé-Québec");
+    expect(html).not.toContain("Webex");
   });
 
   it("shows the full company name beneath the ticker symbol", () => {
@@ -92,6 +122,7 @@ describe("broadcast labels", () => {
 
     expect(html).toContain('<span class="nr-sym">CSCO</span>');
     expect(html).toContain('<span class="nr-company">Cisco Systems, Inc.</span>');
+    expect(html).toContain("nr-quote-metrics");
     expect(html).toContain("Défilement");
   });
 });

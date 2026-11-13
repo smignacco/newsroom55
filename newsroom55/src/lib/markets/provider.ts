@@ -32,17 +32,21 @@ export interface MarketProvider {
   fetchQuotes(symbols: SymbolConfig[]): Promise<Quote[]>;
 }
 
-export function unconfiguredQuotes(symbols: SymbolConfig[], providerId: string): Quote[] {
-  return symbols.map((s) => ({
-    symbolId: s.id,
-    symbol: s.symbol,
-    displayName: s.displayName,
+export function unavailableQuote(symbol: SymbolConfig, providerId: string): Quote {
+  return {
+    symbolId: symbol.id,
+    symbol: symbol.symbol,
+    displayName: symbol.displayName,
     price: null,
     changeAbs: null,
     changePct: null,
-    currency: s.currency,
+    currency: symbol.currency,
     asOf: null,
     status: "UNAVAILABLE",
     provider: providerId,
-  }));
+  };
+}
+
+export function unconfiguredQuotes(symbols: SymbolConfig[], providerId: string): Quote[] {
+  return symbols.map((symbol) => unavailableQuote(symbol, providerId));
 }

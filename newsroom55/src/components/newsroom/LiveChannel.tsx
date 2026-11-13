@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicChannel } from "@/lib/video/player";
-import { ChannelSelector } from "@/components/newsroom/ChannelSelector";
+import { TileContextMenu } from "@/components/newsroom/TileContextMenu";
 import { HlsPlayer, type PlaybackState } from "@/components/newsroom/HlsPlayer";
 
 function Globe() {
@@ -67,6 +67,7 @@ export function LiveChannel({
   onOpenSelector,
   onCloseSelector,
   onSelectChannels,
+  onSetTileAudio,
   onPlaybackState,
   muted,
   onToggleMute,
@@ -78,16 +79,18 @@ export function LiveChannel({
   layoutMode: "grid" | "focus";
   focusChannelId: number | null;
   interacting: boolean;
-  selectorOpen: boolean;
-  onOpenSelector: () => void;
-  onCloseSelector: () => void;
+  selectorOpen?: boolean;
+  onOpenSelector?: () => void;
+  onCloseSelector?: () => void;
   onSelectChannels: (channels: PublicChannel[]) => void;
+  onSetTileAudio?: (channelId: number, enabled: boolean) => void;
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
   onToggleMute: () => void;
   onFullscreen: () => void;
 }) {
   const [activeSlot, setActiveSlot] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [playback, setPlayback] = useState<
     Record<number, { state: PlaybackState; message: string }>
   >({});
@@ -95,6 +98,16 @@ export function LiveChannel({
   useEffect(() => {
     selectedIdsRef.current = selectedChannels.map((channel) => channel.id);
   }, [selectedChannels]);
+  const overlayOpen = menuOpen || Boolean(selectorOpen);
+  const openMenu = (slot: number) => {
+    setActiveSlot(slot);
+    setMenuOpen(true);
+    onOpenSelector?.();
+  };
+  const closeMenu = () => {
+    setMenuOpen(false);
+    onCloseSelector?.();
+  };
   const updatePlaybackState = useCallback(
     (channelId: number, state: PlaybackState, message = "") => {
       setPlayback((current) => {
@@ -136,7 +149,12 @@ export function LiveChannel({
       next[activeSlot] = channel;
     }
     onSelectChannels(next.filter(Boolean).slice(0, 4));
+    closeMenu();
   };
+  const activeChannel = selectedChannels[activeSlot] ?? null;
+  const tileAudioOn = Boolean(
+    activeChannel && activeChannel.id === audioChannelId && !muted,
+  );
 
   return (
     <section className={`nr-tv ${interacting ? "interacting" : ""}`}>
@@ -169,19 +187,7 @@ export function LiveChannel({
                   channel.id === focusChannelId ? "is-focused" : ""
                 }`}
                 key={channel.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`Changer la source ${index + 1}: ${channel.name}`}
-                onClick={() => {
-                  setActiveSlot(index);
-                  onOpenSelector();
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    setActiveSlot(index);
-                    onOpenSelector();
-                  }
-                }}
+                data-testid="multiview-tile"
               >
                 {canPlay ? (
                   <ChannelPlayer
@@ -195,7 +201,7 @@ export function LiveChannel({
                 <div
                   className="nr-wait-copy"
                   style={
-                    selectorOpen || channelPlayback.state === "playing"
+                    overlayOpen || channelPlayback.state === "playing"
                       ? { opacity: 0 }
                       : undefined
                   }
@@ -215,18 +221,37 @@ export function LiveChannel({
                 <div className="nr-multiview-label">
                   <span>ÉCRAN {String(index + 1).padStart(2, "0")}</span>
                   <strong>{channel.name}</strong>
-                  {channel.id === audioChannelId ? <em>AUDIO</em> : null}
+                  {channel.id === audioChannelId && !muted ? <em>AUDIO</em> : null}
                 </div>
-            </div>
+                <button
+                  type="button"
+                  className="nr-tile-hit"
+                  aria-label={`Menu de l’écran ${index + 1}: ${channel.name}`}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openMenu(index);
+                  }}
+                />
+              </div>
             );
           })}
         </div>
-        {selectorOpen ? (
-          <ChannelSelector
+        {overlayOpen ? (
+          <TileContextMenu
+            slotIndex={activeSlot}
             channels={channels}
-            selectedId={selectedChannels[activeSlot]?.id ?? null}
-            onSelect={selectChannel}
-            onClose={onCloseSelector}
+            tileChannel={activeChannel}
+            audioEnabled={tileAudioOn}
+            onSelectChannel={selectChannel}
+            onSetAudio={(enabled) => {
+              if (activeChannel) onSetTileAudio?.(activeChannel.id, enabled);
+            }}
+            onClose={closeMenu}
           />
         ) : null}
         <div className="nr-tv-controls">
@@ -234,8 +259,9 @@ export function LiveChannel({
             type="button"
             className="nr-chip"
             onClick={() => {
-              setActiveSlot(0);
-              onOpenSelector();
+              openMenu(layoutMode === "focus" && focusChannelId
+                ? Math.max(0, selectedChannels.findIndex((channel) => channel.id === focusChannelId))
+                : 0);
             }}
           >
             Choisir une source

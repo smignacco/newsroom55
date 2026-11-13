@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## 1.0.0-ha.15
+
+- Ajoute un menu contextuel tactile sur chaque tuile du Board (chaîne de
+  l’écran et audio de cette tuile) sans quitter NEWSROOM.
+- Centre verticalement le cours et la variation du ticker; aligne le symbole
+  et le nom de l’organisation à gauche.
+- Fiabilise la résolution des titres TSX/TSXV (ex. XEQT.TO → XEQT @ TSX pour
+  Twelve Data, XEQT.TO pour Finnhub) et affiche INDISPONIBLE si le cours
+  manque, jamais un zéro inventé.
+- Remplace le rendu texte/barres d’Activity & Sleep par un traitement
+  d’antenne (cadrans, arcs de nuit, orbite hebdomadaire) sans inventer
+  d’échantillons.
+
 ## 1.0.0-ha.14
 
 - Retire entièrement les contrôles et la détection des sous-titres du tableau

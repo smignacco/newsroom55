@@ -4,18 +4,27 @@ import {
   marketsProviderName,
 } from "@/lib/config";
 import type { MarketProvider, Quote, SymbolConfig } from "@/lib/markets/provider";
+import { unavailableQuote } from "@/lib/markets/provider";
 import { FinnhubProvider } from "@/lib/markets/finnhub";
 import { TwelveDataProvider } from "@/lib/markets/twelvedata";
 import { BankOfCanadaProvider } from "@/lib/markets/bank-of-canada";
 import { CboeProvider } from "@/lib/markets/cboe";
 import { tsxSession, usEquitySession } from "@/lib/markets/session";
+import { usableMarketPrice } from "@/lib/markets/resolve";
+
+function hybridProviderName() {
+  const parts = ["Cboe"];
+  if (process.env.TWELVE_DATA_API_KEY) parts.push("Twelve Data");
+  if (process.env.FINNHUB_API_KEY) parts.push("Finnhub");
+  return parts.join(" + ");
+}
 
 export function getMarketProvider(): MarketProvider {
   const name = marketsProviderName();
   if (name === "hybrid") {
     return {
       id: "hybrid",
-      name: "Cboe + Twelve Data",
+      name: hybridProviderName(),
       configured: true,
       delayed: true,
       fetchQuotes: async () => [],
@@ -61,13 +70,24 @@ export async function refreshQuotes(): Promise<Quote[]> {
     const symbols = listSymbols("hybrid");
     const cboeSymbols = symbols.filter((symbol) => symbol.quoteProvider === "cboe");
     const twelveSymbols = symbols.filter((symbol) => symbol.quoteProvider === "twelvedata");
+    const finnhubSymbols = symbols.filter((symbol) => symbol.quoteProvider === "finnhub");
+    const unknown = symbols.filter(
+      (symbol) => !["cboe", "twelvedata", "finnhub"].includes(symbol.quoteProvider ?? ""),
+    );
     const cboe = new CboeProvider();
     const twelve = new TwelveDataProvider(process.env.TWELVE_DATA_API_KEY);
-    const [cboeQuotes, twelveQuotes] = await Promise.all([
+    const finnhub = new FinnhubProvider(process.env.FINNHUB_API_KEY);
+    const [cboeQuotes, twelveQuotes, finnhubQuotes] = await Promise.all([
       cboe.fetchQuotes(cboeSymbols),
       isTwelveDue() ? twelve.fetchQuotes(twelveSymbols) : Promise.resolve([]),
+      finnhub.fetchQuotes(finnhubSymbols),
     ]);
-    quotes = [...cboeQuotes, ...twelveQuotes];
+    quotes = [
+      ...cboeQuotes,
+      ...twelveQuotes,
+      ...finnhubQuotes,
+      ...unknown.map((symbol) => unavailableQuote(symbol, "hybrid")),
+    ];
     if (twelveQuotes.length > 0) {
       setSetting("markets_last_fetch_twelvedata", new Date().toISOString());
     }
@@ -125,7 +145,17 @@ export function readQuotes(providerId = getMarketProvider().id): Quote[] {
        ORDER BY s.sort_order ASC, s.id ASC`,
     )
     .all(providerId, providerId, providerId, providerId, providerId) as Quote[];
-  return rows;
+  return rows.map((quote) => {
+    if (quote.status === "UNAVAILABLE") return { ...quote, price: null, changeAbs: null, changePct: null };
+    if (usableMarketPrice(quote.price)) return quote;
+    return {
+      ...quote,
+      price: null,
+      changeAbs: null,
+      changePct: null,
+      status: "UNAVAILABLE",
+    };
+  });
 }
 
 export function marketStatusPayload() {

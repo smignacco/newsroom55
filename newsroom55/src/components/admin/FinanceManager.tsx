@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { resolveListedInstrument } from "@/lib/markets/resolve";
 
 type SymbolRow = {
   id: number;
@@ -9,7 +10,7 @@ type SymbolRow = {
   kind: string;
   currency: string;
   provider_symbol: string;
-  quote_provider: "cboe" | "twelvedata";
+  quote_provider: "cboe" | "twelvedata" | "finnhub";
   exchange: string | null;
   enabled: number;
 };
@@ -23,7 +24,11 @@ type SearchResult = {
   exchange: string | null;
   country: string;
   instrumentType: string;
-  quoteProvider: "cboe" | "twelvedata";
+  quoteProvider: "cboe" | "twelvedata" | "finnhub";
+  twelveSymbol?: string;
+  finnhubSymbol?: string;
+  cboeEligible?: boolean;
+  micCode?: string | null;
 };
 
 type ProviderInfo = {
@@ -35,14 +40,25 @@ type ProviderInfo = {
   twelveRefreshMinutes: number;
   maxSymbols: number | null;
   twelveConfigured: boolean;
+  finnhubConfigured: boolean;
 };
 
 function supportedByProvider(symbol: SymbolRow, provider: ProviderInfo | null): boolean {
   if (symbol.kind === "fx-public") return provider?.id === "bankofcanada";
   if (provider?.id === "hybrid") {
-    return symbol.quote_provider === "cboe" || provider.twelveConfigured;
+    if (symbol.quote_provider === "cboe") return true;
+    if (symbol.quote_provider === "twelvedata") return Boolean(provider.twelveConfigured);
+    if (symbol.quote_provider === "finnhub") return Boolean(provider.finnhubConfigured);
+    return false;
   }
+  if (provider?.id === "finnhub") return symbol.quote_provider === "finnhub" || Boolean(provider.finnhubConfigured);
   return symbol.quote_provider === provider?.id;
+}
+
+function providerLabel(id: "cboe" | "twelvedata" | "finnhub") {
+  if (id === "cboe") return "Cboe · gratuit, États-Unis";
+  if (id === "finnhub") return "Finnhub · quota de votre forfait";
+  return "Twelve Data · quota protégé";
 }
 
 async function financeApi(path: string, csrf: string, init?: RequestInit) {
@@ -63,7 +79,7 @@ export function FinanceManager({ csrf }: { csrf: string }) {
   const [symbols, setSymbols] = useState<SymbolRow[]>([]);
   const [provider, setProvider] = useState<ProviderInfo | null>(null);
   const [query, setQuery] = useState("");
-  const [searchProvider, setSearchProvider] = useState<"cboe" | "twelvedata">("cboe");
+  const [searchProvider, setSearchProvider] = useState<"cboe" | "twelvedata" | "finnhub">("cboe");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchNote, setSearchNote] = useState("");
   const [pending, setPending] = useState<string | null>(null);
@@ -149,6 +165,8 @@ export function FinanceManager({ csrf }: { csrf: string }) {
             {provider?.twelveConfigured
               ? `${provider.maxSymbols ?? 6} titres / ${provider.twelveRefreshMinutes} min`
               : "non configuré"}
+            {" · Finnhub "}
+            {provider?.finnhubConfigured ? "configuré" : "non configuré"}
           </small>
         </div>
       </header>
@@ -190,6 +208,18 @@ export function FinanceManager({ csrf }: { csrf: string }) {
           >
             Twelve Data · international
           </button>
+          <button
+            type="button"
+            className={`nr-chip ${searchProvider === "finnhub" ? "nr-chip-on" : ""}`}
+            disabled={!provider?.finnhubConfigured}
+            onClick={() => {
+              setSearchProvider("finnhub");
+              setResults([]);
+              setSearchNote("");
+            }}
+          >
+            Finnhub · Yahoo (.TO)
+          </button>
         </div>
         <form className="finance-search" onSubmit={search}>
           <input
@@ -225,9 +255,15 @@ export function FinanceManager({ csrf }: { csrf: string }) {
                   <div className="finance-result-info">
                     <strong>{result.name}</strong>
                     <span>
-                      {result.exchange || "Bourse non précisée"} · {result.country}
+                      {result.exchange || "Bourse non précisée"}
+                      {result.micCode ? ` · ${result.micCode}` : ""} · {result.country}
                     </span>
-                    <small>{result.instrumentType}</small>
+                    <small>
+                      {result.instrumentType} · Twelve Data {result.twelveSymbol || result.symbol}
+                      {result.exchange ? ` @ ${result.exchange}` : ""} · Finnhub{" "}
+                      {result.finnhubSymbol || result.symbol}
+                      {result.cboeEligible ? " · Cboe oui" : " · Cboe non"}
+                    </small>
                   </div>
                   <button
                     type="button"
@@ -284,7 +320,15 @@ export function FinanceManager({ csrf }: { csrf: string }) {
         <div className="finance-symbol-list">
           {symbols
             .filter((symbol) => symbol.kind !== "fx-public")
-            .map((symbol) => (
+            .map((symbol) => {
+              const listed = resolveListedInstrument(
+                symbol.symbol,
+                symbol.exchange,
+                symbol.provider_symbol,
+                symbol.currency,
+                symbol.kind,
+              );
+              return (
               <article className={symbol.enabled ? "is-enabled" : ""} key={symbol.id}>
                 <div className="finance-result-symbol">
                   <strong>{symbol.symbol}</strong>
@@ -293,12 +337,14 @@ export function FinanceManager({ csrf }: { csrf: string }) {
                 <div className="finance-result-info">
                   <strong>{symbol.display_name}</strong>
                   <span>
-                    {symbol.exchange || "Symbole fournisseur"} · {symbol.provider_symbol}
+                    {listed.exchange || "Bourse non précisée"}
+                    {listed.micCode ? ` · ${listed.micCode}` : ""} · envoyé {symbol.provider_symbol}
                   </span>
                   <small>
-                    {symbol.quote_provider === "cboe"
-                      ? "Cboe · gratuit, États-Unis"
-                      : "Twelve Data · quota protégé"}
+                    {providerLabel(symbol.quote_provider)} · Twelve {listed.twelveSymbol}
+                    {listed.twelveExchange ? `@${listed.twelveExchange}` : ""} · Finnhub{" "}
+                    {listed.finnhubSymbol}
+                    {listed.cboeEligible ? " · Cboe oui" : " · Cboe non"}
                   </small>
                 </div>
                 <div className="finance-symbol-actions">
@@ -307,14 +353,21 @@ export function FinanceManager({ csrf }: { csrf: string }) {
                     value={symbol.quote_provider}
                     disabled={pending !== null}
                     onChange={(event) => {
-                      const quoteProvider = event.target.value as "cboe" | "twelvedata";
+                      const quoteProvider = event.target.value as
+                        | "cboe"
+                        | "twelvedata"
+                        | "finnhub";
                       void run(`provider-${symbol.id}`, async () => {
                         await financeApi(`/api/admin/symbols/${symbol.id}`, csrf, {
                           method: "PATCH",
                           body: JSON.stringify({ quote_provider: quoteProvider }),
                         });
                         return `${symbol.display_name} utilisera ${
-                          quoteProvider === "cboe" ? "Cboe" : "Twelve Data"
+                          quoteProvider === "cboe"
+                            ? "Cboe"
+                            : quoteProvider === "finnhub"
+                              ? "Finnhub"
+                              : "Twelve Data"
                         }.`;
                       });
                     }}
@@ -330,6 +383,9 @@ export function FinanceManager({ csrf }: { csrf: string }) {
                     </option>
                     <option value="twelvedata" disabled={!provider?.twelveConfigured}>
                       Twelve Data
+                    </option>
+                    <option value="finnhub" disabled={!provider?.finnhubConfigured}>
+                      Finnhub
                     </option>
                   </select>
                   <button
@@ -374,7 +430,8 @@ export function FinanceManager({ csrf }: { csrf: string }) {
                   </button>
                 </div>
               </article>
-            ))}
+            );
+            })}
         </div>
       </section>
 
@@ -384,10 +441,13 @@ export function FinanceManager({ csrf }: { csrf: string }) {
         </strong>
         <p>
           Sélectionnez Cboe pour les actions et FNB américains : aucune clé n’est requise.
-          Utilisez Twelve Data seulement pour les instruments qui en ont besoin. NEWSROOM
-          limite Twelve Data à <code>{provider?.maxSymbols ?? 6} instruments</code> et une
+          Pour un titre TSX tel que XEQT.TO, NEWSROOM envoie <code>XEQT</code> +
+          bourse <code>TSX</code> / MIC <code>XTSE</code> à Twelve Data, et
+          <code> XEQT.TO</code> à Finnhub. Cboe ne cote pas le TSX. Twelve Data est
+          limité à <code>{provider?.maxSymbols ?? 6} instruments</code> et une
           actualisation toutes les <code>{provider?.twelveRefreshMinutes ?? 30} minutes</code>.
-          Les droits internationaux dépendent toujours du forfait Twelve Data.
+          Un cours manquant reste <strong>INDISPONIBLE</strong> — jamais un zéro inventé.
+          Les droits canadiens dépendent du forfait de chaque fournisseur.
         </p>
       </aside>
     </div>

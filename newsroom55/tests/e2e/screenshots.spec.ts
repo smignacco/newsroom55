@@ -72,14 +72,96 @@ test.describe("Centre de nouvelles visual board", () => {
     expect(fs.existsSync(dest)).toBe(true);
   });
 
+  test("board tile menu, ticker and pulse fixture", async ({ page }) => {
+    ensureDir();
+    await page.route("**/api/pulse", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "cache-control": "private, no-store" },
+        body: JSON.stringify({
+          generatedAt: "2026-11-13T18:00:00.000Z",
+          lastSyncAt: "2026-11-13T17:58:00.000Z",
+          stale: false,
+          privacyMode: false,
+          activity: {
+            date: "2026-11-13",
+            steps: 6400,
+            exerciseMinutes: 35,
+            activeEnergyKcal: 420,
+            dailyStepsGoal: 8000,
+            dailyExerciseGoal: 30,
+            weeklyExerciseMinutes: 120,
+            weeklyGoalMinutes: 150,
+            activeDays: 3,
+            days: [
+              { date: "2026-11-07", label: "SA", minutes: 20, status: "recorded" },
+              { date: "2026-11-08", label: "DI", minutes: null, status: "missing" },
+              { date: "2026-11-09", label: "LU", minutes: 40, status: "recorded" },
+              { date: "2026-11-10", label: "MA", minutes: 15, status: "recorded" },
+              { date: "2026-11-11", label: "ME", minutes: null, status: "missing" },
+              { date: "2026-11-12", label: "JE", minutes: 30, status: "recorded" },
+              { date: "2026-11-13", label: "VE", minutes: 35, status: "recorded" },
+            ],
+          },
+          sleep: {
+            lastNight: {
+              nightDate: "2026-11-12",
+              totalMinutes: 420,
+              inBedMinutes: 450,
+              awakeMinutes: 20,
+              coreMinutes: 220,
+              deepMinutes: 80,
+              remMinutes: 100,
+              sourceUpdatedAt: "2026-11-13T12:00:00.000Z",
+            },
+            averageMinutes: 410,
+            nightsUsed: 5,
+            incompleteHistory: true,
+            targetMinutes: 480,
+            showAverage: true,
+            showPhases: true,
+            trend: [{ nightDate: "2026-11-12", totalMinutes: 420 }],
+          },
+        }),
+      });
+    });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Marchés", { exact: true })).toBeVisible();
+    const tickerEl = page.locator(".nr-ticker").first();
+    await expect(tickerEl).toBeVisible();
+    const ticker = path.join(media, "newsroom-ticker.png");
+    await page.screenshot({ path: ticker, fullPage: false });
+    expect(fs.existsSync(ticker)).toBe(true);
+
+    const pulse = page.getByTestId("pulse-visual");
+    if ((await pulse.count()) > 0) {
+      const pulseDest = path.join(media, "newsroom-pulse.png");
+      await page.screenshot({ path: pulseDest, fullPage: false });
+      expect(fs.existsSync(pulseDest)).toBe(true);
+    }
+
+    const tile = page.getByRole("button", { name: /Menu de l’écran/ }).first();
+    if ((await tile.count()) > 0) {
+      await tile.click();
+    } else {
+      await page.getByRole("button", { name: "Choisir une source" }).click();
+    }
+    await expect(page.getByTestId("tile-context-menu")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Activer l’audio" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Couper l’audio" })).toBeVisible();
+    const menuDest = path.join(media, "newsroom-board-tile-menu.png");
+    await page.screenshot({ path: menuDest, fullPage: false });
+    expect(fs.existsSync(menuDest)).toBe(true);
+  });
+
   test("IPTV channel overlay", async ({ page }) => {
     ensureDir();
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Choisir une source" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Sélection des chaînes" }),
-    ).toBeVisible({
+    await expect(page.getByTestId("tile-context-menu")).toBeVisible({
       timeout: 10_000,
     });
     const dest = path.join(media, "newsroom-iptv-wait.png");

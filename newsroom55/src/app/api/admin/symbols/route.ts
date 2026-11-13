@@ -8,6 +8,12 @@ import {
   marketRefreshIntervalMs,
   twelveDataMaxSymbols,
 } from "@/lib/config";
+import {
+  providerSymbolFor,
+  recommendQuoteProvider,
+  resolveListedInstrument,
+  type QuoteVendor,
+} from "@/lib/markets/resolve";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +41,9 @@ export async function GET(req: NextRequest) {
       twelveConfigured:
         Boolean(process.env.TWELVE_DATA_API_KEY) &&
         ["hybrid", "twelvedata"].includes(provider.id),
+      finnhubConfigured:
+        Boolean(process.env.FINNHUB_API_KEY) &&
+        ["hybrid", "finnhub"].includes(provider.id),
     },
   });
 }
@@ -45,7 +54,7 @@ const schema = z.object({
   kind: z.enum(["equity", "fund", "index"]),
   currency: z.string().regex(/^[A-Z]{3}$/),
   provider_symbol: z.string().min(1).max(32),
-  quote_provider: z.enum(["cboe", "twelvedata"]),
+  quote_provider: z.enum(["cboe", "twelvedata", "finnhub"]),
   exchange: z.string().max(40).nullable().optional(),
   sort_order: z.number().int().min(0).max(99).optional(),
 });
@@ -56,19 +65,39 @@ export async function POST(req: NextRequest) {
   if (!auth.ok) return auth.response;
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  const listed = resolveListedInstrument(
+    parsed.data.symbol,
+    parsed.data.exchange,
+    parsed.data.provider_symbol,
+    parsed.data.currency,
+    parsed.data.kind,
+  );
+  const quoteProvider: QuoteVendor =
+    parsed.data.quote_provider ??
+    recommendQuoteProvider(listed, {
+      twelve: Boolean(process.env.TWELVE_DATA_API_KEY),
+      finnhub: Boolean(process.env.FINNHUB_API_KEY),
+    });
+  if (quoteProvider === "cboe" && !listed.cboeEligible) {
+    return NextResponse.json(
+      { error: "Cboe supports US equities and funds only. Choose Twelve Data or Finnhub for this listing." },
+      { status: 400 },
+    );
+  }
+  const providerSymbol = providerSymbolFor(quoteProvider, listed);
   const existing = getDb()
     .prepare(
       `SELECT id FROM market_symbols
        WHERE provider_symbol = ? AND COALESCE(exchange, '') = COALESCE(?, '')`,
     )
-    .get(parsed.data.provider_symbol, parsed.data.exchange ?? null);
+    .get(providerSymbol, listed.exchange);
   if (existing) {
     return NextResponse.json(
       { error: "This instrument is already in the ticker list" },
       { status: 409 },
     );
   }
-  if (parsed.data.quote_provider === "twelvedata") {
+  if (quoteProvider === "twelvedata") {
     const active = getDb()
       .prepare(
         `SELECT COUNT(*) AS count FROM market_symbols
@@ -93,13 +122,13 @@ export async function POST(req: NextRequest) {
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
     )
     .run(
-      parsed.data.symbol.toUpperCase(),
+      listed.displaySymbol,
       parsed.data.display_name,
       parsed.data.kind,
-      parsed.data.currency,
-      parsed.data.provider_symbol,
-      parsed.data.exchange ?? null,
-      parsed.data.quote_provider,
+      listed.currencyHint || parsed.data.currency,
+      providerSymbol,
+      listed.exchange,
+      quoteProvider,
       parsed.data.sort_order ?? 50,
     );
   return NextResponse.json({ id: r.lastInsertRowid });

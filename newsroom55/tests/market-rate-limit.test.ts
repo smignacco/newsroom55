@@ -10,6 +10,7 @@ const originalRefresh = process.env.TWELVE_DATA_REFRESH_MINUTES;
 const originalMax = process.env.TWELVE_DATA_MAX_SYMBOLS;
 const originalProvider = process.env.MARKETS_PROVIDER;
 const originalKey = process.env.TWELVE_DATA_API_KEY;
+const originalFinnhub = process.env.FINNHUB_API_KEY;
 
 afterEach(() => {
   if (originalRefresh === undefined) delete process.env.TWELVE_DATA_REFRESH_MINUTES;
@@ -20,6 +21,8 @@ afterEach(() => {
   else process.env.MARKETS_PROVIDER = originalProvider;
   if (originalKey === undefined) delete process.env.TWELVE_DATA_API_KEY;
   else process.env.TWELVE_DATA_API_KEY = originalKey;
+  if (originalFinnhub === undefined) delete process.env.FINNHUB_API_KEY;
+  else process.env.FINNHUB_API_KEY = originalFinnhub;
 });
 
 describe("Twelve Data free-tier guardrails", () => {
@@ -38,10 +41,14 @@ describe("Twelve Data free-tier guardrails", () => {
     expect(twelveDataMaxSymbols()).toBe(6);
   });
 
-  it("activates hybrid routing only when Twelve Data is configured", () => {
+  it("activates hybrid routing when Twelve Data or Finnhub is configured", () => {
     process.env.MARKETS_PROVIDER = "hybrid";
     delete process.env.TWELVE_DATA_API_KEY;
+    delete process.env.FINNHUB_API_KEY;
     expect(marketsProviderName()).toBe("cboe");
+    process.env.FINNHUB_API_KEY = "configured-test-token";
+    expect(marketsProviderName()).toBe("hybrid");
+    delete process.env.FINNHUB_API_KEY;
     process.env.TWELVE_DATA_API_KEY = "configured-test-key";
     expect(marketsProviderName()).toBe("hybrid");
   });

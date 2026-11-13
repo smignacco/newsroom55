@@ -1,6 +1,7 @@
 import type { MarketProvider, Quote, SymbolConfig } from "@/lib/markets/provider";
-import { unconfiguredQuotes } from "@/lib/markets/provider";
+import { unavailableQuote, unconfiguredQuotes } from "@/lib/markets/provider";
 import { twelveDataMaxSymbols } from "@/lib/config";
+import { parsePriceField, parseSignedNumber, resolveSymbolConfig } from "@/lib/markets/resolve";
 
 export class TwelveDataProvider implements MarketProvider {
   id = "twelvedata";
@@ -22,25 +23,29 @@ export class TwelveDataProvider implements MarketProvider {
     const out: Quote[] = [];
     for (const symbol of selected) {
       try {
+        const listed = resolveSymbolConfig(symbol);
         const url = new URL("https://api.twelvedata.com/quote");
-        url.searchParams.set("symbol", symbol.providerSymbol);
-        if (symbol.exchange) url.searchParams.set("exchange", symbol.exchange);
+        url.searchParams.set("symbol", listed.twelveSymbol);
+        if (listed.twelveExchange) url.searchParams.set("exchange", listed.twelveExchange);
+        if (listed.micCode) url.searchParams.set("mic_code", listed.micCode);
         url.searchParams.set("apikey", this.key);
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) {
-          out.push(empty(symbol, this.id));
+          out.push(unavailableQuote(symbol, this.id));
           continue;
         }
         const data = (await res.json()) as {
-          close?: string;
-          change?: string;
-          percent_change?: string;
+          close?: string | number;
+          change?: string | number;
+          percent_change?: string | number;
           datetime?: string;
           status?: string;
+          code?: number;
+          message?: string;
         };
-        const price = data.close ? Number(data.close) : NaN;
-        if (!Number.isFinite(price)) {
-          out.push(empty(symbol, this.id));
+        const price = parsePriceField(data.close);
+        if (data.status === "error" || price == null) {
+          out.push(unavailableQuote(symbol, this.id));
           continue;
         }
         out.push({
@@ -48,32 +53,17 @@ export class TwelveDataProvider implements MarketProvider {
           symbol: symbol.symbol,
           displayName: symbol.displayName,
           price,
-          changeAbs: data.change ? Number(data.change) : null,
-          changePct: data.percent_change ? Number(data.percent_change) : null,
+          changeAbs: parseSignedNumber(data.change),
+          changePct: parseSignedNumber(data.percent_change),
           currency: symbol.currency,
           asOf: data.datetime ? new Date(data.datetime).toISOString() : new Date().toISOString(),
           status: "DELAYED",
           provider: this.id,
         });
       } catch {
-        out.push(empty(symbol, this.id));
+        out.push(unavailableQuote(symbol, this.id));
       }
     }
     return [...out, ...unconfiguredQuotes(overflow, this.id)];
   }
-}
-
-function empty(symbol: SymbolConfig, provider: string): Quote {
-  return {
-    symbolId: symbol.id,
-    symbol: symbol.symbol,
-    displayName: symbol.displayName,
-    price: null,
-    changeAbs: null,
-    changePct: null,
-    currency: symbol.currency,
-    asOf: null,
-    status: "UNAVAILABLE",
-    provider,
-  };
 }

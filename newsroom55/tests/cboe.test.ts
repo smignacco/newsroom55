@@ -49,4 +49,22 @@ describe("Cboe delayed stock provider", () => {
     const [quote] = await new CboeProvider().fetchQuotes([apple]);
     expect(quote).toMatchObject({ price: null, changePct: null, status: "UNAVAILABLE" });
   });
+
+  it("does not call Cboe for a TSX listing", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const [quote] = await new CboeProvider().fetchQuotes([
+      {
+        id: 9,
+        symbol: "XEQT",
+        displayName: "iShares Core Equity ETF Portfolio",
+        kind: "fund",
+        currency: "CAD",
+        providerSymbol: "XEQT.TO",
+        exchange: "TSX",
+      },
+    ]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(quote).toMatchObject({ price: null, status: "UNAVAILABLE", provider: "cboe" });
+  });
 });

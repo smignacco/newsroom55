@@ -218,6 +218,14 @@ export function NewsroomBoard({
           }
           setSelector(false);
         }}
+        onSetTileAudio={(channelId, enabled) => {
+          if (enabled) {
+            setAudioChannelId(channelId);
+            setMuted(false);
+          } else if (audioChannelId === channelId) {
+            setMuted(true);
+          }
+        }}
         onPlaybackState={setVideoState}
         muted={muted}
         onToggleMute={() => setMuted((m) => !m)}

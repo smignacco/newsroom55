@@ -1,4 +1,6 @@
 import type { MarketProvider, Quote, SymbolConfig } from "@/lib/markets/provider";
+import { unavailableQuote } from "@/lib/markets/provider";
+import { resolveSymbolConfig, usableMarketPrice } from "@/lib/markets/resolve";
 
 const API_BASE = "https://cdn.cboe.com/api/global/delayed_quotes/quotes";
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -16,18 +18,7 @@ type CboeResponse = {
 };
 
 function unavailable(symbol: SymbolConfig): Quote {
-  return {
-    symbolId: symbol.id,
-    symbol: symbol.symbol,
-    displayName: symbol.displayName,
-    price: null,
-    changeAbs: null,
-    changePct: null,
-    currency: symbol.currency,
-    asOf: null,
-    status: "UNAVAILABLE",
-    provider: "cboe",
-  };
+  return unavailableQuote(symbol, "cboe");
 }
 
 function timestamp(value: string | undefined): string | null {
@@ -45,7 +36,9 @@ export class CboeProvider implements MarketProvider {
   async fetchQuotes(symbols: SymbolConfig[]): Promise<Quote[]> {
     return Promise.all(
       symbols.map(async (symbol) => {
-        const providerSymbol = symbol.providerSymbol.trim().toUpperCase();
+        const listed = resolveSymbolConfig(symbol);
+        if (!listed.cboeEligible) return unavailable(symbol);
+        const providerSymbol = listed.ticker;
         if (!SYMBOL.test(providerSymbol)) return unavailable(symbol);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -66,7 +59,7 @@ export class CboeProvider implements MarketProvider {
             !data ||
             data.symbol?.toUpperCase() !== providerSymbol ||
             typeof data.current_price !== "number" ||
-            !Number.isFinite(data.current_price)
+            !usableMarketPrice(data.current_price)
           ) {
             return unavailable(symbol);
           }
