@@ -157,7 +157,7 @@ function WeekBars({
   return (
     <div className="nr-week-bars" aria-label="Exercice des sept jours">
       <div className="nr-week-plot">
-        {goalTop != null ? (
+        {dailyGoal != null && goalTop != null ? (
           <b
             className="nr-week-goal"
             style={{ bottom: `${goalTop}%` }}

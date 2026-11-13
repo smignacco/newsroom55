@@ -38,6 +38,18 @@ describe("listed instrument resolution", () => {
     expect(listed.cboeEligible).toBe(false);
   });
 
+  it("does not infer .TO on a Canadian index identifier", () => {
+    const tsx = resolveListedInstrument("GSPTSE", null, "GSPTSE", "CAD", "index");
+    expect(tsx.finnhubSymbol).toBe("GSPTSE");
+    expect(tsx.yahooSuffix).toBeNull();
+    expect(tsx.cboeEligible).toBe(false);
+
+    const caret = resolveListedInstrument("GSPTSE", null, "^GSPTSE", "CAD", "index");
+    expect(caret.twelveSymbol).toBe("^GSPTSE");
+    expect(caret.finnhubSymbol).toBe("GSPTSE");
+    expect(caret.yahooSuffix).toBeNull();
+  });
+
   it("maps TSXV and NEO suffixes", () => {
     expect(resolveListedInstrument("WELL.V").exchange).toBe("TSXV");
     expect(resolveListedInstrument("XEQT.NE").exchange).toBe("NEO");

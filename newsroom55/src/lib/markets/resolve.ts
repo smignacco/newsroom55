@@ -113,7 +113,12 @@ export function resolveListedInstrument(
   const twelveSymbol = INDEX_RE.test(providerUpper) ? providerUpper : ticker;
   const yahooSuffix =
     alias?.yahooSuffix ??
-    (canadian && !INDEX_RE.test(ticker) && !ticker.startsWith("^") ? "TO" : null);
+    (canadian &&
+    kind !== "index" &&
+    !INDEX_RE.test(ticker) &&
+    !ticker.startsWith("^")
+      ? "TO"
+      : null);
   const finnhubSymbol = finnhubIndexSymbol(
     yahooSuffix ? `${ticker}.${yahooSuffix}` : provider || symbol.trim(),
   );

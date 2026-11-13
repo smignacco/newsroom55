@@ -6,7 +6,8 @@
   n’ont plus de quota ou ne couvrent pas le Canada : repli sur le cours
   Yahoo différé (`XEQT.TO`), jamais un zéro inventé. Les actions US
   restent en repli Cboe.
-- Force le suffixe Yahoo `.TO` pour un titre CAD sans bourse enregistrée.
+- Force le suffixe Yahoo `.TO` pour un titre CAD sans bourse enregistrée,
+  sauf les indices (`GSPTSE` reste `GSPTSE`, pas `GSPTSE.TO`).
 - Remplace l’arc de sommeil sans légende par la date lisible de la nuit
   (ex. 12 nov.) et une barre de cible réelle. Les phases chiffrées restent
   dans le détail, pas sur le Board compact.
