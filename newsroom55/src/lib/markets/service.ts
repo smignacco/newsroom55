@@ -10,12 +10,15 @@ import { FinnhubProvider } from "@/lib/markets/finnhub";
 import { TwelveDataProvider } from "@/lib/markets/twelvedata";
 import { BankOfCanadaProvider } from "@/lib/markets/bank-of-canada";
 import { CboeProvider } from "@/lib/markets/cboe";
+import { YahooDelayedProvider } from "@/lib/markets/yahoo";
 import { tsxSession, usEquitySession } from "@/lib/markets/session";
 import {
+  preferNonCboe,
   quoteHasPrice,
   rankTwelveTargets,
   resolveSymbolConfig,
   usableMarketPrice,
+  yahooChartSymbol,
 } from "@/lib/markets/resolve";
 
 function hybridProviderName() {
@@ -23,7 +26,7 @@ function hybridProviderName() {
     process.env.TWELVE_DATA_API_KEY ? "Twelve Data" : null,
     process.env.FINNHUB_API_KEY ? "Finnhub" : null,
   ].filter(Boolean);
-  return live.length > 0 ? `${live.join(" + ")}, repli Cboe` : "Cboe";
+  return live.length > 0 ? `${live.join(" + ")}, repli différé` : "Cboe";
 }
 
 function quotaBlocked(key: string) {
@@ -83,6 +86,7 @@ export async function refreshHybridQuotes(
   const twelve = new TwelveDataProvider(process.env.TWELVE_DATA_API_KEY);
   const finnhub = new FinnhubProvider(process.env.FINNHUB_API_KEY);
   const cboe = new CboeProvider();
+  const yahoo = new YahooDelayedProvider();
   const usable = new Map<number, Quote>();
 
   if (twelve.configured && twelveDue && !quotaBlocked("markets_twelve_quota_until")) {
@@ -97,7 +101,7 @@ export async function refreshHybridQuotes(
     }
   }
 
-  const afterTwelve = symbols.filter((symbol) => !usable.has(symbol.id));
+  const afterTwelve = preferNonCboe(symbols.filter((symbol) => !usable.has(symbol.id)));
   if (
     finnhub.configured &&
     afterTwelve.length > 0 &&
@@ -116,6 +120,15 @@ export async function refreshHybridQuotes(
   );
   if (cboeTargets.length > 0) {
     collectUsable(await cboe.fetchQuotes(cboeTargets), usable);
+  }
+
+  const yahooTargets = symbols.filter((symbol) => {
+    if (usable.has(symbol.id)) return false;
+    const listed = resolveSymbolConfig(symbol);
+    return Boolean(yahooChartSymbol(listed));
+  });
+  if (yahooTargets.length > 0) {
+    collectUsable(await yahoo.fetchQuotes(yahooTargets), usable);
   }
 
   return symbols.map(

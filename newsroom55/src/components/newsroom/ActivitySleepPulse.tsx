@@ -31,13 +31,20 @@ function duration(minutes: number | null | undefined) {
     : `${remainder} min`;
 }
 
-function number(value: number | null | undefined) {
-  return value == null ? "—" : Math.round(value).toLocaleString("fr-CA");
+function formatNightDate(value: string | null | undefined) {
+  if (!value) return "DONNÉES ABSENTES";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return date.toLocaleDateString("fr-CA", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
 
-function ratio(value: number | null | undefined, goal: number | null | undefined) {
-  if (value == null || goal == null || goal <= 0) return null;
-  return Math.min(1, value / goal);
+function number(value: number | null | undefined) {
+  return value == null ? "—" : Math.round(value).toLocaleString("fr-CA");
 }
 
 function percent(value: number | null | undefined, goal: number | null | undefined) {
@@ -110,55 +117,27 @@ function EffortMeters({
   );
 }
 
-function NightArc({ phases, total }: { phases: PulsePhase[]; total: number }) {
-  const usable = phases.filter((phase) => phase.value != null && phase.value > 0);
-  const sum = usable.reduce((acc, phase) => acc + (phase.value || 0), 0) || total;
-  let cursor = 0;
-  const colors: Record<string, string> = {
-    deep: "#8a79ea",
-    rem: "#646fe0",
-    core: "#438fc0",
-    awake: "#8fc8db",
-  };
+function SleepTarget({
+  totalMinutes,
+  targetMinutes,
+}: {
+  totalMinutes: number | null | undefined;
+  targetMinutes: number | null | undefined;
+}) {
+  const fill = percent(totalMinutes, targetMinutes);
+  if (fill == null || targetMinutes == null) return null;
   return (
-    <svg className="nr-pulse-night-arc" viewBox="0 0 160 78" aria-hidden>
-      <path
-        d="M18 70 A 62 62 0 0 1 142 70"
-        fill="none"
-        stroke="rgba(244,248,252,0.1)"
-        strokeWidth="10"
-        strokeLinecap="round"
-      />
-      {usable.length === 0 ? (
-        <path
-          d="M18 70 A 62 62 0 0 1 142 70"
-          fill="none"
-          stroke="#91A8BD"
-          strokeWidth="4"
-          strokeDasharray="4 6"
-          strokeOpacity="0.45"
+    <div className="nr-sleep-target">
+      <div className="nr-effort-track">
+        <i
+          data-fill={String(Math.min(100, fill))}
+          style={{ width: `${Math.min(100, Math.max(0, fill))}%` }}
         />
-      ) : (
-        usable.map((phase) => {
-          const share = (phase.value || 0) / sum;
-          const start = cursor;
-          cursor += share;
-          return (
-            <path
-              key={phase.key}
-              d="M18 70 A 62 62 0 0 1 142 70"
-              fill="none"
-              stroke={colors[phase.tone] || "#8a79ea"}
-              strokeWidth="10"
-              pathLength={100}
-              strokeDasharray={`${share * 100} 100`}
-              strokeDashoffset={-start * 100}
-              strokeLinecap="butt"
-            />
-          );
-        })
-      )}
-    </svg>
+      </div>
+      <small>
+        {fill} % · cible {duration(targetMinutes)}
+      </small>
+    </div>
   );
 }
 
@@ -211,7 +190,6 @@ export function PulseTelemetry({
           { key: "awake", label: "Éveillé", value: latestSleep.awakeMinutes, tone: "awake" },
         ].filter((phase) => phase.value != null)
       : [];
-  const restRatio = ratio(latestSleep?.totalMinutes ?? null, sleep.targetMinutes);
   return (
     <div
       className={`nr-pulse-visual${compact ? " is-compact" : ""}`}
@@ -231,21 +209,26 @@ export function PulseTelemetry({
         <div className="nr-pulse-rest">
           <div className="nr-pulse-kicker">REPOS</div>
           <strong className="nr-sleep-duration">{duration(latestSleep?.totalMinutes)}</strong>
-          <span>
-            {latestSleep?.nightDate || "DONNÉES ABSENTES"}
-            {sleep.targetMinutes != null
-              ? ` · CIBLE ${duration(sleep.targetMinutes)}${
-                  restRatio != null ? ` · ${Math.round(restRatio * 100)} %` : ""
-                }`
-              : ""}
-          </span>
+          <span className="nr-sleep-when">{formatNightDate(latestSleep?.nightDate)}</span>
+          <SleepTarget
+            totalMinutes={latestSleep?.totalMinutes}
+            targetMinutes={sleep.targetMinutes}
+          />
         </div>
       </div>
       <WeekBars
         days={activity.days}
         weeklyGoalMinutes={activity.weeklyGoalMinutes}
       />
-      <NightArc phases={phases} total={latestSleep?.totalMinutes ?? 0} />
+      {!compact && sleep.showPhases && phases.length > 0 ? (
+        <div className="nr-sleep-phases" aria-label="Phases de sommeil">
+          {phases.map((phase) => (
+            <span key={phase.key} className={phase.tone}>
+              {phase.label} <b>{duration(phase.value)}</b>
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="nr-pulse-foot">
         <span>
           SEMAINE {number(activity.weeklyExerciseMinutes)} MIN

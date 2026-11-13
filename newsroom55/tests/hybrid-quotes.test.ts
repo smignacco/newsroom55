@@ -111,17 +111,59 @@ describe("hybrid live-first quote routing", () => {
     });
   });
 
-  it("never invents a last price when live sources fail and Cboe cannot serve the listing", async () => {
+  it("falls back to delayed Yahoo when Twelve Data and Finnhub miss a TSX listing", async () => {
+    const { refreshHybridQuotes } = await import("@/lib/markets/service");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("twelvedata.com")) {
+        return jsonResponse({ close: "0.00000", percent_change: "0" });
+      }
+      if (url.includes("finnhub.io")) {
+        return jsonResponse({ c: 0, d: null, dp: null, t: 0 });
+      }
+      if (url.includes("finance.yahoo.com")) {
+        return jsonResponse({
+          chart: {
+            result: [
+              {
+                meta: {
+                  symbol: "XEQT.TO",
+                  regularMarketPrice: 45.47,
+                  regularMarketTime: 1_794_599_511,
+                  regularMarketChangePercent: -0.241,
+                  fulldayChange: -0.11,
+                },
+              },
+            ],
+          },
+        });
+      }
+      throw new Error(`Cboe must not be called for ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [quote] = await refreshHybridQuotes([xeqt], true);
+    expect(quote).toMatchObject({
+      price: 45.47,
+      provider: "yahoo",
+      status: "DELAYED",
+      currency: "CAD",
+    });
+  });
+
+  it("never invents a last price when every delayed source misses the listing", async () => {
     const { refreshHybridQuotes } = await import("@/lib/markets/service");
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.includes("twelvedata.com")) {
-          return jsonResponse({ close: "0.00000", percent_change: "0" });
+        if (url.includes("twelvedata.com") || url.includes("finnhub.io")) {
+          return jsonResponse({ close: "0", c: 0, t: 0 });
         }
-        if (url.includes("finnhub.io")) {
-          return jsonResponse({ c: 0, d: null, dp: null, t: 0 });
+        if (url.includes("finance.yahoo.com")) {
+          return jsonResponse({
+            chart: { result: [{ meta: { symbol: "XEQT.TO", regularMarketPrice: 0 } }] },
+          });
         }
         throw new Error(`Cboe must not be called for ${url}`);
       }),

@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## 1.0.0-ha.16
+
+- Affiche XEQT et les autres titres TSX même si Twelve Data ou Finnhub
+  n’ont plus de quota ou ne couvrent pas le Canada : repli sur le cours
+  Yahoo différé (`XEQT.TO`), jamais un zéro inventé. Les actions US
+  restent en repli Cboe.
+- Force le suffixe Yahoo `.TO` pour un titre CAD sans bourse enregistrée.
+- Remplace l’arc de sommeil sans légende par la date lisible de la nuit
+  (ex. 12 nov.) et une barre de cible réelle. Les phases chiffrées restent
+  dans le détail, pas sur le Board compact.
+
 ## 1.0.0-ha.15
 
 - Ajoute un menu contextuel tactile sur chaque tuile du Board (chaîne de

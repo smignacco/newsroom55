@@ -166,8 +166,8 @@ export function FinanceManager({ csrf }: { csrf: string }) {
           <span>FOURNISSEURS ACTIFS</span>
           <strong>{provider?.name ?? "Chargement…"}</strong>
           <small>
-            Priorité Twelve Data / Finnhub tant que le quota tient, puis Cboe
-            différé gratuit. Twelve Data{" "}
+            Priorité Twelve Data / Finnhub tant que le quota tient, puis cours
+            différé (Cboe US, Yahoo TSX). Twelve Data{" "}
             {provider?.twelveConfigured
               ? `${provider.maxSymbols ?? 6} titres / ${provider.twelveRefreshMinutes} min`
               : "non configuré"}
@@ -446,14 +446,14 @@ export function FinanceManager({ csrf }: { csrf: string }) {
           Routage automatique par instrument
         </strong>
         <p>
-          Sélectionnez Cboe pour les actions et FNB américains : aucune clé n’est requise.
-          Pour un titre TSX tel que XEQT.TO, NEWSROOM envoie <code>XEQT</code> +
-          bourse <code>TSX</code> / MIC <code>XTSE</code> à Twelve Data, et
-          <code> XEQT.TO</code> à Finnhub. Cboe ne cote pas le TSX. Twelve Data est
-          limité à <code>{provider?.maxSymbols ?? 6} instruments</code> et une
-          actualisation toutes les <code>{provider?.twelveRefreshMinutes ?? 30} minutes</code>.
-          Un cours manquant reste <strong>INDISPONIBLE</strong> — jamais un zéro inventé.
-          Les droits canadiens dépendent du forfait de chaque fournisseur.
+          Twelve Data et Finnhub sont utilisés en priorité tant que le quota tient.
+          Pour un titre TSX tel que XEQT, NEWSROOM envoie <code>XEQT</code> +
+          bourse <code>TSX</code> à Twelve Data et <code>XEQT.TO</code> à Finnhub.
+          Si ces forfaits ne couvrent pas le Canada, le ticker bascule sur le
+          cours Yahoo différé (<code>XEQT.TO</code>), jamais un zéro inventé.
+          Les actions américaines replient sur Cboe gratuit. Twelve Data reste
+          limité à <code>{provider?.maxSymbols ?? 6} instruments</code> /
+          <code>{provider?.twelveRefreshMinutes ?? 30} minutes</code>.
         </p>
       </aside>
     </div>

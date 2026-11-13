@@ -31,6 +31,13 @@ describe("listed instrument resolution", () => {
     expect(listed.cboeEligible).toBe(false);
   });
 
+  it("defaults a CAD listing without exchange to the TSX Yahoo suffix", () => {
+    const listed = resolveListedInstrument("XEQT", null, "XEQT", "CAD", "fund");
+    expect(listed.finnhubSymbol).toBe("XEQT.TO");
+    expect(listed.yahooSuffix).toBe("TO");
+    expect(listed.cboeEligible).toBe(false);
+  });
+
   it("maps TSXV and NEO suffixes", () => {
     expect(resolveListedInstrument("WELL.V").exchange).toBe("TSXV");
     expect(resolveListedInstrument("XEQT.NE").exchange).toBe("NEO");

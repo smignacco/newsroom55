@@ -111,8 +111,11 @@ export function resolveListedInstrument(
     lookupExchange(exchange)?.canadian === true;
   const storedExchange = exchange?.trim() || null;
   const twelveSymbol = INDEX_RE.test(providerUpper) ? providerUpper : ticker;
+  const yahooSuffix =
+    alias?.yahooSuffix ??
+    (canadian && !INDEX_RE.test(ticker) && !ticker.startsWith("^") ? "TO" : null);
   const finnhubSymbol = finnhubIndexSymbol(
-    alias ? `${ticker}.${alias.yahooSuffix}` : provider || symbol.trim(),
+    yahooSuffix ? `${ticker}.${yahooSuffix}` : provider || symbol.trim(),
   );
   const cboeEligible =
     !canadian &&
@@ -127,7 +130,7 @@ export function resolveListedInstrument(
     displaySymbol: ticker,
     exchange: alias?.exchange ?? storedExchange,
     micCode: alias?.micCode ?? null,
-    yahooSuffix: alias?.yahooSuffix ?? null,
+    yahooSuffix,
     currencyHint: alias?.currency ?? currency?.toUpperCase() ?? null,
     twelveSymbol,
     twelveExchange: alias?.exchange ?? storedExchange,
@@ -164,6 +167,25 @@ export function providerSymbolFor(vendor: QuoteVendor, instrument: ListedInstrum
   if (vendor === "finnhub") return instrument.finnhubSymbol;
   if (vendor === "cboe") return instrument.ticker;
   return instrument.twelveSymbol;
+}
+
+export function yahooChartSymbol(instrument: ListedInstrument): string | null {
+  if (INDEX_RE.test(instrument.ticker) || instrument.ticker.startsWith("^")) {
+    return instrument.twelveSymbol.startsWith("^")
+      ? instrument.twelveSymbol
+      : instrument.finnhubSymbol;
+  }
+  if (instrument.cboeEligible) return null;
+  if (instrument.yahooSuffix) return `${instrument.ticker}.${instrument.yahooSuffix}`;
+  return null;
+}
+
+export function preferNonCboe(symbols: SymbolConfig[]): SymbolConfig[] {
+  return [...symbols].sort((left, right) => {
+    const leftNeed = resolveSymbolConfig(left).cboeEligible ? 1 : 0;
+    const rightNeed = resolveSymbolConfig(right).cboeEligible ? 1 : 0;
+    return leftNeed - rightNeed || left.id - right.id;
+  });
 }
 
 export function quoteHasPrice(quote: {

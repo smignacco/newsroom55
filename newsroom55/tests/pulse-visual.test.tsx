@@ -50,16 +50,23 @@ const fixture: PulseSnapshot = {
 };
 
 describe("Activity & Sleep broadcast treatment", () => {
-  it("renders effort meters, a sleep arc and week bars from supplied samples only", () => {
+  it("renders effort meters, a dated sleep target and week bars from supplied samples only", () => {
     const html = renderToStaticMarkup(<PulseTelemetry snapshot={fixture} />);
     expect(html).toContain("nr-effort-meters");
-    expect(html).toContain("nr-pulse-night-arc");
+    expect(html).toContain("nr-sleep-target");
     expect(html).toContain("nr-week-bars");
     expect(html).toContain("EFFORT");
     expect(html).toContain("REPOS");
+    expect(html).toContain("12 nov.");
+    expect(html).not.toContain("2026-11-12");
+    expect(html).not.toContain("nr-pulse-night-arc");
     expect(html).toMatch(/6[\s\u00a0\u202f]?400/);
     expect(html).toContain("80 %");
     expect(html).toContain("117 %");
+    expect(html).toContain("88 %");
+    expect(html).toContain("cible 8 h 00");
+    expect(html).toContain("Profond");
+    expect(html).toContain("1 h 20");
     expect(html).toContain('data-fill="80"');
     expect(html).toContain('data-fill="100"');
     expect(html).toContain("is-heat");
@@ -70,7 +77,15 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).not.toContain("nr-week-orbit");
   });
 
-  it("hides recorded sleep phases when the administrator disables them", () => {
+  it("hides recorded sleep phases on the compact board and when the administrator disables them", () => {
+    const compact = renderToStaticMarkup(
+      <PulseTelemetry snapshot={fixture} compact />,
+    );
+    expect(compact).toContain("12 nov.");
+    expect(compact).toContain("cible 8 h 00");
+    expect(compact).not.toContain("Profond");
+    expect(compact).not.toContain("nr-pulse-night-arc");
+
     const html = renderToStaticMarkup(
       <PulseTelemetry
         snapshot={{
@@ -79,10 +94,9 @@ describe("Activity & Sleep broadcast treatment", () => {
         }}
       />,
     );
-    expect(html).toContain("nr-pulse-night-arc");
-    expect(html).not.toContain("#8a79ea");
-    expect(html).not.toContain("#646fe0");
-    expect(html).not.toContain("#438fc0");
+    expect(html).not.toContain("nr-sleep-phases");
+    expect(html).not.toContain("Profond");
+    expect(html).not.toContain("nr-pulse-night-arc");
     expect(html).toContain("7 h 00");
   });
 
