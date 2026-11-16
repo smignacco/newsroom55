@@ -4,7 +4,11 @@
 
 - Ajoute un curseur de volume tactile à côté des icônes 1–4 / grille / focus
   sur le Board. Le glisser règle le volume RoomOS (ou le lecteur HLS si le
-  Board n’est pas joignable).
+  Board n’est pas joignable). Si RoomOS est configuré mais injoignable, le
+  lecteur HLS suit le curseur (`applied: player`) au lieu de rester à 1.
+- N’écrit le volume matériel RoomOS que depuis un Board associé (même cookie
+  d’écran qu’Activité & Sommeil) ou une session administrateur. Sans cela, le
+  curseur règle uniquement le lecteur HLS.
 - Permet de fixer le volume initial dans Administration → Apparence. Ce
   niveau est réappliqué au lancement et lorsque NEWSROOM redevient visible
   après un appel.

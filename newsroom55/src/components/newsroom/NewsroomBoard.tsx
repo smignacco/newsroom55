@@ -13,7 +13,12 @@ import { BreakingNews } from "@/components/newsroom/BreakingNews";
 import { MarketTicker } from "@/components/newsroom/MarketTicker";
 import { StatusStrip } from "@/components/newsroom/StatusStrip";
 import type { PlaybackState } from "@/components/newsroom/HlsPlayer";
-import { clampBoardVolume, DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
+import {
+  clampBoardVolume,
+  DEFAULT_BOARD_VOLUME,
+  parseVolumeApplied,
+  type VolumeApplied,
+} from "@/lib/control/volume";
 
 function articleUrl(value: string | null) {
   if (!value) return null;
@@ -55,6 +60,7 @@ export function NewsroomBoard({
   const [outputVolume, setOutputVolume] = useState(
     clampBoardVolume(initial.appearance.boardVolume ?? DEFAULT_BOARD_VOLUME),
   );
+  const [volumeApplied, setVolumeApplied] = useState<VolumeApplied>("player");
   const [paused, setPaused] = useState(false);
   const [story, setStory] = useState<NewsStory | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -91,13 +97,20 @@ export function NewsroomBoard({
           headers: { "content-type": "application/json" },
           body: JSON.stringify(body),
         });
-        if (!response.ok) return;
-        const payload = (await response.json()) as { level?: number };
+        if (!response.ok) {
+          setVolumeApplied("player");
+          return;
+        }
+        const payload = (await response.json()) as {
+          level?: number;
+          applied?: unknown;
+        };
         if (typeof payload.level === "number") {
           setOutputVolume(clampBoardVolume(payload.level));
         }
+        setVolumeApplied(parseVolumeApplied(payload.applied) ?? "player");
       } catch {
-        // HTML5 volume still follows local state if RoomOS is unreachable.
+        setVolumeApplied("player");
       }
     },
     [],
@@ -307,7 +320,7 @@ export function NewsroomBoard({
         onPlaybackState={setVideoState}
         muted={muted}
         outputVolume={outputVolume}
-        roomOsAudio={snapshot.appearance.roomOsAudio}
+        volumeApplied={volumeApplied}
         onOutputVolume={onOutputVolume}
         onToggleMute={() => setMuted((m) => !m)}
         onFullscreen={() => {

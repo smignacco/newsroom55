@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { boot } from "@/lib/boot";
+import {
+  applyBoardOutputVolume,
+  authorizedForRoomOsVolume,
+} from "@/lib/control/board-volume";
 import { clampBoardVolume, DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
 import { getSetting } from "@/lib/database";
 import { roomOsConfigured, setRoomOsVolume } from "@/lib/roomos/client";
@@ -45,14 +49,11 @@ export async function POST(req: NextRequest) {
   const level = clampBoardVolume(
     parsed.data.restore ? defaultBoardVolume() : parsed.data.level,
   );
-  const headers = { "cache-control": "no-store" };
-  if (!roomOsConfigured()) {
-    return NextResponse.json({ level, applied: "player" }, { headers });
-  }
-  try {
-    await setRoomOsVolume(level);
-    return NextResponse.json({ level, applied: "roomos" }, { headers });
-  } catch {
-    return NextResponse.json({ level, applied: "player" }, { headers });
-  }
+  const result = await applyBoardOutputVolume({
+    authorized: await authorizedForRoomOsVolume(req),
+    configured: roomOsConfigured(),
+    level,
+    setVolume: setRoomOsVolume,
+  });
+  return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
 }

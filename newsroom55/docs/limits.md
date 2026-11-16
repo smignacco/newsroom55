@@ -78,7 +78,7 @@ Implemented:
 - On-Board layout dock (1–4 feeds, grid or focus) and drag-to-focus / drag-to-swap on the Cisco Board itself
 - Adaptive in-memory HLS buffering: 60 seconds for one stream, 45 for two, and 25 per stream for three or four; low-latency mode is disabled and fatal network/media errors are retried
 - Mobile remote layout, per-slot channel, audio-source, mute, Board volume, and power controls
-- On-board volume slider plus an admin startup volume restored after a Webex call via RoomOS `Audio Volume Set`
+- On-board volume slider plus an admin startup volume restored after a Webex call via RoomOS `Audio Volume Set` (hardware writes require the Board display pairing cookie or an admin session; otherwise HLS player volume)
 - Backward-compatible protected import for the Canadian iptv-org playlist:
   `https://raw.githubusercontent.com/iptv-org/iptv/master/streams/ca.m3u`
 - Selectable playlist directory loaded from the official GitHub repository (`streams/*.m3u`)

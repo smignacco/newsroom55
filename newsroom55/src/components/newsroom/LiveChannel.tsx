@@ -20,7 +20,11 @@ import {
   resolveTilePointer,
   type TilePointerResult,
 } from "@/lib/control/layout";
-import { DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
+import {
+  DEFAULT_BOARD_VOLUME,
+  hlsOutputVolume,
+  type VolumeApplied,
+} from "@/lib/control/volume";
 
 function Globe() {
   return (
@@ -106,7 +110,7 @@ export function LiveChannel({
   onPlaybackState,
   muted,
   outputVolume = DEFAULT_BOARD_VOLUME,
-  roomOsAudio = false,
+  volumeApplied = "player",
   onOutputVolume,
   onToggleMute,
   onFullscreen,
@@ -127,7 +131,7 @@ export function LiveChannel({
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
   outputVolume?: number;
-  roomOsAudio?: boolean;
+  volumeApplied?: VolumeApplied;
   onOutputVolume?: (level: number) => void;
   onToggleMute: () => void;
   onFullscreen: () => void;
@@ -396,7 +400,7 @@ export function LiveChannel({
                   <ChannelPlayer
                     channel={channel}
                     muted={muted || channel.id !== audioChannelId}
-                    volume={roomOsAudio ? 1 : outputVolume / 100}
+                    volume={hlsOutputVolume(outputVolume, volumeApplied)}
                     concurrentStreams={selectedChannels.length}
                     onState={updatePlaybackState}
                   />
