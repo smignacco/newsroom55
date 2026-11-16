@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { boot } from "@/lib/boot";
 import { verifyPulseDisplayRequest } from "@/lib/health/display-auth";
-import { getPulseSnapshot, healthSettings } from "@/lib/health/service";
+import { healthSettings, refreshPulseLive } from "@/lib/health/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,5 +28,5 @@ export async function GET(req: NextRequest) {
       privacyMode: true,
     });
   }
-  return privateJson(getPulseSnapshot());
+  return privateJson(await refreshPulseLive());
 }

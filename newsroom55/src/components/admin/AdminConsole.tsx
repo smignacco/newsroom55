@@ -230,6 +230,49 @@ export function AdminConsole({ username, csrf }: { username: string; csrf: strin
                 </select>
               </label>
               <label className="nr-field">
+                Volume initial du Board
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={settings.board_volume ?? "40"}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Number(settings.board_volume ?? 40)}
+                  aria-label="Volume initial du Board"
+                  onChange={(e) =>
+                    setSettings((current) => ({
+                      ...current,
+                      board_volume: e.target.value,
+                    }))
+                  }
+                  onPointerUp={(e) =>
+                    run(async () => {
+                      await api("/api/admin/settings", csrf, {
+                        method: "POST",
+                        body: JSON.stringify({
+                          board_volume: e.currentTarget.value,
+                        }),
+                      });
+                    })
+                  }
+                  onBlur={(e) =>
+                    run(async () => {
+                      await api("/api/admin/settings", csrf, {
+                        method: "POST",
+                        body: JSON.stringify({
+                          board_volume: e.currentTarget.value,
+                        }),
+                      });
+                    })
+                  }
+                />
+                <span className="nr-time">
+                  {settings.board_volume ?? "40"} % · appliqué au lancement et
+                  au retour après un appel
+                </span>
+              </label>
+              <label className="nr-field">
                 Actualisation des nouvelles
                 <select
                   value={settings.news_interval_sec || "180"}

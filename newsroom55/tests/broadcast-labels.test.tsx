@@ -81,6 +81,8 @@ describe("broadcast labels", () => {
     expect(html).toContain('data-testid="layout-dock"');
     expect(html).toContain('data-testid="layout-count-1"');
     expect(html).toContain('data-testid="layout-mode-focus"');
+    expect(html).toContain('data-testid="board-volume"');
+    expect(html).toContain("Volume du Board");
   });
 
   it("opens a RoomOS tile menu for channel and per-tile audio", () => {

@@ -31,7 +31,7 @@ configuration:
     description: "Jeton d’accès longue durée dédié. Il reste privé dans le conteneur."
   ha_sync_interval_seconds:
     name: "Intervalle de synchronisation santé"
-    description: "Secondes entre les lectures Home Assistant (300 recommandé)."
+    description: "Secondes entre les lectures d’historique Home Assistant (15 par défaut). Le Board actualise l’activité plus souvent."
   activity_pulse_enabled:
     name: "Activer Activity & Sleep Pulse"
     description: "Autorise le module personnel. Son affichage demeure contrôlé dans /admin."

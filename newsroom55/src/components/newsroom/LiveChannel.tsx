@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { PublicChannel } from "@/lib/video/player";
 import { LayoutDock } from "@/components/newsroom/LayoutDock";
+import { VolumeSlider } from "@/components/newsroom/VolumeSlider";
 import { TileContextMenu } from "@/components/newsroom/TileContextMenu";
 import { HlsPlayer, type PlaybackState } from "@/components/newsroom/HlsPlayer";
 import {
@@ -19,6 +20,7 @@ import {
   resolveTilePointer,
   type TilePointerResult,
 } from "@/lib/control/layout";
+import { DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
 
 function Globe() {
   return (
@@ -49,11 +51,13 @@ function Globe() {
 function ChannelPlayer({
   channel,
   muted,
+  volume,
   concurrentStreams,
   onState,
 }: {
   channel: PublicChannel;
   muted: boolean;
+  volume: number;
   concurrentStreams: number;
   onState: (channelId: number, state: PlaybackState, message?: string) => void;
 }) {
@@ -65,6 +69,7 @@ function ChannelPlayer({
     <HlsPlayer
       channel={channel}
       muted={muted}
+      volume={volume}
       concurrentStreams={concurrentStreams}
       onState={reportState}
     />
@@ -100,6 +105,9 @@ export function LiveChannel({
   onSetTileAudio,
   onPlaybackState,
   muted,
+  outputVolume = DEFAULT_BOARD_VOLUME,
+  roomOsAudio = false,
+  onOutputVolume,
   onToggleMute,
   onFullscreen,
 }: {
@@ -118,6 +126,9 @@ export function LiveChannel({
   onSetTileAudio?: (channelId: number, enabled: boolean) => void;
   onPlaybackState: (state: PlaybackState) => void;
   muted: boolean;
+  outputVolume?: number;
+  roomOsAudio?: boolean;
+  onOutputVolume?: (level: number) => void;
   onToggleMute: () => void;
   onFullscreen: () => void;
 }) {
@@ -339,13 +350,20 @@ export function LiveChannel({
             {layoutMode === "focus" && selectedChannels.length > 1 ? "Vue principale" : "Multivue"} ·{" "}
             {selectedChannels.length} source(s) · <strong>{programState}</strong>
           </span>
-          <LayoutDock
-            selectedCount={selectedChannels.length || 1}
-            availableCount={channels.length}
-            layoutMode={layoutMode === "focus" && selectedChannels.length > 1 ? "focus" : "grid"}
-            onSetCount={applyCount}
-            onSetMode={(mode) => onSetLayoutMode?.(mode)}
-          />
+          <div className="nr-frame-tools">
+            <VolumeSlider
+              value={outputVolume}
+              onChange={(level) => onOutputVolume?.(level)}
+            />
+            <i className="nr-layout-split" aria-hidden />
+            <LayoutDock
+              selectedCount={selectedChannels.length || 1}
+              availableCount={channels.length}
+              layoutMode={layoutMode === "focus" && selectedChannels.length > 1 ? "focus" : "grid"}
+              onSetCount={applyCount}
+              onSetMode={(mode) => onSetLayoutMode?.(mode)}
+            />
+          </div>
         </div>
         <div
           ref={viewfinderRef}
@@ -378,6 +396,7 @@ export function LiveChannel({
                   <ChannelPlayer
                     channel={channel}
                     muted={muted || channel.id !== audioChannelId}
+                    volume={roomOsAudio ? 1 : outputVolume / 100}
                     concurrentStreams={selectedChannels.length}
                     onState={updatePlaybackState}
                   />

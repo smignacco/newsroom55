@@ -4,6 +4,7 @@ import { marketRefreshIntervalMs, marketsProviderName } from "@/lib/config";
 import { getSetting } from "@/lib/database";
 import { syncDueIptvPlaylists } from "@/lib/video/playlist-service";
 import {
+  HEALTH_HISTORY_INTERVAL_MS,
   healthSyncIntervalMs,
   pulseEnabled,
   syncHealthData,
@@ -50,10 +51,12 @@ export function startScheduler() {
     }
   };
 
-  const runHealth = async () => {
+  let healthTicks = 0;
+
+  const runHealth = async (includeHistory = true) => {
     if (!pulseEnabled() || !homeAssistantConfigured()) return;
     try {
-      await syncHealthData();
+      await syncHealthData(undefined, { history: includeHistory });
     } catch (err) {
       console.warn(
         "[newsroom55] health cycle failed",
@@ -79,8 +82,13 @@ export function startScheduler() {
   };
 
   const runHealthAndSchedule = async () => {
-    await runHealth();
-    healthTimer = setTimeout(runHealthAndSchedule, healthSyncIntervalMs());
+    healthTicks += 1;
+    const interval = healthSyncIntervalMs();
+    const includeHistory =
+      healthTicks === 1 ||
+      (healthTicks * interval) % HEALTH_HISTORY_INTERVAL_MS < interval;
+    await runHealth(includeHistory);
+    healthTimer = setTimeout(runHealthAndSchedule, interval);
     healthTimer.unref?.();
   };
 

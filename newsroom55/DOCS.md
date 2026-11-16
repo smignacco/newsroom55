@@ -24,7 +24,7 @@ Le module personnel est facultatif et désactivé par défaut.
 2. Dans le profil Home Assistant, créer un jeton d’accès longue durée dédié.
    Ne jamais le coller dans une URL, un fichier Git ou le navigateur du Board.
 3. Dans la **Configuration** de NEWSROOM55, renseigner l’URL locale Home
-   Assistant, le jeton, conserver l’intervalle de 300 secondes et activer
+   Assistant, le jeton, laisser l’intervalle à 15 secondes et activer
    Activity & Sleep Pulse. Enregistrer puis redémarrer l’application.
 4. Ouvrir `/admin` → **Activity & Sleep**, tester la connexion, découvrir les
    capteurs, vérifier les associations et enregistrer les objectifs désirés.

@@ -149,6 +149,7 @@ test.describe("Centre de nouvelles visual board", () => {
       await page.getByRole("button", { name: "Choisir une source" }).click();
     }
     await expect(page.getByTestId("layout-dock")).toBeVisible();
+    await expect(page.getByTestId("board-volume")).toBeVisible();
     await expect(page.getByTestId("layout-count-1")).toBeVisible();
     await expect(page.getByTestId("layout-count-4")).toBeVisible();
     await expect(page.getByTestId("layout-mode-focus")).toBeVisible();
@@ -223,6 +224,8 @@ test.describe("Centre de nouvelles visual board", () => {
       .poll(() => admin.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     await admin.evaluate((element) => element.scrollTo(0, 0));
+    await page.getByRole("button", { name: "Appearance" }).click();
+    await expect(page.getByLabel("Volume initial du Board")).toBeVisible();
     const dest = path.join(media, "newsroom-admin.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);

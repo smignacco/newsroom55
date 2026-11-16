@@ -3,6 +3,7 @@ import { z } from "zod";
 import { boot } from "@/lib/boot";
 import { getDb, getSetting, setSetting } from "@/lib/database";
 import { requireAdmin } from "@/lib/security/auth";
+import { clampBoardVolume } from "@/lib/control/volume";
 import { TIMEZONES } from "@/lib/time";
 
 export const runtime = "nodejs";
@@ -14,6 +15,7 @@ const KEYS = [
   "ticker_speed",
   "animations",
   "sound",
+  "board_volume",
   "alerts",
   "news_interval_sec",
   "timezone",
@@ -35,6 +37,12 @@ const schema = z.object({
   ticker_speed: z.enum(["28", "42", "60"]).optional(),
   animations: z.enum(["full", "reduced"]).optional(),
   sound: z.enum(["muted", "on"]).optional(),
+  board_volume: z
+    .union([
+      z.number().int().min(0).max(100),
+      z.string().regex(/^(100|[1-9]?\d)$/),
+    ])
+    .optional(),
   alerts: z.enum(["on", "off"]).optional(),
   news_interval_sec: z.enum(["180", "300", "600"]).optional(),
   timezone: z.enum(TIMEZONES).optional(),
@@ -47,7 +55,12 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   for (const [key, value] of Object.entries(parsed.data)) {
-    if (value !== undefined) setSetting(key, String(value));
+    if (value === undefined) continue;
+    if (key === "board_volume") {
+      setSetting(key, String(clampBoardVolume(value)));
+      continue;
+    }
+    setSetting(key, String(value));
   }
   return NextResponse.json({ ok: true });
 }

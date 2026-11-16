@@ -1,5 +1,17 @@
 # Journal des modifications
 
+## 1.0.0-ha.18
+
+- Ajoute un curseur de volume tactile à côté des icônes 1–4 / grille / focus
+  sur le Board. Le glisser règle le volume RoomOS (ou le lecteur HLS si le
+  Board n’est pas joignable).
+- Permet de fixer le volume initial dans Administration → Apparence. Ce
+  niveau est réappliqué au lancement et lorsque NEWSROOM redevient visible
+  après un appel.
+- Relit Activité & Sommeil près du temps réel : le Board interroge la
+  synthèse toutes les 10 s et déclenche une lecture live Home Assistant,
+  sans attendre l’ancienne synchro de plusieurs minutes.
+
 ## 1.0.0-ha.17
 
 - Permet de commander la multivue depuis le Board, sans télécommande : icônes

@@ -13,6 +13,7 @@ import { BreakingNews } from "@/components/newsroom/BreakingNews";
 import { MarketTicker } from "@/components/newsroom/MarketTicker";
 import { StatusStrip } from "@/components/newsroom/StatusStrip";
 import type { PlaybackState } from "@/components/newsroom/HlsPlayer";
+import { clampBoardVolume, DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
 
 function articleUrl(value: string | null) {
   if (!value) return null;
@@ -51,6 +52,9 @@ export function NewsroomBoard({
     initialControl.focusChannelId,
   );
   const [muted, setMuted] = useState(initialControl.muted);
+  const [outputVolume, setOutputVolume] = useState(
+    clampBoardVolume(initial.appearance.boardVolume ?? DEFAULT_BOARD_VOLUME),
+  );
   const [paused, setPaused] = useState(false);
   const [story, setStory] = useState<NewsStory | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -58,6 +62,9 @@ export function NewsroomBoard({
   const [displaySleeping, setDisplaySleeping] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const [videoState, setVideoState] = useState<PlaybackState>("idle");
+  const volumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const controlRevision = useRef(initialControl.revision);
   const displayCommandRevision = useRef(initialControl.displayCommandRevision);
   const resolvingStoryId = useRef<number | null>(null);
@@ -74,6 +81,65 @@ export function NewsroomBoard({
       setOnline(false);
     }
   }, []);
+
+  const postBoardVolume = useCallback(
+    async (body: { level: number } | { restore: true }) => {
+      try {
+        const response = await fetch("/api/board/volume", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { level?: number };
+        if (typeof payload.level === "number") {
+          setOutputVolume(clampBoardVolume(payload.level));
+        }
+      } catch {
+        // HTML5 volume still follows local state if RoomOS is unreachable.
+      }
+    },
+    [],
+  );
+
+  const onOutputVolume = useCallback(
+    (level: number) => {
+      const next = clampBoardVolume(level);
+      setOutputVolume(next);
+      if (volumeTimer.current !== undefined) clearTimeout(volumeTimer.current);
+      volumeTimer.current = setTimeout(() => {
+        volumeTimer.current = undefined;
+        void postBoardVolume({ level: next });
+      }, 180);
+    },
+    [postBoardVolume],
+  );
+
+  useEffect(() => {
+    const restore = () => {
+      if (document.hidden) return;
+      void postBoardVolume({ restore: true });
+    };
+    restore();
+    let restoreTimer: ReturnType<typeof setTimeout> | undefined;
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      if (restoreTimer !== undefined) clearTimeout(restoreTimer);
+      restoreTimer = setTimeout(restore, 400);
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) restore();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      if (restoreTimer !== undefined) clearTimeout(restoreTimer);
+      if (volumeTimer.current !== undefined) clearTimeout(volumeTimer.current);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [postBoardVolume]);
 
   useEffect(() => {
     const onOnline = () => {
@@ -240,6 +306,9 @@ export function NewsroomBoard({
         }}
         onPlaybackState={setVideoState}
         muted={muted}
+        outputVolume={outputVolume}
+        roomOsAudio={snapshot.appearance.roomOsAudio}
+        onOutputVolume={onOutputVolume}
         onToggleMute={() => setMuted((m) => !m)}
         onFullscreen={() => {
           const el = document.documentElement;

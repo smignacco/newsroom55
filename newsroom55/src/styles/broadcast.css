@@ -1135,6 +1135,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
   padding: 0.35rem 0.55rem 0.35rem 0.75rem;
   border-bottom: 1px solid var(--nr-line-dim);
@@ -1157,6 +1158,14 @@ textarea {
   letter-spacing: 0.18em;
 }
 
+.nr-frame-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
 .nr-layout-dock {
   display: flex;
   align-items: center;
@@ -1164,6 +1173,72 @@ textarea {
   flex: 0 0 auto;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.nr-volume-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 10.5rem;
+  min-width: 10.5rem;
+  height: 2.15rem;
+  padding: 0 0.45rem 0 0.35rem;
+  border: 1px solid rgba(112, 150, 171, 0.28);
+  background: rgba(7, 16, 28, 0.72);
+  border-radius: 0.35rem;
+  color: var(--nr-text-2);
+  touch-action: none;
+  user-select: none;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.nr-volume-slider:focus-visible {
+  outline: 2px solid var(--nr-accent);
+  outline-offset: 1px;
+}
+
+.nr-volume-icon {
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  flex: 0 0 auto;
+}
+
+.nr-volume-icon svg {
+  width: 0.95rem;
+  height: 0.82rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  pointer-events: none;
+}
+
+.nr-volume-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 0.35rem;
+  border-radius: 99px;
+  background: rgba(244, 248, 252, 0.12);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nr-volume-track i {
+  display: block;
+  height: 100%;
+  background: var(--nr-accent);
+}
+
+.nr-volume-slider strong {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  min-width: 1.6rem;
+  text-align: right;
+  color: var(--nr-text);
+  pointer-events: none;
 }
 
 .nr-layout-split {

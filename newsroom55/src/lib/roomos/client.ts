@@ -8,6 +8,14 @@ export type RoomOsAction =
   | "volume-up"
   | "volume-down";
 
+export function roomOsConfigured(): boolean {
+  return Boolean(
+    process.env.ROOMOS_DEVICE_IP?.trim() &&
+      process.env.ROOMOS_USERNAME?.trim() &&
+      process.env.ROOMOS_PASSWORD,
+  );
+}
+
 function requestRoomOs(
   path: string,
   method: "GET" | "POST",
@@ -83,6 +91,23 @@ export function roomOsCommandXml(action: RoomOsAction): string {
 
 export async function sendRoomOsCommand(action: RoomOsAction): Promise<void> {
   await requestRoomOs("/putxml", "POST", roomOsCommandXml(action));
+}
+
+export function roomOsVolumeSetXml(level: number): string {
+  const clamped = Math.min(100, Math.max(0, Math.round(level)));
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<Command><Audio><Volume><Set><Level>${clamped}</Level></Set></Volume></Audio></Command>`;
+}
+
+export function parseRoomOsVolume(xml: string): number | null {
+  const value = xml.match(/<Volume(?:\s[^>]*)?>(\d{1,3})<\/Volume>/i)?.[1];
+  if (value === undefined) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) return null;
+  return parsed;
+}
+
+export async function setRoomOsVolume(level: number): Promise<void> {
+  await requestRoomOs("/putxml", "POST", roomOsVolumeSetXml(level));
 }
 
 export function parseRoomOsPowerState(

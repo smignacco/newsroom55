@@ -10,11 +10,13 @@ export type PlaybackState = "idle" | "loading" | "playing" | "error";
 export function HlsPlayer({
   channel,
   muted,
+  volume = 1,
   concurrentStreams,
   onState,
 }: {
   channel: PublicChannel;
   muted: boolean;
+  volume?: number;
   concurrentStreams: number;
   onState: (state: PlaybackState, message?: string) => void;
 }) {
@@ -24,8 +26,9 @@ export function HlsPlayer({
     const video = videoRef.current;
     if (!video) return;
     video.muted = muted;
+    video.volume = Math.min(1, Math.max(0, volume));
     if (!muted) void video.play().catch(() => onState("error", "Touchez l’écran pour autoriser l’audio."));
-  }, [muted, onState]);
+  }, [muted, onState, volume]);
 
   useEffect(() => {
     const video = videoRef.current;

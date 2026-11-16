@@ -300,8 +300,18 @@ export function ActivitySleepPulse() {
     // The initial private API hydration is this effect's synchronization target.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 60_000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void refresh();
+    }, 10_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [refresh]);
 
   useEffect(() => {

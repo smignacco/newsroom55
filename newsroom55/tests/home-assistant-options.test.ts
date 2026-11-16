@@ -30,6 +30,8 @@ describe("Home Assistant options", () => {
     expect(config).toContain('ha_base_url: ""');
     expect(config).toContain('ha_base_url: "str?"');
     expect(config).not.toContain('ha_base_url: "url?"');
+    expect(config).toContain("ha_sync_interval_seconds: 15");
+    expect(config).toContain('ha_sync_interval_seconds: "int(15,86400)"');
   });
 
   it("maps the configuration form onto environment variables and skips blanks", () => {

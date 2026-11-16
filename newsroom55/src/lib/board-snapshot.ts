@@ -1,9 +1,11 @@
 import { listStories, featuredStory, sourceHealth } from "@/lib/news/aggregator";
 import { marketStatusPayload } from "@/lib/markets/service";
 import { publicChannels } from "@/lib/video/player";
+import { clampBoardVolume, DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
 import { getSetting } from "@/lib/database";
 import { pulseEnabled } from "@/lib/health/service";
 import { isFreshAlert } from "@/lib/news/breaking";
+import { roomOsConfigured } from "@/lib/roomos/client";
 
 export async function getBoardSnapshot() {
   const timezone = getSetting("timezone", "America/Montreal");
@@ -42,6 +44,10 @@ export async function getBoardSnapshot() {
       tickerSpeed: Number(getSetting("ticker_speed", "42")),
       animations: getSetting("animations", "full"),
       sound: getSetting("sound", "muted"),
+      boardVolume: clampBoardVolume(
+        getSetting("board_volume", String(DEFAULT_BOARD_VOLUME)),
+      ),
+      roomOsAudio: roomOsConfigured(),
       timezone,
       newsRefreshIntervalSec: Number(getSetting("news_interval_sec", "180")),
     },

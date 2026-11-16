@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   parseRoomOsPowerState,
+  parseRoomOsVolume,
   roomOsCommandXml,
+  roomOsVolumeSetXml,
 } from "@/lib/roomos/client";
 
 describe("RoomOS remote commands", () => {
@@ -24,6 +26,18 @@ describe("RoomOS remote commands", () => {
     expect(roomOsCommandXml("volume-down")).toContain(
       "<Command><Audio><Volume><Decrease/></Volume></Audio></Command>",
     );
+  });
+
+  it("builds an absolute RoomOS volume set and parses the status", () => {
+    expect(roomOsVolumeSetXml(40)).toContain(
+      "<Command><Audio><Volume><Set><Level>40</Level></Set></Volume></Audio></Command>",
+    );
+    expect(roomOsVolumeSetXml(140)).toContain("<Level>100</Level>");
+    expect(roomOsVolumeSetXml(-4)).toContain("<Level>0</Level>");
+    expect(
+      parseRoomOsVolume("<Status><Audio><Volume>42</Volume></Audio></Status>"),
+    ).toBe(42);
+    expect(parseRoomOsVolume("<Status />")).toBeNull();
   });
 
   it("maps the RoomOS standby status to the remote state", () => {

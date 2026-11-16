@@ -72,6 +72,8 @@ Open `http://<DOCKER-HOST-LAN-IP>:3000/remote` on a phone on the same LAN and si
 - switch among the HLS channels enabled in `/admin`;
 - mute or unmute the web player (separate from the Board master volume);
 - send `Audio Volume Increase` or `Audio Volume Decrease` to the Board;
+- the Board itself also has a volume slider next to the 1–4 layout icons;
+  `/admin` → Appearance sets the level restored when signage returns after a call;
 - send `Standby Activate` to turn the display off;
 - send `Standby Halfwake` to restore digital signage;
 - send `Standby Deactivate` to leave Halfwake and return the Board to fully active mode.

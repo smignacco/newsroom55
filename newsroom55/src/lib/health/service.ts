@@ -355,8 +355,12 @@ async function syncRecorderHistory(
 }
 
 let healthSyncInFlight: Promise<PulseSnapshot> | null = null;
+let healthSyncIncludesHistory = false;
 
-async function performHealthSync(reader: HomeAssistantReader) {
+async function performHealthSync(
+  reader: HomeAssistantReader,
+  options: { history?: boolean } = {},
+) {
   const database = getDb();
   const attemptAt = new Date().toISOString();
   database
@@ -460,7 +464,9 @@ async function performHealthSync(reader: HomeAssistantReader) {
       );
     }
 
-    await syncRecorderHistory(reader, mappings, syncedAt);
+    if (options.history !== false) {
+      await syncRecorderHistory(reader, mappings, syncedAt);
+    }
     database
       .prepare(
         `INSERT INTO health_sync_state (id, last_attempt_at, last_success_at, last_error)
@@ -488,14 +494,55 @@ async function performHealthSync(reader: HomeAssistantReader) {
   }
 }
 
-export function syncHealthData(reader?: HomeAssistantReader) {
-  if (healthSyncInFlight) return healthSyncInFlight;
-  healthSyncInFlight = performHealthSync(
-    reader ?? new HomeAssistantClient(),
-  ).finally(() => {
-    healthSyncInFlight = null;
-  });
-  return healthSyncInFlight;
+export function syncHealthData(
+  reader?: HomeAssistantReader,
+  options: { history?: boolean } = {},
+) {
+  const wantHistory = options.history !== false;
+  const client = reader ?? new HomeAssistantClient();
+  if (healthSyncInFlight && (healthSyncIncludesHistory || !wantHistory)) {
+    return healthSyncInFlight;
+  }
+  const start = () => {
+    healthSyncIncludesHistory = wantHistory;
+    healthSyncInFlight = performHealthSync(client, { history: wantHistory }).finally(
+      () => {
+        healthSyncInFlight = null;
+        healthSyncIncludesHistory = false;
+      },
+    );
+    return healthSyncInFlight;
+  };
+  if (healthSyncInFlight) {
+    return healthSyncInFlight.then(() => start());
+  }
+  return start();
+}
+
+export const HEALTH_LIVE_MIN_INTERVAL_MS = 10_000;
+export const HEALTH_STALE_AFTER_MS = 2 * 60 * 1000;
+export const HEALTH_HISTORY_INTERVAL_MS = 5 * 60 * 1000;
+export const HEALTH_SYNC_MIN_SECONDS = 15;
+export const HEALTH_SYNC_DEFAULT_SECONDS = 15;
+
+export async function refreshPulseLive() {
+  if (!pulseEnabled() || !homeAssistantConfigured()) {
+    return getPulseSnapshot();
+  }
+  const sync = getDb()
+    .prepare("SELECT last_success_at FROM health_sync_state WHERE id = 1")
+    .get() as { last_success_at: string | null } | undefined;
+  const last = sync?.last_success_at
+    ? new Date(sync.last_success_at).getTime()
+    : 0;
+  if (last && Date.now() - last < HEALTH_LIVE_MIN_INTERVAL_MS) {
+    return getPulseSnapshot();
+  }
+  try {
+    return await syncHealthData(undefined, { history: false });
+  } catch {
+    return getPulseSnapshot();
+  }
 }
 
 export async function discoverHealthSensors(
@@ -592,7 +639,7 @@ export function getPulseSnapshot(now = new Date()): PulseSnapshot {
   const lastSyncAt = sync?.last_success_at || null;
   const stale =
     !lastSyncAt ||
-    now.getTime() - new Date(lastSyncAt).getTime() > 15 * 60 * 1000;
+    now.getTime() - new Date(lastSyncAt).getTime() > HEALTH_STALE_AFTER_MS;
 
   return {
     generatedAt: now.toISOString(),
@@ -678,10 +725,17 @@ export function pulseEnabled() {
 }
 
 export function healthSyncIntervalMs() {
-  const seconds = Number(process.env.HA_SYNC_INTERVAL_SECONDS || 300);
+  const seconds = Number(
+    process.env.HA_SYNC_INTERVAL_SECONDS || HEALTH_SYNC_DEFAULT_SECONDS,
+  );
   return (
-    Math.min(86_400, Math.max(60, Number.isFinite(seconds) ? seconds : 300)) *
-    1000
+    Math.min(
+      86_400,
+      Math.max(
+        HEALTH_SYNC_MIN_SECONDS,
+        Number.isFinite(seconds) ? seconds : HEALTH_SYNC_DEFAULT_SECONDS,
+      ),
+    ) * 1000
   );
 }
 

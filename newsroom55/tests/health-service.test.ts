@@ -172,6 +172,41 @@ describe("health synchronization", () => {
     expect(stateReads).toBe(1);
   });
 
+  it("can refresh live states without pulling Recorder history", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    let historyReads = 0;
+    const reader: HomeAssistantReader = {
+      async testConnection() {
+        return { version: "2026.11" };
+      },
+      async getStates() {
+        return [
+          state("sensor.health_steps", "6500", "steps", "2026-11-11T14:59:00Z"),
+        ];
+      },
+      async getHistory() {
+        historyReads += 1;
+        return [];
+      },
+    };
+    const snapshot = await syncHealthData(reader, { history: false });
+    expect(historyReads).toBe(0);
+    expect(snapshot.activity.steps).toBe(6500);
+  });
+
+  it("defaults health sync to 15 seconds and refuses a shorter interval", async () => {
+    const { healthSyncIntervalMs } = await import("@/lib/health/service");
+    const previous = process.env.HA_SYNC_INTERVAL_SECONDS;
+    delete process.env.HA_SYNC_INTERVAL_SECONDS;
+    expect(healthSyncIntervalMs()).toBe(15_000);
+    process.env.HA_SYNC_INTERVAL_SECONDS = "5";
+    expect(healthSyncIntervalMs()).toBe(15_000);
+    process.env.HA_SYNC_INTERVAL_SECONDS = "20";
+    expect(healthSyncIntervalMs()).toBe(20_000);
+    if (previous === undefined) delete process.env.HA_SYNC_INTERVAL_SECONDS;
+    else process.env.HA_SYNC_INTERVAL_SECONDS = previous;
+  });
+
   it("uses only reliable available nights for the seven-night average", async () => {
     const { syncHealthData } = await import("@/lib/health/service");
     const history = [

@@ -44,5 +44,11 @@ describe("public board snapshot privacy", () => {
     expect(snapshot).not.toHaveProperty("activity");
     expect(snapshot).not.toHaveProperty("sleep");
     expect(snapshot).not.toHaveProperty("health");
+    expect((snapshot.appearance as { boardVolume: number }).boardVolume).toBe(
+      40,
+    );
+    expect(JSON.stringify(snapshot)).not.toMatch(
+      /ROOMOS_PASSWORD|HA_TOKEN|admin_password/i,
+    );
   });
 });

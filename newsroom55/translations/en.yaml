@@ -31,7 +31,7 @@ configuration:
     description: "Dedicated long-lived access token. It remains private in the container."
   ha_sync_interval_seconds:
     name: "Health sync interval"
-    description: "Seconds between Home Assistant reads (300 recommended)."
+    description: "Seconds between background Home Assistant history reads (15 default). The Board still refreshes live activity more often."
   activity_pulse_enabled:
     name: "Enable Activity & Sleep Pulse"
     description: "Allows the personal module. Its display remains controlled in /admin."

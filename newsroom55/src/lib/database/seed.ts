@@ -1,6 +1,7 @@
 import { getDb, getSetting, setSetting } from "@/lib/database";
 import { VERIFIED_SOURCES } from "@/lib/news/verified-sources";
 import { DEFAULT_BREAKING_RULES } from "@/lib/news/breaking";
+import { DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
 import { TIMEZONE } from "@/lib/config";
 
 const DEFAULT_SYMBOLS = [
@@ -93,6 +94,7 @@ export function seedIfNeeded() {
     setSetting("ticker_speed", "42");
     setSetting("animations", "full");
     setSetting("sound", "muted");
+    setSetting("board_volume", String(DEFAULT_BOARD_VOLUME));
     setSetting("alerts", "on");
     setSetting("news_interval_sec", "180");
     setSetting("timezone", TIMEZONE);
@@ -100,6 +102,9 @@ export function seedIfNeeded() {
   }
 
   if (!getSetting("timezone", "")) setSetting("timezone", TIMEZONE);
+  if (!getSetting("board_volume", "")) {
+    setSetting("board_volume", String(DEFAULT_BOARD_VOLUME));
+  }
 
   const upgradeDisplayName = db.prepare(
     `UPDATE market_symbols

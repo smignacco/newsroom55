@@ -233,9 +233,11 @@ export function HealthManager({ csrf }: { csrf: string }) {
           <div className="nr-kicker">Télémétrie personnelle · Apple Santé</div>
           <h2>Activity &amp; Sleep Pulse</h2>
           <p>
-            Une synthèse secondaire et confidentielle. NEWSROOM ne collecte ni
-            fréquence cardiaque, ni localisation, et ne produit aucune
-            interprétation médicale.
+            Une synthèse secondaire et confidentielle. NEWSROOM relit les
+            états Home Assistant près du temps réel tant que le Board affiche
+            le panneau; l’historique Recorder reste en arrière-plan. Aucune
+            fréquence cardiaque ni localisation n’est collectée, et aucune
+            interprétation médicale n’est produite.
           </p>
         </div>
         <div

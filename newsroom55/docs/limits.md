@@ -78,6 +78,7 @@ Implemented:
 - On-Board layout dock (1–4 feeds, grid or focus) and drag-to-focus / drag-to-swap on the Cisco Board itself
 - Adaptive in-memory HLS buffering: 60 seconds for one stream, 45 for two, and 25 per stream for three or four; low-latency mode is disabled and fatal network/media errors are retried
 - Mobile remote layout, per-slot channel, audio-source, mute, Board volume, and power controls
+- On-board volume slider plus an admin startup volume restored after a Webex call via RoomOS `Audio Volume Set`
 - Backward-compatible protected import for the Canadian iptv-org playlist:
   `https://raw.githubusercontent.com/iptv-org/iptv/master/streams/ca.m3u`
 - Selectable playlist directory loaded from the official GitHub repository (`streams/*.m3u`)
@@ -103,7 +104,7 @@ The owner confirmed that signage and HLS playback work on the physical Board 55.
 
 ## RoomOS / Board Pro 55 G2
 
-Documented in `docs/roomos-setup.md`. The owner confirmed basic signage and video playback on the physical Board. The protected `/remote` sends standby, half-wake, deactivate, and volume increase/decrease through the local RoomOS API, but these remote hardware commands still require confirmation on the device.
+Documented in `docs/roomos-setup.md`. The owner confirmed basic signage and video playback on the physical Board. The protected `/remote` sends standby, half-wake, deactivate, and volume increase/decrease through the local RoomOS API. The Board page can also set an absolute volume (0–100) and restore the admin default when the page becomes visible again. These hardware commands still require confirmation on the device.
 
 ## Docker
 
