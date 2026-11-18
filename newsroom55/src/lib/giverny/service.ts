@@ -13,10 +13,8 @@ import {
   yearToDateReturn,
 } from "@/lib/giverny/engine";
 import {
-  downloadFiling,
   filingStoredDate,
   filingToHoldings,
-  listEdgarFilings,
   type EdgarFilingMeta,
 } from "@/lib/giverny/edgar";
 import { parse13FDocuments } from "@/lib/giverny/parse-13f";
@@ -59,7 +57,6 @@ import type {
 } from "@/lib/giverny/types";
 import { GIVERNY_DEFAULT_FILER, GIVERNY_MIN_COVERAGE } from "@/lib/giverny/types";
 
-let ingestInFlight: Promise<void> | null = null;
 let computeInFlight: Promise<void> | null = null;
 
 function hoursSince(iso: string | null): number {
@@ -87,9 +84,11 @@ function minutesInNewYork() {
 export async function tickGiverny(force = false): Promise<void> {
   const settings = givernySettings();
   if (!settings.enabled && !force) return;
-  if (force || hoursSince(lastRefresh("filings")) > 20) {
-    await ingestFilings(force);
+  if (listFilings().length === 0) {
+    markGivernyError("Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur.");
+    return;
   }
+  markGivernyError(null);
   const newlyMapped = await remapStoredHoldings();
   const session = usEquitySession();
   const priceDue = hoursSince(lastRefresh("prices")) * 60 >= settings.refreshMinutes;
@@ -143,37 +142,6 @@ async function persistParsedFiling(
   return holdings.length;
 }
 
-export async function ingestFilings(force = false): Promise<void> {
-  if (ingestInFlight) return ingestInFlight;
-  ingestInFlight = (async () => {
-    const settings = givernySettings();
-    const listed = await listEdgarFilings(settings.cik);
-    providerNote("edgar", listed.error == null && listed.filings.length > 0, listed.error || `${listed.filings.length} dépôts 13F.`);
-    if (listed.error) {
-      markGivernyError(listed.error);
-      markRefresh("filings");
-      return;
-    }
-    let stored = 0;
-    for (const meta of listed.filings) {
-      if (!force && listFilings().some((row) => row.accession === meta.accession)) {
-        stored += 1;
-        continue;
-      }
-      const parsed = await downloadFiling(settings.cik, meta);
-      if (!parsed || parsed.holdings.length === 0) continue;
-      await persistParsedFiling(parsed, meta, listed.name);
-      stored += 1;
-    }
-    if (stored === 0) markGivernyError("Aucun tableau 13F n’a pu être lu.");
-    else markGivernyError(null);
-    markRefresh("filings");
-  })().finally(() => {
-    ingestInFlight = null;
-  });
-  return ingestInFlight;
-}
-
 export async function ingestUploadedFiling(
   xml: string,
   accessionHint?: string | null,
@@ -210,7 +178,7 @@ export async function ingestUploadedFiling(
     },
     parsed.filerName || settings.filerName || GIVERNY_DEFAULT_FILER,
   );
-  providerNote("edgar", true, `13F importé ${accession} (${parsed.holdings.length} titres).`);
+  providerNote("13f", true, `13F importé ${accession} (${parsed.holdings.length} titres).`);
   markGivernyError(null);
   markRefresh("filings");
   await remapStoredHoldings();
@@ -268,8 +236,13 @@ export async function recomputeIndex(): Promise<void> {
     const books = filingBooks();
     if (books.length === 0) return;
     const tickers = mappedTickers(books);
+    const prices = allPriceSeries(tickers);
     const spx = priceSeries("SPX");
-    const sessions = nyTradingSessions(spx.keys());
+    const datePool = new Set<string>([...spx.keys()]);
+    for (const series of prices.values()) {
+      for (const date of series.keys()) datePool.add(date);
+    }
+    const sessions = nyTradingSessions(datePool);
     const today = nySessionDate();
     if (usEquitySession() !== "weekend" && !sessions.includes(today) && priceSeries(tickers[0] ?? "SPX").has(today)) {
       sessions.push(today);
@@ -277,7 +250,7 @@ export async function recomputeIndex(): Promise<void> {
     const points = reconstructIndex({
       sessions,
       filings: books,
-      prices: allPriceSeries(tickers),
+      prices,
       fx: fxSeries(),
       spx,
     });
@@ -404,6 +377,8 @@ export function getGivernySummary(): GivernySummary {
       ? "Module désactivé."
       : lastError
         ? lastError
+        : listFilings().length === 0
+          ? "Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur."
         : (latest?.coverage ?? 0) < GIVERNY_MIN_COVERAGE
           ? "Indice synthétique indisponible — CUSIP non appariés ou cours insuffisants."
           : !hasLevel
@@ -507,7 +482,12 @@ export function removeOfficialMonth(yearMonth: string) {
 }
 
 export async function refreshGivernyNow() {
-  await ingestFilings(true);
+  if (listFilings().length === 0) {
+    markGivernyError("Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur.");
+    providerNote("13f", false, "Aucun XML 13F importé.");
+    return;
+  }
+  markGivernyError(null);
   await remapStoredHoldings();
   await refreshMarketHistory(usEquitySession() === "closed");
   await recomputeIndex();

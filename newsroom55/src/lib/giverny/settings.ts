@@ -1,5 +1,4 @@
 import { getSetting, setSetting } from "@/lib/database";
-import { edgarContactEmail, isContactEmail } from "@/lib/giverny/identity";
 import {
   GIVERNY_DEFAULT_CIK,
   GIVERNY_DEFAULT_FILER,
@@ -31,7 +30,7 @@ export function givernySettings(): GivernySettings {
     breakingBanner: isBanner(banner) ? banner : "compact",
     cik: padCik(getSetting("giverny_cik", GIVERNY_DEFAULT_CIK)),
     filerName: getSetting("giverny_filer_name", GIVERNY_DEFAULT_FILER),
-    contactEmail: edgarContactEmail(),
+    contactEmail: "",
   };
 }
 
@@ -53,7 +52,6 @@ export function updateGivernySettings(patch: {
   breakingBanner?: BreakingBannerMode;
   cik?: string;
   filerName?: string;
-  contactEmail?: string;
 }) {
   if (patch.enabled !== undefined) setSetting("giverny_enabled", patch.enabled ? "on" : "off");
   if (patch.refreshMinutes !== undefined) {
@@ -65,10 +63,6 @@ export function updateGivernySettings(patch: {
   if (patch.breakingBanner) setSetting("giverny_breaking_banner", patch.breakingBanner);
   if (patch.cik) setSetting("giverny_cik", padCik(patch.cik));
   if (patch.filerName?.trim()) setSetting("giverny_filer_name", patch.filerName.trim());
-  if (patch.contactEmail !== undefined) {
-    const email = patch.contactEmail.trim();
-    setSetting("giverny_edgar_contact", isContactEmail(email) ? email : "");
-  }
 }
 
 function isChartRange(value: string): value is GivernyChartRange {

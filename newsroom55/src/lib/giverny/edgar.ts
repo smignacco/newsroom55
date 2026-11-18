@@ -1,8 +1,6 @@
-import { fetchJson, fetchText } from "@/lib/giverny/http";
-import { parse13FDocuments, weightsFromHoldings } from "@/lib/giverny/parse-13f";
-import { accessionPath, nySessionDate, padCik } from "@/lib/giverny/tickers";
+import { weightsFromHoldings } from "@/lib/giverny/parse-13f";
+import { nySessionDate } from "@/lib/giverny/tickers";
 import type { Parsed13FFiling } from "@/lib/giverny/types";
-import { EDGAR_BLOCKED_FR, GIVERNY_DEFAULT_FILER } from "@/lib/giverny/types";
 
 export type EdgarFilingMeta = {
   accession: string;
@@ -11,27 +9,6 @@ export type EdgarFilingMeta = {
   reportDate: string | null;
   primaryDocument: string | null;
   acceptanceDateTime: string | null;
-};
-
-type SubmissionsJson = {
-  cik?: string | number;
-  name?: string;
-  filings?: {
-    recent?: {
-      accessionNumber?: string[];
-      filingDate?: string[];
-      reportDate?: string[];
-      form?: string[];
-      primaryDocument?: string[];
-      acceptanceDateTime?: string[];
-    };
-  };
-};
-
-type IndexJson = {
-  directory?: {
-    item?: Array<{ name?: string; type?: string }>;
-  };
 };
 
 function is13F(form: string) {
@@ -53,10 +30,6 @@ export function pickLatestFilings(rows: EdgarFilingMeta[], limit = 8): EdgarFili
     byPeriod.set(period, row);
   }
   return [...byPeriod.values()].sort((left, right) => right.filingDate.localeCompare(left.filingDate)).slice(0, limit);
-}
-
-function listError(status: number) {
-  return status === 403 ? EDGAR_BLOCKED_FR : `EDGAR injoignable (${status || "réseau"}).`;
 }
 
 type EftsHit = {
@@ -95,78 +68,6 @@ export function parseEftsFilings(payload: unknown): { name: string | null; filin
   return { name, filings };
 }
 
-export async function listEdgarFilings(cik: string): Promise<{
-  name: string;
-  filings: EdgarFilingMeta[];
-  source: string;
-  error: string | null;
-}> {
-  const padded = padCik(cik);
-  const unpadded = String(Number(padded));
-  let lastStatus = 0;
-
-  const submissionsBody = await fetchText(`https://data.sec.gov/submissions/CIK${padded}.json`);
-  lastStatus = submissionsBody.status;
-  if (submissionsBody.ok) {
-    try {
-      const submissions = JSON.parse(submissionsBody.body) as SubmissionsJson;
-      const recent = submissions.filings?.recent;
-      const accessionNumbers = recent?.accessionNumber ?? [];
-      if (recent && accessionNumbers.length > 0) {
-        const filings = accessionNumbers.map((accession, index) => ({
-          accession,
-          form: recent.form?.[index] || "",
-          filingDate: recent.filingDate?.[index] || "",
-          reportDate: recent.reportDate?.[index] || null,
-          primaryDocument: recent.primaryDocument?.[index] || null,
-          acceptanceDateTime: recent.acceptanceDateTime?.[index] || null,
-        }));
-        return {
-          name: submissions.name || GIVERNY_DEFAULT_FILER,
-          filings: pickLatestFilings(filings),
-          source: "data.sec.gov",
-          error: null,
-        };
-      }
-    } catch {
-      lastStatus = submissionsBody.status;
-    }
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  const efts = await fetchJson<{ hits?: { hits?: EftsHit[] } }>(
-    `https://efts.sec.gov/LATEST/search-index?dateRange=custom&startdt=2010-01-01&enddt=${today}&forms=13F-HR&ciks=${unpadded}`,
-  );
-  const parsedEfts = parseEftsFilings(efts);
-  if (parsedEfts.filings.length > 0) {
-    return {
-      name: parsedEfts.name || GIVERNY_DEFAULT_FILER,
-      filings: pickLatestFilings(parsedEfts.filings),
-      source: "sec-efts",
-      error: null,
-    };
-  }
-
-  const atom = await fetchText(
-    `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${padded}&type=13F-HR&count=40&output=atom`,
-  );
-  lastStatus = atom.status || lastStatus;
-  if (!atom.ok) {
-    return {
-      name: GIVERNY_DEFAULT_FILER,
-      filings: [],
-      source: "sec-edgar",
-      error: listError(lastStatus),
-    };
-  }
-  return {
-    name: xmlTag(atom.body, "conformed-name") || GIVERNY_DEFAULT_FILER,
-    filings: pickLatestFilings(parseAtomFilings(atom.body)),
-    source: "sec-atom",
-    error: null,
-  };
-}
-
 function xmlTag(xml: string, tag: string): string | null {
   const match = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
   return match ? match[1].trim() : null;
@@ -194,44 +95,6 @@ export function parseAtomFilings(atom: string): EdgarFilingMeta[] {
       },
     ];
   });
-}
-
-export async function downloadFiling(cik: string, meta: EdgarFilingMeta): Promise<Parsed13FFiling | null> {
-  const padded = padCik(cik);
-  const unpadded = String(Number(padded));
-  const folder = accessionPath(meta.accession);
-  const base = `https://www.sec.gov/Archives/edgar/data/${unpadded}/${folder}`;
-  const index = await fetchJson<IndexJson>(`${base}/index.json`);
-  const names = (index?.directory?.item ?? [])
-    .map((item) => item.name || "")
-    .filter((name) => /\.xml$/i.test(name));
-  const infoName =
-    names.find((name) => /info.?table|form13fInfoTable/i.test(name)) ||
-    names.find((name) => /info/i.test(name) && /xml/i.test(name));
-  const coverName =
-    names.find((name) => /primary_doc|primarydoc|form13fCover/i.test(name)) ||
-    names.find((name) => /primary/i.test(name));
-
-  const infoXml = infoName ? await fetchText(`${base}/${infoName}`) : await tryCommon(base);
-  if (!infoXml?.ok) return null;
-  const coverXml = coverName ? await fetchText(`${base}/${coverName}`) : null;
-  const combined = `${coverXml?.ok ? coverXml.body : ""}\n${infoXml.body}`;
-  return parse13FDocuments(combined, {
-    accession: meta.accession,
-    cik: padded,
-    form: meta.form,
-    periodOfReport: meta.reportDate,
-    filedAt: meta.filingDate,
-    acceptedAt: meta.acceptanceDateTime,
-  });
-}
-
-async function tryCommon(base: string) {
-  for (const name of ["form13fInfoTable.xml", "infotable.xml", "InfoTable.xml", "informationtable.xml"]) {
-    const response = await fetchText(`${base}/${name}`, { attempts: 2 });
-    if (response.ok && /infoTable/i.test(response.body)) return response;
-  }
-  return null;
 }
 
 export function filingStoredDate(value: string | null | undefined): string {

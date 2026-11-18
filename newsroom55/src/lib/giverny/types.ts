@@ -4,9 +4,6 @@ export const GIVERNY_BENCHMARK = "SPX";
 export const GIVERNY_INCEPTION_LEVEL = 100;
 export const GIVERNY_MIN_COVERAGE = 0.85;
 export const GIVERNY_COMPLETE_COVERAGE = 0.995;
-export const EDGAR_CONTACT_EMAIL = "newsroom55@users.noreply.github.com";
-export const EDGAR_BLOCKED_FR =
-  "EDGAR a refusé le trafic automatisé. L’indice reste indisponible tant que le dépôt n’est pas lisible.";
 
 export type GivernyCurrency = "CAD" | "USD";
 export type GivernyChartRange = "1M" | "3M" | "YTD" | "1Y";

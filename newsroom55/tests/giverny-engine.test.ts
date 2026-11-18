@@ -211,6 +211,24 @@ describe("Giverny portfolio math", () => {
     expect(points[2]?.givUsd).toBeCloseTo(120);
   });
 
+  it("still publishes GIV when SPX history is missing", () => {
+    const points = reconstructIndex({
+      sessions: ["2026-11-09", "2026-11-10"],
+      filings: [book("2026-11-01", [["AAA", 1]])],
+      prices: new Map([["AAA", series([["2026-11-09", 10], ["2026-11-10", 11]])]]),
+      fx: series([["2026-11-09", 1.4], ["2026-11-10", 1.4]]),
+      spx: series([]),
+    });
+    expect(points[0]?.givUsd).toBe(100);
+    expect(points[0]?.spxUsd).toBeNull();
+    expect(points[0]?.givAlpha).toBeNull();
+    expect(points[0]?.status).toBe("incomplete");
+    expect(points[1]?.givUsd).toBeCloseTo(110);
+    expect(points[1]?.dayReturnUsd).toBeCloseTo(0.1);
+    expect(points[1]?.spxReturnUsd).toBeNull();
+    expect(points[1]?.status).toBe("incomplete");
+  });
+
   it("starts FX history at the oldest filing, not the newest", () => {
     expect(
       earliestFiledOn([book("2026-11-14", [["AAA", 1]]), book("2025-02-14", [["AAA", 1]])]),

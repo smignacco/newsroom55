@@ -5,10 +5,9 @@ VL officiel.
 
 ## Données
 
-- Dépôts : SEC EDGAR, CIK `0001641864` (réglable). User-Agent déclaré
-  (`NEWSROOM55 GivernyTracker` + courriel), en-tête `From`, repli curl/wget
-  si Node est refusé, import XML manuel. Le livre n’est pas saisi en dur : un
-  403 sans XML laisse l’indice indisponible.
+- Dépôts : import XML 13F manuel uniquement (CIK `0001641864` pour le lien
+  d’archive). NEWSROOM n’appelle plus sec.gov. Sans XML, l’indice reste
+  indisponible ; le livre n’est jamais inventé.
 - Appariement CUSIP → ticker : OpenFIGI par lots (10 jobs sans clé, 100 avec
   `OPENFIGI_API_KEY`), cadence selon `ratelimit-*` / `retry-after`. Un 413
   relance le même livre en lots plus petits. Cache SQLite, réappliqué sur les
@@ -28,8 +27,10 @@ affiché. La couverture du livre inclut les titres sans ticker ; sous 85 % le
 niveau du jour reste indisponible. Une séance indisponible ne décale pas la
 base du rendement suivant. GIV-CAD applique le USD/CAD du jour lorsqu’il est
 disponible, historisé depuis le premier 13F public ; sinon le niveau CAD reste
-vide. Les cours live sont rangés sous la séance NY du timestamp, pas sous la
-date civile du rafraîchissement. Le Board n’affiche pas de courbe de l’indice.
+vide. Un historique SPX manquant laisse vs S&P et α vides, mais n’empêche plus
+GIV de s’afficher. Les cours live sont rangés sous la séance NY du timestamp,
+pas sous la date civile du rafraîchissement. Le Board n’affiche pas de courbe
+de l’indice.
 
 ## API
 

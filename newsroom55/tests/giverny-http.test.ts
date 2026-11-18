@@ -1,12 +1,10 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EDGAR_CONTACT_EMAIL, EDGAR_BLOCKED_FR } from "../src/lib/giverny/types";
-import { fetchText, isEdgarUrl, requestHeaders } from "../src/lib/giverny/http";
-import { listEdgarFilings, parseEftsFilings } from "../src/lib/giverny/edgar";
-import { secUserAgent } from "../src/lib/giverny/identity";
+import { fetchText, requestHeaders } from "../src/lib/giverny/http";
+import { parseEftsFilings } from "../src/lib/giverny/edgar";
 
 afterEach(() => {
-  delete process.env.EDGAR_CONTACT_EMAIL;
-  delete process.env.EDGAR_USER_AGENT;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -24,36 +22,39 @@ function fakeResponse(status: number, body: string) {
   };
 }
 
-describe("EDGAR HTTP identity", () => {
-  it("sends a declared SEC User-Agent, contact, and never a Host override", () => {
-    const headers = requestHeaders("https://data.sec.gov/submissions/CIK0001641864.json", {
-      host: "data.sec.gov",
+describe("Giverny HTTP", () => {
+  it("uses a generic NEWSROOM User-Agent and never a Host override", () => {
+    const yahoo = requestHeaders("https://query1.finance.yahoo.com/v8/finance/chart/AAPL", {
+      host: "query1.finance.yahoo.com",
     });
-    expect(isEdgarUrl("https://data.sec.gov/submissions/CIK0001641864.json")).toBe(true);
-    expect(headers["user-agent"]).toBe(secUserAgent(EDGAR_CONTACT_EMAIL));
-    expect(headers["user-agent"]).toMatch(/^NEWSROOM55 GivernyTracker /);
-    expect(headers["user-agent"]).not.toMatch(/Mozilla\/5\.0/);
-    expect(headers.from).toBe(EDGAR_CONTACT_EMAIL);
-    expect(headers.referer).toBe("https://www.sec.gov/");
-    expect(headers.host).toBeUndefined();
-    expect(headers.Host).toBeUndefined();
-  });
-
-  it("uses EDGAR_CONTACT_EMAIL when it is a reachable address", () => {
-    process.env.EDGAR_CONTACT_EMAIL = "desk@example.com";
-    const headers = requestHeaders("https://data.sec.gov/submissions/CIK0001641864.json");
-    expect(headers.from).toBe("desk@example.com");
-    expect(headers["user-agent"]).toBe("NEWSROOM55 GivernyTracker desk@example.com");
-  });
-
-  it("does not apply the SEC profile to Yahoo or Bank of Canada", () => {
-    const yahoo = requestHeaders("https://query1.finance.yahoo.com/v8/finance/chart/AAPL");
     expect(yahoo["user-agent"]).toBe("NEWSROOM55/1.0");
     expect(yahoo.from).toBeUndefined();
+    expect(yahoo.referer).toBeUndefined();
+    expect(yahoo.host).toBeUndefined();
+    expect(yahoo.Host).toBeUndefined();
   });
 
-  it("retries EDGAR 403 with backoff then returns the failed response", async () => {
-    const fetchMock = vi.fn(async () => fakeResponse(403, "Your Request Originates from an Undeclared Automated Tool"));
+  it("does not attach a SEC identity even when the URL is on sec.gov", () => {
+    const headers = requestHeaders("https://data.sec.gov/submissions/CIK0001641864.json");
+    expect(headers["user-agent"]).toBe("NEWSROOM55/1.0");
+    expect(headers.from).toBeUndefined();
+    expect(headers.referer).toBeUndefined();
+  });
+
+  it("retries 429 then returns the failed response", async () => {
+    const fetchMock = vi.fn(async () => fakeResponse(429, "rate limited"));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchText("https://query1.finance.yahoo.com/v8/finance/chart/AAPL", {
+      attempts: 3,
+      backoffMs: 0,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(429);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry HTTP 403", async () => {
+    const fetchMock = vi.fn(async () => fakeResponse(403, "forbidden"));
     vi.stubGlobal("fetch", fetchMock);
     const result = await fetchText("https://data.sec.gov/submissions/CIK0001641864.json", {
       attempts: 3,
@@ -61,45 +62,11 @@ describe("EDGAR HTTP identity", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.status).toBe(403);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    const firstInit = (fetchMock.mock.calls[0] as unknown[])[1] as
-      | { headers?: Record<string, string> }
-      | undefined;
-    expect(firstInit?.headers?.from).toBe(EDGAR_CONTACT_EMAIL);
-    expect(firstInit?.headers?.["user-agent"]).toMatch(/^NEWSROOM55 GivernyTracker /);
-  });
-
-  it("recovers after a transient EDGAR 403", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(fakeResponse(403, "blocked"))
-      .mockResolvedValueOnce(fakeResponse(200, '{"ok":true}'));
-    vi.stubGlobal("fetch", fetchMock);
-    const result = await fetchText("https://efts.sec.gov/LATEST/search-index", { attempts: 4, backoffMs: 0 });
-    expect(result.ok).toBe(true);
-    expect(result.body).toBe('{"ok":true}');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("uses native TLS when Node is forbidden", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse(403, "blocked")));
-    const nativeFetch = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      body: '{"cik":"0001641864"}',
-    }));
-    const result = await fetchText("https://data.sec.gov/submissions/CIK0001641864.json", {
-      attempts: 1,
-      backoffMs: 0,
-      nativeFetch,
-    });
-    expect(result.ok).toBe(true);
-    expect(result.body).toContain("0001641864");
-    expect(nativeFetch).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("13F listing fallbacks", () => {
+describe("13F parsers without SEC retrieval", () => {
   it("parses EFTS hits without inventing a book", () => {
     const parsed = parseEftsFilings({
       hits: {
@@ -130,33 +97,11 @@ describe("13F listing fallbacks", () => {
     expect(parseEftsFilings({ hits: { hits: [] } }).filings).toEqual([]);
   });
 
-  it("keeps the French refusal when every EDGAR host blocks automated traffic", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse(403, "blocked")));
-    const listed = await listEdgarFilings("0001641864");
-    expect(listed.filings).toEqual([]);
-    expect(listed.error).toBe(EDGAR_BLOCKED_FR);
-    expect(listed.source).toBe("sec-edgar");
-  });
-
-  it("uses the atom feed when submissions JSON is refused", async () => {
-    const atom = `<?xml version="1.0"?>
-      <feed>
-        <conformed-name>Giverny Capital Inc.</conformed-name>
-        <entry>
-          <filing-type>13F-HR</filing-type>
-          <accession-number>0001641864-26-000011</accession-number>
-          <filing-date>2026-11-12</filing-date>
-        </entry>
-      </feed>`;
-    const fetchMock = vi.fn(async (url: string) => {
-      if (String(url).includes("browse-edgar")) return fakeResponse(200, atom);
-      return fakeResponse(403, "blocked");
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const listed = await listEdgarFilings("0001641864");
-    expect(listed.error).toBeNull();
-    expect(listed.source).toBe("sec-atom");
-    expect(listed.filings[0]?.accession).toBe("0001641864-26-000011");
-    expect(listed.name).toBe("Giverny Capital Inc.");
+  it("does not fetch 13F filings from SEC hosts", () => {
+    const files = ["service.ts", "edgar.ts", "http.ts"].map((name) =>
+      readFileSync(path.resolve(process.cwd(), "src/lib/giverny", name), "utf8"),
+    );
+    const joined = files.join("\n");
+    expect(joined).not.toMatch(/listEdgarFilings|ingestFilings|data\.sec\.gov|efts\.sec\.gov|browse-edgar/);
   });
 });

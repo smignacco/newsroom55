@@ -32,7 +32,6 @@ export function GivernyManager({ csrf }: { csrf: string }) {
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
   const [accessionHint, setAccessionHint] = useState("");
   const [filedAtHint, setFiledAtHint] = useState("");
 
@@ -40,7 +39,6 @@ export function GivernyManager({ csrf }: { csrf: string }) {
     const data = await givernyApi("/api/admin/giverny", csrf);
     setSettings(data.settings);
     setValidation(data.validation);
-    setContactEmail(data.settings?.contactEmail || "");
   }
 
   useEffect(() => {
@@ -186,30 +184,6 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         </select>
       </label>
 
-      <label className="nr-field">
-        Courriel de contact EDGAR
-        <input
-          type="email"
-          value={contactEmail}
-          placeholder="nom@domaine.com"
-          onChange={(event) => setContactEmail(event.target.value)}
-          onBlur={() => {
-            if (!settings || contactEmail === settings.contactEmail) return;
-            void run("contact", async () => {
-              await givernyApi("/api/admin/giverny", csrf, {
-                method: "POST",
-                body: JSON.stringify({ contactEmail }),
-              });
-              return "Contact EDGAR enregistré. Relancez l’actualisation 13F.";
-            });
-          }}
-        />
-      </label>
-      <p className="nr-time">
-        La SEC exige un User-Agent déclaré, pas un profil de navigateur. Un
-        courriel joignable évite le 403. Le dépôt n’est jamais inventé.
-      </p>
-
       <button
         type="button"
         className="nr-chip"
@@ -217,20 +191,21 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         onClick={() =>
           run("refresh13f", async () => {
             await givernyApi("/api/admin/giverny/refresh", csrf, { method: "POST" });
-            return "Actualisation 13F et marchés lancée.";
+            return "Appariement CUSIP et cours relancés.";
           })
         }
       >
-        Actualiser le 13F maintenant
+        Actualiser CUSIP et cours
       </button>
 
       <h2 className="nr-brand-name" style={{ letterSpacing: "0.18em", fontSize: "0.9rem" }}>
         Import XML 13F
       </h2>
       <p className="nr-time">
-        Si EDGAR bloque encore le serveur, téléchargez{" "}
-        <code>primary_doc.xml</code> et <code>form13fInfoTable.xml</code> depuis
-        sec.gov dans un navigateur, puis importez-les ici.
+        NEWSROOM ne télécharge plus les 13F sur sec.gov. Dans un navigateur,
+        récupérez <code>primary_doc.xml</code> et{" "}
+        <code>form13fInfoTable.xml</code>, puis importez-les ici. Le livre n’est
+        jamais inventé.
       </p>
       <label className="nr-field">
         Numéro d’accession (si absent du XML)

@@ -24,7 +24,6 @@ const schema = z.object({
   breakingBanner: z.enum(["compact", "banner", "off"]).optional(),
   cik: z.string().min(1).max(20).optional(),
   filerName: z.string().min(1).max(120).optional(),
-  contactEmail: z.string().max(120).optional(),
 });
 
 export async function GET(req: NextRequest) {

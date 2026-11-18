@@ -252,7 +252,7 @@ test.describe("Centre de nouvelles visual board", () => {
     expect(fs.existsSync(dest)).toBe(true);
   });
 
-  test("giverny admin health names EDGAR honestly", async ({ page }) => {
+  test("giverny admin health shows 13F providers", async ({ page }) => {
     const user = process.env.ADMIN_USERNAME;
     const password = process.env.ADMIN_PASSWORD;
     test.skip(!user || !password, "ADMIN_USERNAME / ADMIN_PASSWORD not set");
@@ -275,7 +275,7 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(
       page.getByRole("heading", { name: "Indice synthétique Giverny" }),
     ).toBeVisible();
-    await expect(page.getByText(/^(OK|Erreur) · edgar · /)).toBeVisible({
+    await expect(page.getByText(/^(OK|Erreur) · (13f|openfigi|yahoo|bankofcanada) · /)).toBeVisible({
       timeout: 20_000,
     });
     await page.getByRole("heading", { name: "Couverture et fournisseurs" }).scrollIntoViewIfNeeded();
@@ -300,8 +300,9 @@ test.describe("Centre de nouvelles visual board", () => {
       page.getByRole("heading", { name: "Indice synthétique Giverny" }),
     ).toBeVisible();
     await expect(page.getByText(/Pas le VL officiel/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Actualiser le 13F maintenant" })).toBeVisible();
-    await expect(page.getByText("Courriel de contact EDGAR")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Actualiser CUSIP et cours" })).toBeVisible();
+    await expect(page.getByText("Courriel de contact EDGAR")).toHaveCount(0);
+    await expect(page.getByText(/ne télécharge plus les 13F/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Import XML 13F" })).toBeVisible();
     await expect(page.getByText("Date de dépôt public (si absente du XML)")).toBeVisible();
     const dest = path.join(media, "giverny-admin.png");

@@ -138,10 +138,6 @@ export function reconstructIndex(input: {
     if (givUsd == null) {
       const fx = priceOn(input.fx, sessionDate);
       const spx = priceOn(input.spx, sessionDate);
-      if (!usablePrice(spx)) {
-        points.push(emptyPoint(sessionDate, "unavailable", accession));
-        continue;
-      }
       const mappedShare = tickerCoverage(weights);
       if (mappedShare < GIVERNY_MIN_COVERAGE) {
         points.push({
@@ -152,14 +148,14 @@ export function reconstructIndex(input: {
         continue;
       }
       givUsd = GIVERNY_INCEPTION_LEVEL;
-      spxUsd = GIVERNY_INCEPTION_LEVEL;
+      spxUsd = usablePrice(spx) ? GIVERNY_INCEPTION_LEVEL : null;
       fx0 = fx;
       previousDate = sessionDate;
       points.push({
         sessionDate,
         givUsd,
         givCad: cadLevel(givUsd, fx, fx0),
-        givAlpha: GIVERNY_INCEPTION_LEVEL,
+        givAlpha: usablePrice(spxUsd) ? GIVERNY_INCEPTION_LEVEL : null,
         spxUsd,
         spxCad: cadLevel(spxUsd, fx, fx0),
         usdCad: fx,
@@ -167,7 +163,7 @@ export function reconstructIndex(input: {
         dayReturnCad: null,
         spxReturnUsd: null,
         coverage: mappedShare,
-        status: fx == null ? "incomplete" : "ok",
+        status: fx == null || spxUsd == null ? "incomplete" : "ok",
         accession,
       });
       continue;
@@ -184,14 +180,8 @@ export function reconstructIndex(input: {
     const portfolio = portfolioSessionReturn(weights, equityReturns, input.minCoverage);
     const spxReturn = sessionReturn(priceOn(input.spx, previousDate ?? ""), priceOn(input.spx, sessionDate));
     const fx = priceOn(input.fx, sessionDate);
-    const status: GivernyPointStatus =
-      portfolio.value == null || spxReturn == null
-        ? "unavailable"
-        : portfolio.status === "incomplete"
-          ? "incomplete"
-          : "ok";
 
-    if (portfolio.value == null || spxUsd == null || spxReturn == null) {
+    if (portfolio.value == null) {
       points.push({
         sessionDate,
         givUsd,
@@ -204,17 +194,23 @@ export function reconstructIndex(input: {
         dayReturnCad: null,
         spxReturnUsd: spxReturn,
         coverage: portfolio.coverage,
-        status,
+        status: "unavailable",
         accession,
       });
       continue;
     }
 
     givUsd *= 1 + portfolio.value;
-    spxUsd *= 1 + spxReturn;
+    if (spxUsd != null && spxReturn != null) spxUsd *= 1 + spxReturn;
     const givCad = cadLevel(givUsd, fx, fx0);
     const previousCad = points.at(-1)?.givCad ?? null;
     weights = driftWeights(weights, equityReturns);
+    const status: GivernyPointStatus =
+      spxReturn == null || fx == null
+        ? "incomplete"
+        : portfolio.status === "incomplete"
+          ? "incomplete"
+          : "ok";
     points.push({
       sessionDate,
       givUsd,

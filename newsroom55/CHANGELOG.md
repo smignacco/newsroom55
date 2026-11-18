@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 1.0.0-ha.25
+
+- Arrête tout téléchargement automatique des 13F sur sec.gov. Le livre vient
+  uniquement de l’import XML manuel. Actualiser relance CUSIP + cours, sans
+  appeler EDGAR (plus de 403 qui masque un XML déjà importé).
+- Calcule GIV même si l’historique SPX manque : vs S&P et α restent vides
+  plutôt que de cacher l’indice.
+
 ## 1.0.0-ha.24
 
 - Si OpenFIGI répond 413 (trop de CUSIP dans une requête), le mapping relance
