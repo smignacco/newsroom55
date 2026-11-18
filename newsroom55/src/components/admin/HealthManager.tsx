@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { formatHealthDuration as duration } from "@/lib/health/format";
 
 type Metric =
   | "steps"
@@ -137,13 +138,6 @@ function optionalNumber(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function duration(minutes: number | null) {
-  if (minutes === null) return "—";
-  return `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)
-    .toString()
-    .padStart(2, "0")}`;
 }
 
 export function HealthManager({ csrf }: { csrf: string }) {

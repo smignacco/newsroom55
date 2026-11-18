@@ -68,5 +68,20 @@ describe("Home Assistant health metrics", () => {
     expect(
       measurementValue("sleep_duration", state("sensor.sleep", "12", "kg")),
     ).toBeNull();
+    expect(
+      measurementValue("sleep_duration", state("sensor.sleep", "481", "min")),
+    ).toBe(481);
+    expect(
+      measurementValue("sleep_duration", state("sensor.sleep", "481", "m")),
+    ).toBe(481);
+    expect(
+      measurementValue("sleep_duration", state("sensor.sleep", "481", "h")),
+    ).toBe(481);
+    expect(
+      measurementValue("sleep_duration", state("sensor.sleep", "8.016666", "h")),
+    ).toBeCloseTo(481);
+    expect(
+      measurementValue("sleep_duration", state("sensor.sleep", "481")),
+    ).toBe(481);
   });
 });

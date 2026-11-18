@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.27
+
+- Le Board affiche la dernière durée de sommeil de la nuit (18 h–18 h
+  Toronto), plus un échantillon Recorder plus ancien. 481 minutes restent
+  8 h 01 ; 4 h 55 n’est plus conservé s’il précède le total final. Aucune
+  mesure Santé n’est inventée.
+
 ## 1.0.0-ha.26
 
 - Affiche le dernier niveau GIV réellement calculé : une séance du jour sans

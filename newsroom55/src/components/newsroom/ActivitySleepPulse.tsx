@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatHealthDuration as duration } from "@/lib/health/format";
 import type { PulseSnapshot } from "@/lib/health/service";
 
 type PulseResponse =
@@ -20,16 +21,6 @@ type PulsePhase = {
   value: number | null | undefined;
   tone: string;
 };
-
-function duration(minutes: number | null | undefined) {
-  if (minutes == null) return "—";
-  const rounded = Math.round(minutes);
-  const hours = Math.floor(rounded / 60);
-  const remainder = rounded % 60;
-  return hours > 0
-    ? `${hours} h ${String(remainder).padStart(2, "0")}`
-    : `${remainder} min`;
-}
 
 function formatNightDate(value: string | null | undefined) {
   if (!value) return "DONNÉES ABSENTES";

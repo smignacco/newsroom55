@@ -1,6 +1,6 @@
 import type { HomeAssistantState } from "@/lib/home-assistant/client";
 import { measurementValue } from "@/lib/health/metrics";
-import { localDate, shiftDate } from "@/lib/health/time";
+import { localDate, shiftDate, sleepNightDate } from "@/lib/health/time";
 
 export const HEALTH_TIMEZONE = "America/Toronto";
 
@@ -58,6 +58,40 @@ export function dailyTotalsFromSeries(
     const kept = stripCarriedForward(byDate.get(date) ?? [], previous);
     const last = kept.at(-1);
     if (last) out.set(date, { value: last.value, sourceUpdatedAt: last.at });
+  }
+  return out;
+}
+
+export function nightlySleepFromSeries(
+  series: HomeAssistantState[],
+  timeZone = HEALTH_TIMEZONE,
+): Map<string, DailyTotal> {
+  const samples = series
+    .flatMap((state) => {
+      const at = activityInstant(state);
+      if (!at) return [];
+      const value = measurementValue("sleep_duration", state);
+      if (value == null || value <= 0) return [];
+      return [{ night: sleepNightDate(at, timeZone), at, value }];
+    })
+    .sort(
+      (left, right) =>
+        left.at.localeCompare(right.at) || left.value - right.value,
+    );
+
+  const out = new Map<string, DailyTotal>();
+  for (const sample of samples) {
+    const existing = out.get(sample.night);
+    if (
+      !existing ||
+      sample.at > existing.sourceUpdatedAt ||
+      (sample.at === existing.sourceUpdatedAt && sample.value > existing.value)
+    ) {
+      out.set(sample.night, {
+        value: sample.value,
+        sourceUpdatedAt: sample.at,
+      });
+    }
   }
   return out;
 }

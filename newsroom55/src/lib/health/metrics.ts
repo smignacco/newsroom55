@@ -121,6 +121,37 @@ function normalizedUnit(state: HomeAssistantState | undefined) {
   return (state?.attributes.unit_of_measurement || "").trim().toLowerCase();
 }
 
+const MINUTE_UNITS = ["min", "mins", "minute", "minutes", "m"];
+const HOUR_UNITS = ["h", "hr", "hrs", "hour", "hours", "heure", "heures"];
+const SECOND_UNITS = ["s", "sec", "second", "seconds", "seconde", "secondes"];
+const SLEEP_METRICS = new Set<HealthMetric>([
+  "sleep_duration",
+  "in_bed",
+  "awake",
+  "core_sleep",
+  "deep_sleep",
+  "rem_sleep",
+]);
+
+function durationMinutes(
+  metric: HealthMetric,
+  value: number,
+  unit: string,
+): number | null {
+  if (MINUTE_UNITS.includes(unit)) return value;
+  if (HOUR_UNITS.includes(unit)) {
+    // A night longer than 24 h is not plausible; the source is minutes
+    // mislabeled as hours (481 h would display as 481 h 00, not 8 h 01).
+    if (SLEEP_METRICS.has(metric) && value > 24) return value;
+    return value * 60;
+  }
+  if (SECOND_UNITS.includes(unit)) return value / 60;
+  if (!unit && SLEEP_METRICS.has(metric)) {
+    return value > 24 ? value : value * 60;
+  }
+  return null;
+}
+
 export function measurementValue(
   metric: HealthMetric,
   state: HomeAssistantState | undefined,
@@ -158,16 +189,7 @@ export function measurementValue(
     metric === "deep_sleep" ||
     metric === "rem_sleep"
   ) {
-    if (["min", "mins", "minute", "minutes"].includes(unit)) return value;
-    if (["h", "hr", "hrs", "hour", "hours", "heure", "heures"].includes(unit)) {
-      return value * 60;
-    }
-    if (
-      ["s", "sec", "second", "seconds", "seconde", "secondes"].includes(unit)
-    ) {
-      return value / 60;
-    }
-    return null;
+    return durationMinutes(metric, value, unit);
   }
   return null;
 }

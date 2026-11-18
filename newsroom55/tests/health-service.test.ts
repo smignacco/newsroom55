@@ -277,4 +277,73 @@ describe("health synchronization", () => {
     expect(snapshot.sleep.incompleteHistory).toBe(true);
     expect(snapshot.sleep.averageMinutes).toBe(430);
   });
+
+  it("does not replace last night's 481 minutes with an older 4h55 Recorder sample", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    vi.setSystemTime(new Date("2026-11-18T18:00:00Z"));
+    try {
+      const snapshot = await syncHealthData(
+        new Reader(
+          [
+            state(
+              "sensor.sleep_duration",
+              "481",
+              "min",
+              "2026-11-18T18:00:00Z",
+              "2026-11-18T15:00:00Z",
+            ),
+          ],
+          [
+            [
+              state(
+                "sensor.sleep_duration",
+                "481",
+                "min",
+                "2026-11-18T15:00:00Z",
+              ),
+              state(
+                "sensor.sleep_duration",
+                "295",
+                "min",
+                "2026-11-18T09:55:00Z",
+              ),
+            ],
+          ],
+        ),
+      );
+      expect(snapshot.sleep.lastNight).toMatchObject({
+        nightDate: "2026-11-17",
+        totalMinutes: 481,
+      });
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
+
+  it("assigns a polled evening last_updated to last_changed's night", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    vi.setSystemTime(new Date("2026-11-19T00:30:00Z"));
+    try {
+      const snapshot = await syncHealthData(
+        new Reader(
+          [
+            state(
+              "sensor.sleep_duration",
+              "500",
+              "min",
+              "2026-11-19T00:10:00Z",
+              "2026-11-18T15:00:00Z",
+            ),
+          ],
+          [],
+        ),
+      );
+      expect(snapshot.sleep.lastNight).toMatchObject({
+        nightDate: "2026-11-17",
+        totalMinutes: 500,
+      });
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
 });

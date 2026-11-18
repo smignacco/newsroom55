@@ -37,8 +37,10 @@ Le module personnel est facultatif et désactivé par défaut.
 Le mode confidentiel masque immédiatement toutes les mesures. L’historique
 Recorder de Home Assistant améliore la reconstruction des sept dernières
 nuits; si son historique est incomplet, NEWSROOM affiche le nombre réel de
-nuits utilisées. Les phases absentes restent absentes et ne sont jamais
-transformées en zéro.
+nuits utilisées. Pour chaque nuit (18 h–18 h Toronto), c’est le dernier
+relevé `last_changed` qui compte, pas un sondage `last_updated` ni un
+échantillon plus ancien. Les phases absentes restent absentes et ne sont
+jamais transformées en zéro.
 
 ## Indice synthétique Giverny Capital
 

@@ -16,6 +16,7 @@ import {
 import {
   activityInstant,
   dailyTotalsFromSeries,
+  nightlySleepFromSeries,
   HEALTH_TIMEZONE,
 } from "@/lib/health/daily";
 import {
@@ -183,15 +184,6 @@ function stateMap(states: HomeAssistantState[], mappings: HealthMapping[]) {
   ) as Map<HealthMetric, HomeAssistantState | undefined>;
 }
 
-function sourceTime(states: (HomeAssistantState | undefined)[]) {
-  return (
-    states
-      .flatMap((state) => (state?.last_updated ? [state.last_updated] : []))
-      .sort()
-      .at(-1) || null
-  );
-}
-
 function dateForState(state: HomeAssistantState | undefined) {
   const instant = state ? activityInstant(state) : null;
   if (!instant) return null;
@@ -274,13 +266,44 @@ function upsertSleep(
         core_minutes, deep_minutes, rem_minutes, source_updated_at, synced_at, reliable
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
        ON CONFLICT(night_date) DO UPDATE SET
-        total_minutes = excluded.total_minutes,
-        in_bed_minutes = COALESCE(excluded.in_bed_minutes, sleep_nightly_totals.in_bed_minutes),
-        awake_minutes = COALESCE(excluded.awake_minutes, sleep_nightly_totals.awake_minutes),
-        core_minutes = COALESCE(excluded.core_minutes, sleep_nightly_totals.core_minutes),
-        deep_minutes = COALESCE(excluded.deep_minutes, sleep_nightly_totals.deep_minutes),
-        rem_minutes = COALESCE(excluded.rem_minutes, sleep_nightly_totals.rem_minutes),
-        source_updated_at = excluded.source_updated_at,
+        total_minutes = CASE
+          WHEN excluded.source_updated_at > sleep_nightly_totals.source_updated_at
+            THEN excluded.total_minutes
+          WHEN excluded.source_updated_at = sleep_nightly_totals.source_updated_at
+            AND excluded.total_minutes > sleep_nightly_totals.total_minutes
+            THEN excluded.total_minutes
+          ELSE sleep_nightly_totals.total_minutes
+        END,
+        in_bed_minutes = CASE
+          WHEN excluded.source_updated_at >= sleep_nightly_totals.source_updated_at
+            THEN COALESCE(excluded.in_bed_minutes, sleep_nightly_totals.in_bed_minutes)
+          ELSE sleep_nightly_totals.in_bed_minutes
+        END,
+        awake_minutes = CASE
+          WHEN excluded.source_updated_at >= sleep_nightly_totals.source_updated_at
+            THEN COALESCE(excluded.awake_minutes, sleep_nightly_totals.awake_minutes)
+          ELSE sleep_nightly_totals.awake_minutes
+        END,
+        core_minutes = CASE
+          WHEN excluded.source_updated_at >= sleep_nightly_totals.source_updated_at
+            THEN COALESCE(excluded.core_minutes, sleep_nightly_totals.core_minutes)
+          ELSE sleep_nightly_totals.core_minutes
+        END,
+        deep_minutes = CASE
+          WHEN excluded.source_updated_at >= sleep_nightly_totals.source_updated_at
+            THEN COALESCE(excluded.deep_minutes, sleep_nightly_totals.deep_minutes)
+          ELSE sleep_nightly_totals.deep_minutes
+        END,
+        rem_minutes = CASE
+          WHEN excluded.source_updated_at >= sleep_nightly_totals.source_updated_at
+            THEN COALESCE(excluded.rem_minutes, sleep_nightly_totals.rem_minutes)
+          ELSE sleep_nightly_totals.rem_minutes
+        END,
+        source_updated_at = CASE
+          WHEN excluded.source_updated_at > sleep_nightly_totals.source_updated_at
+            THEN excluded.source_updated_at
+          ELSE sleep_nightly_totals.source_updated_at
+        END,
         synced_at = excluded.synced_at,
         reliable = 1`,
     )
@@ -335,16 +358,14 @@ async function syncRecorderHistory(
       .slice()
       .filter((state) => activityInstant(state));
     if (mapping.metric === "sleep_duration") {
-      for (const state of series) {
-        const value = measurementValue(mapping.metric, state);
-        const instant = activityInstant(state);
-        if (value == null || value <= 0 || !instant) continue;
+      for (const [nightDate, point] of nightlySleepFromSeries(
+        series,
+        TIMEZONE,
+      )) {
         upsertSleep(
-          sleepNightDate(instant, TIMEZONE),
-          value,
-          {
-            sourceUpdatedAt: instant,
-          },
+          nightDate,
+          point.value,
+          { sourceUpdatedAt: point.sourceUpdatedAt },
           syncedAt,
         );
       }
@@ -469,19 +490,16 @@ async function performHealthSync(
         liveToday[field] = true;
       }
     }
+    if (options.history !== false) {
+      await syncRecorderHistory(reader, mappings, syncedAt, today);
+    }
+
     const totalState = mapped.get("sleep_duration");
     const totalMinutes = measurementValue("sleep_duration", totalState);
-    if (totalState?.last_updated && totalMinutes != null && totalMinutes > 0) {
-      const sleepStates = [
-        totalState,
-        mapped.get("in_bed"),
-        mapped.get("awake"),
-        mapped.get("core_sleep"),
-        mapped.get("deep_sleep"),
-        mapped.get("rem_sleep"),
-      ];
+    const sleepInstant = totalState ? activityInstant(totalState) : null;
+    if (sleepInstant && totalMinutes != null && totalMinutes > 0) {
       upsertSleep(
-        sleepNightDate(totalState.last_updated, TIMEZONE),
+        sleepNightDate(sleepInstant, TIMEZONE),
         totalMinutes,
         {
           inBedMinutes: measurementValue("in_bed", mapped.get("in_bed")),
@@ -489,15 +507,12 @@ async function performHealthSync(
           coreMinutes: measurementValue("core_sleep", mapped.get("core_sleep")),
           deepMinutes: measurementValue("deep_sleep", mapped.get("deep_sleep")),
           remMinutes: measurementValue("rem_sleep", mapped.get("rem_sleep")),
-          sourceUpdatedAt: sourceTime(sleepStates) || totalState.last_updated,
+          sourceUpdatedAt: sleepInstant,
         },
         syncedAt,
       );
     }
 
-    if (options.history !== false) {
-      await syncRecorderHistory(reader, mappings, syncedAt, today);
-    }
     for (const [date, values] of activityByDate) {
       upsertActivity(date, values, syncedAt);
     }
