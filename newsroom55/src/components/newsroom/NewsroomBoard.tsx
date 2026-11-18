@@ -258,13 +258,8 @@ export function NewsroomBoard({
   }, []);
 
   const headlines = useMemo(() => {
-    const list = category ? snapshot.stories.filter((s) => s.category === category) : snapshot.headlines;
-    return list.filter((s) => s.id !== snapshot.featured?.id).slice(0, 10);
-  }, [category, snapshot]);
-
-  const featured = useMemo(() => {
-    if (!category) return snapshot.featured;
-    return snapshot.stories.find((s) => s.category === category) ?? null;
+    if (!category) return snapshot.headlines;
+    return snapshot.stories.filter((s) => s.category === category);
   }, [category, snapshot]);
 
   const performance = snapshot.appearance.animations === "reduced";
@@ -339,7 +334,6 @@ export function NewsroomBoard({
         givernyEnabled={snapshot.giverny.enabled}
         givernyHeight={snapshot.giverny.height}
         newsFeed={{
-          featured,
           headlines,
           category,
           timezone: snapshot.appearance.timezone,

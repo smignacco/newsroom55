@@ -2105,34 +2105,6 @@ textarea {
   box-shadow: 0 0 0.55rem currentColor;
 }
 
-.nr-featured {
-  --tone: var(--nr-accent);
-  --tone-rgb: 53, 198, 244;
-  background:
-    linear-gradient(90deg, rgba(var(--tone-rgb), 0.13), transparent 36%),
-    linear-gradient(180deg, rgba(17, 34, 53, 0.96), rgba(11, 23, 38, 0.52));
-  border-top: 1px solid var(--nr-line);
-  border-left: 2px solid var(--tone);
-  padding: 0.75rem 0.95rem 0.85rem;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: background 240ms ease, border-color 240ms ease;
-}
-
-.nr-featured::after {
-  content: "";
-  position: absolute;
-  right: -7%;
-  top: -80%;
-  width: 32%;
-  height: 250%;
-  opacity: 0.09;
-  transform: rotate(20deg);
-  background: linear-gradient(90deg, transparent, var(--tone), transparent);
-  animation: nr-feature-sweep 12s ease-in-out infinite;
-}
-
 .tone-economy {
   --tone: var(--nr-info);
   --tone-rgb: 242, 184, 91;
@@ -2156,19 +2128,6 @@ textarea {
 .tone-world {
   --tone: var(--nr-cyan-soft);
   --tone-rgb: 99, 216, 250;
-}
-
-.nr-featured .nr-kicker {
-  color: var(--tone);
-}
-
-.nr-featured h3 {
-  margin: 0.45rem 0 0.7rem;
-  font-family: var(--font-sora), sans-serif;
-  font-size: clamp(1.15rem, 1.5vw, 1.65rem);
-  line-height: 1.22;
-  font-weight: 600;
-  letter-spacing: 0.01em;
 }
 
 .nr-meta {
@@ -2275,8 +2234,7 @@ textarea {
   padding-top: 0.15rem;
 }
 
-.nr-empty-news,
-.nr-empty-featured {
+.nr-empty-news {
   color: var(--nr-text-2);
   font-size: 0.9rem;
   line-height: 1.45;
@@ -4081,16 +4039,6 @@ textarea {
   }
 }
 
-@keyframes nr-feature-sweep {
-  0%,
-  68% {
-    transform: translateX(-320%) rotate(20deg);
-  }
-  88%,
-  100% {
-    transform: translateX(360%) rotate(20deg);
-  }
-}
 
 .nr-brand {
   animation: nr-logo-in 700ms ease both;
@@ -4108,7 +4056,6 @@ textarea {
   .nr-spin,
   .nr-orbit-node,
   .nr-scan-line,
-  .nr-featured::after,
   .nr-ticker-seq,
   .nr-market-pulse,
   .nr-board::after,
@@ -4121,7 +4068,6 @@ textarea {
 .nr-board.performance .nr-spin,
 .nr-board.performance .nr-orbit-node,
 .nr-board.performance .nr-scan-line,
-.nr-board.performance .nr-featured::after,
 .nr-board.performance::after {
   animation: none;
 }

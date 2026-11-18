@@ -1,4 +1,4 @@
-import { listStories, featuredStory, sourceHealth } from "@/lib/news/aggregator";
+import { BOARD_HEADLINE_LIMIT, listStories, sourceHealth } from "@/lib/news/aggregator";
 import { marketStatusPayload } from "@/lib/markets/service";
 import { publicChannels } from "@/lib/video/player";
 import { clampBoardVolume, DEFAULT_BOARD_VOLUME } from "@/lib/control/volume";
@@ -10,9 +10,8 @@ import { givernyBoardLayout } from "@/lib/giverny/settings";
 
 export async function getBoardSnapshot() {
   const timezone = getSetting("timezone", "America/Montreal");
-  const stories = listStories(22);
-  const featured = featuredStory(stories);
-  const headlines = stories.filter((s) => s.id !== featured?.id).slice(0, 10);
+  const stories = listStories(BOARD_HEADLINE_LIMIT);
+  const headlines = stories.slice(0, BOARD_HEADLINE_LIMIT);
   const breaking =
     stories.find((story) => story.priority === "BREAKING" && isFreshAlert(story)) ??
     null;
@@ -26,7 +25,6 @@ export async function getBoardSnapshot() {
   const channels = publicChannels();
   return {
     stories,
-    featured,
     headlines,
     alert: breaking ?? important,
     newsHealth,

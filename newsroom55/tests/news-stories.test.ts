@@ -45,7 +45,8 @@ describe("story lookup", () => {
   });
 
   it("retrieves a story by id even when it is outside the list window", async () => {
-    const { listStories, storyById } = await import("@/lib/news/aggregator");
+    const { BOARD_HEADLINE_LIMIT, listStories, storyById } = await import("@/lib/news/aggregator");
+    expect(BOARD_HEADLINE_LIMIT).toBe(16);
     expect(listStories(1)[0]?.id).not.toBe(olderStoryId);
     expect(storyById(olderStoryId)).toMatchObject({
       id: olderStoryId,

@@ -129,9 +129,13 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.getByText("GIV-CAD")).toBeVisible();
     await expect(page.locator(".nr-breaking-badge")).toBeVisible();
     await expect(page.locator(".nr-breaking-bar")).toHaveCount(0);
+    await expect(page.locator(".nr-featured")).toHaveCount(0);
     const dest = path.join(media, "giverny-board.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);
+    const rail = path.join(media, "news-feed-no-breaking-tile.png");
+    await page.locator(".nr-right-rail").screenshot({ path: rail });
+    expect(fs.existsSync(rail)).toBe(true);
   });
 
   test("giverny admin section", async ({ page }) => {

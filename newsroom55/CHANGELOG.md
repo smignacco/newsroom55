@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.0.0-ha.20
+
+- Retire la tuile « à la une » (importante / alerte) du fil de nouvelles. La
+  pastille compacte ALERTE / IMPORTANT dans l’en-tête du fil reste. La liste
+  affiche davantage de manchettes dans l’espace récupéré.
+
 ## 1.0.0-ha.19
 
 - Ajoute l’indice synthétique Giverny Capital au Board, au-dessus du fil de

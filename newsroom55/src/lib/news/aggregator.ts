@@ -144,7 +144,9 @@ export function storyById(id: number): NewsStory | null {
   return row ?? null;
 }
 
-export function listStories(limit = 18, category?: string | null): NewsStory[] {
+export const BOARD_HEADLINE_LIMIT = 16;
+
+export function listStories(limit = BOARD_HEADLINE_LIMIT, category?: string | null): NewsStory[] {
   expireStaleAlertPriorities();
   const db = getDb();
   const sql = category
@@ -162,10 +164,6 @@ export function listStories(limit = 18, category?: string | null): NewsStory[] {
        LIMIT ?`;
   const rows = category ? db.prepare(sql).all(category, limit) : db.prepare(sql).all(limit);
   return rows as NewsStory[];
-}
-
-export function featuredStory(stories: NewsStory[]): NewsStory | null {
-  return stories[0] ?? null;
 }
 
 export function sourceHealth(): { ok: number; error: number; total: number; lastFetch: string | null } {

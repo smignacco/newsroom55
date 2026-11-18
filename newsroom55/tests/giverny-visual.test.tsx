@@ -61,7 +61,6 @@ describe("Giverny board treatment", () => {
   it("keeps a reserved compact breaking slot so the news header does not shift", () => {
     const html = renderToStaticMarkup(
       <NewsFeed
-        featured={null}
         headlines={[]}
         category={null}
         timezone="America/Toronto"
@@ -76,6 +75,8 @@ describe("Giverny board treatment", () => {
     expect(html).toContain("nr-breaking-badge");
     expect(html).toContain("FIL");
     expect(html).not.toContain("nr-breaking-bar");
+    expect(html).not.toContain("nr-featured");
+    expect(html).not.toContain("À la une");
   });
 
   it("does not hardcode the production 13F book in runtime source", () => {

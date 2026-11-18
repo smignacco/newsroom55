@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import type { NewsStory } from "@/lib/news/aggregator";
 import { CATEGORIES, CATEGORY_SHORT } from "@/lib/news/classify";
 import { formatNewsTime } from "@/lib/time";
-import { FeaturedStory } from "@/components/newsroom/FeaturedStory";
 
 function categoryTone(category: string): string {
   if (category === "Économie") return "economy";
@@ -16,7 +15,6 @@ function categoryTone(category: string): string {
 }
 
 export function NewsFeed({
-  featured,
   headlines,
   category,
   timezone,
@@ -27,7 +25,6 @@ export function NewsFeed({
   onCategory,
   onOpen,
 }: {
-  featured: NewsStory | null;
   headlines: NewsStory[];
   category: string | null;
   timezone: string;
@@ -173,7 +170,6 @@ export function NewsFeed({
           </button>
         ))}
       </div>
-      <FeaturedStory story={featured} timezone={timezone} onOpen={onOpen} />
       <div
         ref={headlinesRef}
         className="nr-headlines"
