@@ -19,14 +19,28 @@ function privateJson(body: unknown, init?: { status?: number }) {
 }
 
 const postSchema = z.object({
-  yearMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  yearMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}(?:-\d{2})?$/)
+    .transform((value) => value.slice(0, 7)),
   officialReturn: z.number().gt(-1).lt(2).optional(),
-  officialNav: z.number().positive().lt(100_000).nullable().optional(),
+  officialNav: z.preprocess(
+    (value) => {
+      if (value == null || value === "") return null;
+      if (typeof value === "number") return value;
+      if (typeof value === "string") return Number(value.trim().replace(",", "."));
+      return value;
+    },
+    z.number().positive().lt(100_000).nullable().optional(),
+  ),
   note: z.string().max(240).nullable().optional(),
 });
 
 const deleteSchema = z.object({
-  yearMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  yearMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}(?:-\d{2})?$/)
+    .transform((value) => value.slice(0, 7)),
 });
 
 export async function POST(req: NextRequest) {

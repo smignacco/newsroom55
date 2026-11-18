@@ -76,8 +76,10 @@ describe("Giverny board treatment", () => {
       />,
     );
     expect(html).toContain("Estimation VL");
+    expect(html).toContain("VL CAD");
     expect(html).toContain("pas le VL officiel");
     expect(html).not.toContain(">76,31</strong>");
+    expect(html).not.toContain("GIV-CAD");
   });
 
   it("keeps a reserved compact breaking slot so the news header does not shift", () => {

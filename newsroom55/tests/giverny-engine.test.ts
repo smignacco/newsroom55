@@ -190,6 +190,31 @@ describe("Giverny portfolio math", () => {
     expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-11-12");
   });
 
+  it("rebases an in-progress month on the first 13F session of that month", () => {
+    const series = officialNavEstimate(
+      [
+        { sessionDate: "2026-11-12", givCad: 100, coverage: 0.98 } as never,
+        { sessionDate: "2026-11-18", givCad: 98.18, coverage: 0.98 } as never,
+      ],
+      [{ yearMonth: "2026-11", officialNav: 76.31 }],
+    );
+    expect(series.find((row) => row.date === "2026-11-12")?.value).toBeCloseTo(76.31);
+    expect(series.find((row) => row.date === "2026-11-18")?.value).toBeCloseTo(76.31 * 0.9818);
+    expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-11-12");
+  });
+
+  it("matches ISO session timestamps to the month-end calendar date", () => {
+    const series = officialNavEstimate(
+      [
+        { sessionDate: "2026-11-12T21:00:00.000Z", givCad: 100, coverage: 0.98 } as never,
+        { sessionDate: "2026-11-18T21:00:00.000Z", givCad: 98.18, coverage: 0.98 } as never,
+      ],
+      [{ yearMonth: "2026-10", officialNav: "76,31" as never }],
+    );
+    expect(series.find((row) => row.date === "2026-11-18")?.value).toBeCloseTo(76.31 * 0.9818);
+    expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-11-12");
+  });
+
   it("does not invent a NAV when no official unit price was entered", () => {
     expect(
       officialNavEstimate(

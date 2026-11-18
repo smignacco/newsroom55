@@ -61,6 +61,16 @@ export function yearMonthOf(sessionDate: string): string {
   return sessionDate.slice(0, 7);
 }
 
+export function normalizeSessionDate(value: string | null | undefined): string | null {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? "").trim());
+  return match ? match[1] : null;
+}
+
+export function normalizeYearMonth(value: string | null | undefined): string | null {
+  const match = /^(\d{4}-\d{2})/.exec(String(value ?? "").trim());
+  return match ? match[1] : null;
+}
+
 export function lastNyTradingSessionOfMonth(yearMonth: string): string | null {
   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return null;
   const year = Number(yearMonth.slice(0, 4));

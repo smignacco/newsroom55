@@ -36,7 +36,9 @@ export function GivernyPanel({ summary }: { summary: GivernySummary }) {
       </header>
       <div className="nr-giverny-main">
         <div className="nr-giverny-level">
-          <span className="nr-giverny-code">{summary.currency === "USD" ? "GIV-USD" : "GIV-CAD"}</span>
+          <span className="nr-giverny-code">
+            {summary.navEstimate ? "VL CAD" : summary.currency === "USD" ? "GIV-USD" : "GIV-CAD"}
+          </span>
           <strong className={`is-${sessionTone}`}>{formatLevel(field)}</strong>
           <b className={`is-${sessionTone}`}>{formatPct(summary.returns.session)}</b>
         </div>

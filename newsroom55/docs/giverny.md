@@ -35,8 +35,9 @@ lisible ; le jour sans observation BdC reste vide, sans taux inventé. Si un
 VL officiel CAD de fin de mois est saisi, le Board l’ancre sur la dernière
 séance NY de ce mois lorsque le CAD synthétique y est lisible (couverture et
 change). Une séance antérieure n’est pas substituée. Si le 13F public n’existe
-qu’après cette fin de mois, l’estimation part de la première séance 13F
-suivante — le trou n’est pas inventé. L’affichage applique alors ce niveau ×
+qu’après cette fin de mois, ou si le mois n’est pas terminé, l’estimation part
+de la première séance 13F suivante — le trou n’est pas inventé. Le Board
+étiquette alors VL CAD, plus GIV-CAD. L’affichage applique alors ce niveau ×
 le rendement synthétique CAD depuis l’ancre, seulement sur un jour dont la
 couverture passe le plancher — estimation entre deux rapports, pas le VL
 officiel, pas un livre NBN125 inventé. Les cours live sont rangés sous la séance NY du timestamp,

@@ -9,11 +9,13 @@ import {
   sessionReturn,
   trackingError,
   cumulativeGap,
+  asPositiveNumber,
   usablePrice,
   yearToDateReturn,
   latestDisplayPoint,
   officialNavEstimate,
 } from "@/lib/giverny/engine";
+import { normalizeSessionDate, normalizeYearMonth } from "@/lib/giverny/tickers";
 import {
   filingStoredDate,
   filingToHoldings,
@@ -359,16 +361,15 @@ export function getGivernySummary(): GivernySummary {
   const hasLevel = usablePrice(display?.[field] ?? null);
   const status = marketStatus(display?.coverage ?? null, hasLevel);
   const lastError = lastGivernyError();
-  const navAnchors = listOfficialMonths().flatMap((row) =>
-    usablePrice(row.officialNav)
-      ? [{ yearMonth: row.yearMonth, officialNav: row.officialNav }]
-      : [],
-  );
+  const navAnchors = listOfficialMonths().flatMap((row) => {
+    const officialNav = asPositiveNumber(row.officialNav);
+    const yearMonth = normalizeYearMonth(row.yearMonth);
+    return officialNav && yearMonth ? [{ yearMonth, officialNav }] : [];
+  });
   const navSeries = officialNavEstimate(points, navAnchors);
   const navByDate = new Map(navSeries.map((row) => [row.date, row]));
-  const navToday = display?.sessionDate
-    ? (navByDate.get(display.sessionDate) ?? null)
-    : null;
+  const displayDate = display ? normalizeSessionDate(display.sessionDate) : null;
+  const navToday = displayDate ? (navByDate.get(displayDate) ?? null) : null;
   const showNav = settings.currency === "CAD" && navToday != null;
   const scaledPoints = showNav
     ? qualified.map((point) => {

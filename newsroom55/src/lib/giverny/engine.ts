@@ -9,10 +9,31 @@ import {
   type GivernyPointStatus,
   type HoldingWeight,
 } from "@/lib/giverny/types";
-import { lastNyTradingSessionOfMonth, yearMonthOf } from "@/lib/giverny/tickers";
+import {
+  lastNyTradingSessionOfMonth,
+  normalizeSessionDate,
+  normalizeYearMonth,
+  yearMonthOf,
+} from "@/lib/giverny/tickers";
 
 export function usablePrice(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+export function asPositiveNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.trim().replace(",", "."));
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+function pointCoverage(point: DailyPoint): number {
+  const coerced = asPositiveNumber(point.coverage);
+  if (coerced != null) return coerced;
+  const parsed = Number(point.coverage);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function sessionReturn(previous: number | null | undefined, next: number | null | undefined): number | null {
@@ -427,7 +448,11 @@ export type NavEstimatePoint = {
 };
 
 function usableNavAnchorPoint(point: DailyPoint | undefined, minCoverage: number): point is DailyPoint {
-  return Boolean(point && (point.coverage ?? 0) >= minCoverage && usablePrice(point.givCad));
+  return Boolean(
+    point &&
+      pointCoverage(point) >= minCoverage &&
+      asPositiveNumber(point.givCad) != null,
+  );
 }
 
 export function officialNavEstimate(
@@ -435,26 +460,36 @@ export function officialNavEstimate(
   anchors: OfficialNavAnchor[],
   minCoverage = GIVERNY_MIN_COVERAGE,
 ): NavEstimatePoint[] {
-  const byDate = new Map(points.map((point) => [point.sessionDate, point]));
-  const chronological = [...points].sort((left, right) => left.sessionDate.localeCompare(right.sessionDate));
+  const dated = points.flatMap((point) => {
+    const sessionDate = normalizeSessionDate(point.sessionDate);
+    return sessionDate ? [{ ...point, sessionDate }] : [];
+  });
+  const byDate = new Map(dated.map((point) => [point.sessionDate, point]));
+  const chronological = [...dated].sort((left, right) => left.sessionDate.localeCompare(right.sessionDate));
+  const lastUsable = [...chronological].reverse().find((point) => usableNavAnchorPoint(point, minCoverage));
   const resolved = anchors
-    .filter((anchor) => usablePrice(anchor.officialNav))
     .flatMap((anchor) => {
-      const monthEndDate = lastNyTradingSessionOfMonth(anchor.yearMonth);
-      if (!monthEndDate) return [];
+      const yearMonth = normalizeYearMonth(anchor.yearMonth);
+      const nav = asPositiveNumber(anchor.officialNav);
+      const monthEndDate = yearMonth ? lastNyTradingSessionOfMonth(yearMonth) : null;
+      if (!yearMonth || !nav || !monthEndDate) return [];
       const monthEnd = byDate.get(monthEndDate);
-      const chosen = usableNavAnchorPoint(monthEnd, minCoverage)
-        ? monthEnd
-        : chronological.find(
-            (point) => point.sessionDate > monthEndDate && usableNavAnchorPoint(point, minCoverage),
-          );
-      if (!chosen || !usablePrice(chosen.givCad)) return [];
+      const monthInProgress = Boolean(lastUsable && monthEndDate > lastUsable.sessionDate);
+      const later = chronological.find(
+        (point) =>
+          (monthInProgress
+            ? point.sessionDate >= `${yearMonth}-01`
+            : point.sessionDate > monthEndDate) && usableNavAnchorPoint(point, minCoverage),
+      );
+      const chosen = usableNavAnchorPoint(monthEnd, minCoverage) ? monthEnd : later;
+      const index = chosen ? asPositiveNumber(chosen.givCad) : null;
+      if (!chosen || !index) return [];
       return [
         {
-          yearMonth: anchor.yearMonth,
+          yearMonth,
           asOf: chosen.sessionDate,
-          nav: anchor.officialNav,
-          index: chosen.givCad,
+          nav,
+          index,
         },
       ];
     })
@@ -462,8 +497,9 @@ export function officialNavEstimate(
   if (resolved.length === 0) return [];
 
   const out: NavEstimatePoint[] = [];
-  for (const point of points) {
-    if ((point.coverage ?? 0) < minCoverage || !usablePrice(point.givCad)) continue;
+  for (const point of dated) {
+    const givCad = asPositiveNumber(point.givCad);
+    if (pointCoverage(point) < minCoverage || givCad == null) continue;
     let chosen: (typeof resolved)[number] | null = null;
     for (const anchor of resolved) {
       if (anchor.asOf <= point.sessionDate) chosen = anchor;
@@ -471,7 +507,7 @@ export function officialNavEstimate(
     if (!chosen || !(chosen.index > 0)) continue;
     out.push({
       date: point.sessionDate,
-      value: point.givCad * (chosen.nav / chosen.index),
+      value: givCad * (chosen.nav / chosen.index),
       officialMonth: chosen.yearMonth,
       officialNav: chosen.nav,
       anchorDate: chosen.asOf,

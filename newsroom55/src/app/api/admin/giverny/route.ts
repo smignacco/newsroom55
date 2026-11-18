@@ -3,7 +3,7 @@ import { z } from "zod";
 import { boot } from "@/lib/boot";
 import { requireAdmin } from "@/lib/security/auth";
 import { givernySettings, updateGivernySettings } from "@/lib/giverny/settings";
-import { getGivernyRefreshProgress, getGivernyValidation } from "@/lib/giverny/service";
+import { getGivernyRefreshProgress, getGivernySummary, getGivernyValidation } from "@/lib/giverny/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +13,16 @@ function privateJson(body: unknown, init?: { status?: number }) {
     ...init,
     headers: { "cache-control": "private, no-store" },
   });
+}
+
+function boardPreview() {
+  const summary = getGivernySummary();
+  return {
+    currency: summary.currency,
+    givCad: summary.levels.givCad,
+    navEstimate: summary.navEstimate,
+    message: summary.message,
+  };
 }
 
 const schema = z.object({
@@ -34,6 +44,7 @@ export async function GET(req: NextRequest) {
     settings: givernySettings(),
     validation: getGivernyValidation(),
     progress: getGivernyRefreshProgress(),
+    board: boardPreview(),
   });
 }
 
@@ -50,5 +61,6 @@ export async function POST(req: NextRequest) {
     settings: givernySettings(),
     validation: getGivernyValidation(),
     progress: getGivernyRefreshProgress(),
+    board: boardPreview(),
   });
 }

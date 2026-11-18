@@ -1,11 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import type { GivernyRefreshProgress, GivernySettings, ValidationReport } from "@/lib/giverny/types";
+import type {
+  GivernyRefreshProgress,
+  GivernySettings,
+  GivernySummary,
+  ValidationReport,
+} from "@/lib/giverny/types";
 
 function pct(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "—";
   return `${(value * 100).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+}
+
+function cad(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 async function givernyApi(path: string, csrf: string, init?: RequestInit) {
@@ -36,12 +46,19 @@ export function GivernyManager({ csrf }: { csrf: string }) {
   const [accessionHint, setAccessionHint] = useState("");
   const [filedAtHint, setFiledAtHint] = useState("");
   const [progress, setProgress] = useState<GivernyRefreshProgress | null>(null);
+  const [board, setBoard] = useState<{
+    currency: GivernySummary["currency"];
+    givCad: number | null;
+    navEstimate: GivernySummary["navEstimate"];
+    message: string | null;
+  } | null>(null);
 
   async function load() {
     const data = await givernyApi("/api/admin/giverny", csrf);
     setSettings(data.settings);
     setValidation(data.validation);
     if (data.progress) setProgress(data.progress);
+    if (data.board) setBoard(data.board);
     return data;
   }
 
@@ -120,6 +137,13 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         n’existe qu’après la fin de mois, l’estimation part de la première
         séance 13F suivante — le trou n’est pas inventé.
       </p>
+      {board ? (
+        <p className={board.navEstimate ? "nr-ok" : "nr-time"}>
+          {board.navEstimate
+            ? `Board : estimation VL ${cad(board.navEstimate.value)} CAD (ancre ${board.navEstimate.anchorDate}, mois ${board.navEstimate.officialMonth}).`
+            : `Board : indice GIV-CAD ${cad(board.givCad)} — le VL saisi n’est pas encore appliqué. Mois AAAA-MM (ex. 2026-10) et prix unitaire dans VL CAD, pas dans le %.`}
+        </p>
+      ) : null}
 
       <label className="nr-field">
         Module
@@ -370,8 +394,12 @@ export function GivernyManager({ csrf }: { csrf: string }) {
             setOfficialPct("");
             setOfficialNav("");
             setNote("");
+            const preview = await givernyApi("/api/admin/giverny", csrf);
+            if (preview.board?.navEstimate) {
+              return `Mois enregistré. Le Board affiche l’estimation VL ${cad(preview.board.navEstimate.value)} CAD (ancre ${preview.board.navEstimate.anchorDate}).`;
+            }
             return nav
-              ? "Mois officiel enregistré. Le Board estime le VL à partir de ce niveau et du 13F, sans inventer de titres."
+              ? "Mois enregistré, mais le Board affiche encore GIV-CAD. Vérifiez VL CAD (prix unitaire) et le mois AAAA-MM."
               : "Mois officiel enregistré. La série synthétique est inchangée.";
           });
         }}

@@ -64,8 +64,9 @@ la hauteur, le bandeau d’alerte compact, importer le XML 13F, actualiser CUSIP
 et cours (avec une progression CUSIP / Yahoo / change / indice), et saisir les
 rendements mensuels officiels. Un VL CAD de fin de mois (ex. NBN125, mois
 AAAA-MM) ancre l’affichage sur la dernière séance NY du mois, ou sur la
-première séance 13F suivante si le dépôt est postérieur, via les rendements
-13F ; ce n’est pas le VL officiel et aucun titre n’est inventé. Les mois
+première séance 13F suivante si le dépôt est postérieur ou si le mois n’est
+pas terminé, via les rendements 13F ; le Board affiche alors VL CAD. Ce n’est
+pas le VL officiel et aucun titre n’est inventé. Les mois
 sans VL restent une comparaison de rendements seulement. Un XML
 importé n’affiche un niveau qu’après appariement CUSIP et historique de cours
 — jamais un MTD inventé.

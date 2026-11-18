@@ -270,6 +270,22 @@ describe("manual 13F XML import", () => {
     expect(summary.levels.givCad).not.toBeCloseTo(98.18);
   });
 
+  it("applies a current-month VL onto the first 13F session of that month", async () => {
+    stubFetch();
+    const { ingestUploadedFiling, getGivernySummary } = await import("@/lib/giverny/service");
+    const { replaceIndexPoints, upsertOfficialMonth } = await import("@/lib/giverny/store");
+    await ingestUploadedFiling(fixture, "0001641864-26-000019", "2026-11-12");
+    upsertOfficialMonth("2026-11", 0, 76.31, null);
+    replaceIndexPoints([
+      point("2026-11-12", 100, 0.98),
+      point("2026-11-18", 98.18, 0.98),
+    ]);
+    const summary = getGivernySummary();
+    expect(summary.navEstimate?.anchorDate).toBe("2026-11-12");
+    expect(summary.navEstimate?.officialMonth).toBe("2026-11");
+    expect(summary.levels.givCad).toBeCloseTo(76.31 * 0.9818);
+  });
+
   it("retries a 429 OpenFIGI chunk after Retry-After instead of dropping the rest", async () => {
     delete process.env.OPENFIGI_API_KEY;
     const jobs = Array.from({ length: 12 }, (_, index) => ({

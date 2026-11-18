@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.29
+
+- Le Board affiche le VL estimé (étiquette VL CAD) dès qu’un VL de fin de
+  mois est saisi, y compris si le mois n’est pas terminé : l’ancre est la
+  première séance 13F de ce mois, jamais une séance antérieure à la fin de
+  mois révolue. L’admin indique si le Board est passé sur l’estimation.
+
 ## 1.0.0-ha.28
 
 - Un VL de fin de mois saisi en admin ancre GIV-CAD pour estimer le prix
