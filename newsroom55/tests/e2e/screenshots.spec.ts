@@ -302,6 +302,7 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.getByRole("button", { name: "Actualiser le 13F maintenant" })).toBeVisible();
     await expect(page.getByText("Courriel de contact EDGAR")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Import XML 13F" })).toBeVisible();
+    await expect(page.getByText("Date de dépôt public (si absente du XML)")).toBeVisible();
     const dest = path.join(media, "giverny-admin.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);

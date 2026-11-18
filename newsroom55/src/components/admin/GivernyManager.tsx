@@ -34,6 +34,7 @@ export function GivernyManager({ csrf }: { csrf: string }) {
   const [error, setError] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [accessionHint, setAccessionHint] = useState("");
+  const [filedAtHint, setFiledAtHint] = useState("");
 
   async function load() {
     const data = await givernyApi("/api/admin/giverny", csrf);
@@ -262,6 +263,17 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         />
       </label>
       <label className="nr-field">
+        Date de dépôt public (si absente du XML)
+        <input
+          type="date"
+          value={filedAtHint}
+          onChange={(event) => setFiledAtHint(event.target.value)}
+        />
+      </label>
+      <p className="nr-time">
+        C’est la date de publication EDGAR, pas la fin de trimestre du rapport.
+      </p>
+      <label className="nr-field">
         Fichiers XML
         <input
           type="file"
@@ -269,13 +281,14 @@ export function GivernyManager({ csrf }: { csrf: string }) {
           multiple
           disabled={pending === "upload13f"}
           onChange={(event) => {
-            const files = event.target.files;
-            event.target.value = "";
-            if (!files || files.length === 0) return;
+            const input = event.currentTarget;
+            const selected = input.files ? [...input.files] : [];
+            input.value = "";
+            if (selected.length === 0) return;
             void run("upload13f", async () => {
               const xml = (
                 await Promise.all(
-                  [...files].slice(0, 3).map(async (file) => {
+                  selected.slice(0, 3).map(async (file) => {
                     if (file.size > 2_000_000) throw new Error("Fichier 13F trop volumineux.");
                     return file.text();
                   }),
@@ -283,7 +296,11 @@ export function GivernyManager({ csrf }: { csrf: string }) {
               ).join("\n");
               const data = await givernyApi("/api/admin/giverny/filing", csrf, {
                 method: "POST",
-                body: JSON.stringify({ xml, accession: accessionHint || undefined }),
+                body: JSON.stringify({
+                  xml,
+                  accession: accessionHint || undefined,
+                  filedAt: filedAtHint || undefined,
+                }),
               });
               return `13F ${data.accession} importé (${data.holdings} titres).`;
             });

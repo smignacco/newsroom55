@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   xml: z.string().min(40).max(2_000_000),
   accession: z.string().max(20).optional(),
+  filedAt: z.string().max(20).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,7 +26,11 @@ export async function POST(req: NextRequest) {
     );
   }
   try {
-    const stored = await ingestUploadedFiling(parsed.data.xml, parsed.data.accession);
+    const stored = await ingestUploadedFiling(
+      parsed.data.xml,
+      parsed.data.accession,
+      parsed.data.filedAt,
+    );
     return NextResponse.json(
       { ok: true, ...stored, validation: getGivernyValidation() },
       { headers: { "cache-control": "private, no-store" } },

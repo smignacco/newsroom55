@@ -100,6 +100,15 @@ export async function tickGiverny(force = false): Promise<void> {
 }
 
 const ACCESSION = /^\d{10}-\d{2}-\d{6}$/;
+const INFO_TABLE = /<(?:[\w.-]+:)?infoTable\b/i;
+
+function requireFiledAt(value: string | null | undefined): string {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) {
+    throw new Error("Date de dépôt public manquante (filedAsOfDate), pas la fin de trimestre.");
+  }
+  return trimmed;
+}
 
 async function persistParsedFiling(
   parsed: Parsed13FFiling,
@@ -123,7 +132,7 @@ async function persistParsedFiling(
     filerName: parsed.filerName || filerName || GIVERNY_DEFAULT_FILER,
     form: parsed.form || meta.form || "13F-HR",
     periodOfReport: filingStoredDate(parsed.periodOfReport || meta.reportDate),
-    filedAt: filingStoredDate(parsed.filedAt || meta.filingDate || parsed.periodOfReport),
+    filedAt: filingStoredDate(requireFiledAt(parsed.filedAt || meta.filingDate)),
     acceptedAt: parsed.acceptedAt || meta.acceptanceDateTime,
     documentUrl: `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession.replace(/-/g, "")}/`,
     tableValueTotal: parsed.tableValueTotal,
@@ -163,12 +172,16 @@ export async function ingestFilings(force = false): Promise<void> {
   return ingestInFlight;
 }
 
-export async function ingestUploadedFiling(xml: string, accessionHint?: string | null) {
+export async function ingestUploadedFiling(
+  xml: string,
+  accessionHint?: string | null,
+  filedAtHint?: string | null,
+) {
   const trimmed = xml.trim();
   if (trimmed.length < 40 || trimmed.length > 2_000_000) {
     throw new Error("Fichier 13F invalide.");
   }
-  if (!/<infoTable\b/i.test(trimmed)) {
+  if (!INFO_TABLE.test(trimmed)) {
     throw new Error("Le XML ne contient pas de tableau infoTable.");
   }
   const parsed = parse13FDocuments(trimmed);
@@ -181,13 +194,15 @@ export async function ingestUploadedFiling(xml: string, accessionHint?: string |
   if (!ACCESSION.test(accession)) {
     throw new Error("Numéro d’accession manquant ou invalide (ex. 0001641864-26-000011).");
   }
+  const filedAt = (parsed.filedAt || filedAtHint || "").trim();
+  requireFiledAt(filedAt);
   const settings = givernySettings();
   await persistParsedFiling(
-    { ...parsed, accession },
+    { ...parsed, accession, filedAt },
     {
       accession,
       form: parsed.form || "13F-HR",
-      filingDate: parsed.filedAt || parsed.periodOfReport || "",
+      filingDate: filedAt,
       reportDate: parsed.periodOfReport,
       acceptanceDateTime: parsed.acceptedAt,
     },
