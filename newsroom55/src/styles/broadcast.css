@@ -334,6 +334,7 @@ textarea {
 .nr-news {
   position: relative;
   min-height: 0;
+  overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -342,6 +343,7 @@ textarea {
 }
 
 .nr-right-rail {
+  --nr-pulse-share: 22%;
   position: relative;
   min-height: 0;
   padding: 0.85rem var(--nr-gutter) 0.85rem 0.85rem;
@@ -353,7 +355,7 @@ textarea {
 }
 
 .nr-right-rail.with-pulse {
-  grid-template-rows: minmax(0, 68fr) minmax(11rem, 32fr);
+  grid-template-rows: minmax(0, 78fr) minmax(0, 22fr);
 }
 
 .nr-right-rail.with-giverny {
@@ -370,7 +372,20 @@ textarea {
 }
 
 .nr-right-rail.with-giverny.with-pulse {
-  grid-template-rows: var(--nr-giverny-h) minmax(0, 1fr) minmax(9.6rem, 26fr);
+  grid-template-rows: var(--nr-giverny-h) minmax(0, 78fr) minmax(0, 22fr);
+}
+
+.nr-pulse-slot {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.nr-pulse-slot > .nr-pulse {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
 }
 
 .nr-news-head-meta {

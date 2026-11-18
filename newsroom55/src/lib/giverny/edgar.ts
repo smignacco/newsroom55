@@ -2,7 +2,7 @@ import { fetchJson, fetchText } from "@/lib/giverny/http";
 import { parse13FDocuments, weightsFromHoldings } from "@/lib/giverny/parse-13f";
 import { accessionPath, nySessionDate, padCik } from "@/lib/giverny/tickers";
 import type { Parsed13FFiling } from "@/lib/giverny/types";
-import { GIVERNY_DEFAULT_FILER } from "@/lib/giverny/types";
+import { EDGAR_BLOCKED_FR, GIVERNY_DEFAULT_FILER } from "@/lib/giverny/types";
 
 export type EdgarFilingMeta = {
   accession: string;
@@ -55,6 +55,46 @@ export function pickLatestFilings(rows: EdgarFilingMeta[], limit = 8): EdgarFili
   return [...byPeriod.values()].sort((left, right) => right.filingDate.localeCompare(left.filingDate)).slice(0, limit);
 }
 
+function listError(status: number) {
+  return status === 403 ? EDGAR_BLOCKED_FR : `EDGAR injoignable (${status || "réseau"}).`;
+}
+
+type EftsHit = {
+  _id?: string;
+  _source?: {
+    adsh?: string;
+    file_date?: string;
+    period_ending?: string;
+    form?: string;
+    display_names?: string[];
+  };
+};
+
+export function parseEftsFilings(payload: unknown): { name: string | null; filings: EdgarFilingMeta[] } {
+  const hits = (payload as { hits?: { hits?: EftsHit[] } } | null)?.hits?.hits ?? [];
+  const filings: EdgarFilingMeta[] = [];
+  let name: string | null = null;
+  for (const hit of hits) {
+    const src = hit._source ?? {};
+    const accession = src.adsh || String(hit._id || "").split(":")[0];
+    const filingDate = String(src.file_date || "").slice(0, 10);
+    if (!accession || !filingDate) continue;
+    const display = src.display_names?.[0];
+    if (display && !name) {
+      name = display.replace(/\s+\(CIK\s+\d+\)\s*$/i, "").trim() || null;
+    }
+    filings.push({
+      accession,
+      form: src.form || "13F-HR",
+      filingDate,
+      reportDate: src.period_ending ? String(src.period_ending).slice(0, 10) : null,
+      primaryDocument: null,
+      acceptanceDateTime: null,
+    });
+  }
+  return { name, filings };
+}
+
 export async function listEdgarFilings(cik: string): Promise<{
   name: string;
   filings: EdgarFilingMeta[];
@@ -62,25 +102,47 @@ export async function listEdgarFilings(cik: string): Promise<{
   error: string | null;
 }> {
   const padded = padCik(cik);
-  const submissions = await fetchJson<SubmissionsJson>(
-    `https://data.sec.gov/submissions/CIK${padded}.json`,
-    { headers: { host: "data.sec.gov" } },
+  const unpadded = String(Number(padded));
+  let lastStatus = 0;
+
+  const submissionsBody = await fetchText(`https://data.sec.gov/submissions/CIK${padded}.json`);
+  lastStatus = submissionsBody.status;
+  if (submissionsBody.ok) {
+    try {
+      const submissions = JSON.parse(submissionsBody.body) as SubmissionsJson;
+      const recent = submissions.filings?.recent;
+      const accessionNumbers = recent?.accessionNumber ?? [];
+      if (recent && accessionNumbers.length > 0) {
+        const filings = accessionNumbers.map((accession, index) => ({
+          accession,
+          form: recent.form?.[index] || "",
+          filingDate: recent.filingDate?.[index] || "",
+          reportDate: recent.reportDate?.[index] || null,
+          primaryDocument: recent.primaryDocument?.[index] || null,
+          acceptanceDateTime: recent.acceptanceDateTime?.[index] || null,
+        }));
+        return {
+          name: submissions.name || GIVERNY_DEFAULT_FILER,
+          filings: pickLatestFilings(filings),
+          source: "data.sec.gov",
+          error: null,
+        };
+      }
+    } catch {
+      lastStatus = submissionsBody.status;
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const efts = await fetchJson<{ hits?: { hits?: EftsHit[] } }>(
+    `https://efts.sec.gov/LATEST/search-index?dateRange=custom&startdt=2010-01-01&enddt=${today}&forms=13F-HR&ciks=${unpadded}`,
   );
-  const recent = submissions?.filings?.recent;
-  const accessionNumbers = recent?.accessionNumber ?? [];
-  if (recent && accessionNumbers.length > 0) {
-    const filings = accessionNumbers.map((accession, index) => ({
-      accession,
-      form: recent.form?.[index] || "",
-      filingDate: recent.filingDate?.[index] || "",
-      reportDate: recent.reportDate?.[index] || null,
-      primaryDocument: recent.primaryDocument?.[index] || null,
-      acceptanceDateTime: recent.acceptanceDateTime?.[index] || null,
-    }));
+  const parsedEfts = parseEftsFilings(efts);
+  if (parsedEfts.filings.length > 0) {
     return {
-      name: submissions?.name || GIVERNY_DEFAULT_FILER,
-      filings: pickLatestFilings(filings),
-      source: "data.sec.gov",
+      name: parsedEfts.name || GIVERNY_DEFAULT_FILER,
+      filings: pickLatestFilings(parsedEfts.filings),
+      source: "sec-efts",
       error: null,
     };
   }
@@ -88,14 +150,13 @@ export async function listEdgarFilings(cik: string): Promise<{
   const atom = await fetchText(
     `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${padded}&type=13F-HR&count=40&output=atom`,
   );
+  lastStatus = atom.status || lastStatus;
   if (!atom.ok) {
     return {
       name: GIVERNY_DEFAULT_FILER,
       filings: [],
       source: "sec-edgar",
-      error: atom.status === 403
-        ? "EDGAR a refusé le trafic automatisé. L’indice reste indisponible tant que le dépôt n’est pas lisible."
-        : `EDGAR injoignable (${atom.status || "réseau"}).`,
+      error: listError(lastStatus),
     };
   }
   return {

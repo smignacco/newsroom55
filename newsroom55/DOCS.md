@@ -62,8 +62,10 @@ la plage du graphique, la hauteur, le bandeau d’alerte compact, forcer un
 rafraîchissement 13F, et saisir les rendements mensuels officiels. Ces mois
 servent à l’erreur de suivi ; ils ne remplacent pas la série synthétique.
 
-EDGAR exige un User-Agent déclaré. Si le dépôt est injoignable, le bandeau
-affiche « indisponible » sans inventer de niveaux.
+EDGAR exige un User-Agent identifiable et un contact. NEWSROOM envoie un
+profil de navigateur plus l’en-tête `From`, avec des reprises si le dépôt
+répond 403/429/503. Si EDGAR refuse encore le trafic automatisé, le bandeau
+affiche « indisponible » sans inventer de niveaux ni le livre 13F.
 
 ## Marchés
 

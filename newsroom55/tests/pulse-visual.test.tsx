@@ -1,7 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PulseTelemetry } from "../src/components/newsroom/ActivitySleepPulse";
+import { RightRail } from "../src/components/newsroom/RightRail";
 import type { PulseSnapshot } from "@/lib/health/service";
+import type { NewsStory } from "@/lib/news/aggregator";
 
 const fixture: PulseSnapshot = {
   generatedAt: "2026-11-13T18:00:00.000Z",
@@ -132,5 +136,54 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(html).not.toContain(">0<");
     expect(html).not.toContain("nr-pulse-dial");
     expect(html).not.toContain("nr-week-orbit");
+  });
+
+  it("keeps pulse as a short grid sibling under the news list, not an overlay", () => {
+    const css = fs.readFileSync(path.join(process.cwd(), "src/styles/broadcast.css"), "utf8");
+    expect(css).toMatch(/--nr-pulse-share:\s*22%/);
+    expect(css).toContain("minmax(0, 78fr) minmax(0, 22fr)");
+    expect(css).toContain(
+      "grid-template-rows: var(--nr-giverny-h) minmax(0, 78fr) minmax(0, 22fr)",
+    );
+    expect(css).not.toContain("minmax(9.6rem, 26fr)");
+    expect(css).not.toContain("minmax(11rem, 32fr)");
+
+    const headlines: NewsStory[] = Array.from({ length: 8 }, (_, index) => ({
+      id: index + 1,
+      title: `Manchette ${index + 1}`,
+      url: `https://example.com/${index + 1}`,
+      summary: null,
+      category: "Canada",
+      published_at: "2026-11-18T14:00:00.000Z",
+      fetched_at: "2026-11-18T14:00:00.000Z",
+      priority: "NORMAL",
+      source: "Test",
+    }));
+    const html = renderToStaticMarkup(
+      <RightRail
+        pulseEnabled
+        givernyEnabled
+        givernyHeight="compact"
+        newsFeed={{
+          headlines,
+          category: null,
+          timezone: "America/Toronto",
+          lastRefresh: null,
+          refreshIntervalSec: 180,
+          breaking: null,
+          breakingMode: "compact",
+          onCategory: () => undefined,
+          onOpen: () => undefined,
+        }}
+      />,
+    );
+    expect(html).toContain("nr-right-rail");
+    expect(html).toContain("with-pulse");
+    expect(html).toContain("with-giverny");
+    expect(html).toContain("nr-pulse-slot");
+    expect(html).toContain("Fil de nouvelles");
+    expect(html).toContain("Manchette 1");
+    expect(html).toContain("ACTIVITÉ");
+    expect(html.indexOf("Fil de nouvelles")).toBeLessThan(html.indexOf("nr-pulse-slot"));
   });
 });

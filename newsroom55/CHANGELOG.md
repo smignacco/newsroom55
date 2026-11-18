@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 1.0.0-ha.21
+
+- Intègre Activité & Sommeil dans la colonne du fil : au plus un cinquième à
+  un quart de la hauteur restante, sans recouvrir les manchettes. La liste
+  reste visible et défilable sous Giverny.
+- Relit les 13F EDGAR avec un User-Agent de navigateur, l’en-tête de contact
+  exigé par la SEC, et des reprises avec délai (y compris 403). Si EDGAR
+  refuse encore le trafic, l’indice reste indisponible — aucun livre ni cours
+  inventé.
+
 ## 1.0.0-ha.20
 
 - Retire la tuile « à la une » (importante / alerte) du fil de nouvelles. La

@@ -390,6 +390,7 @@ export function ActivitySleepPulse() {
 
   if (privacy) {
     return (
+      <div className="nr-pulse-slot">
       <section
         className="nr-pulse nr-pulse-private"
         aria-label="Télémétrie personnelle masquée"
@@ -400,11 +401,13 @@ export function ActivitySleepPulse() {
         </div>
         <p>Indicateurs personnels masqués.</p>
       </section>
+      </div>
     );
   }
 
   if (unauthorized) {
     return (
+      <div className="nr-pulse-slot">
       <section
         className="nr-pulse nr-pulse-locked"
         aria-label="Écran non autorisé"
@@ -427,17 +430,20 @@ export function ActivitySleepPulse() {
           <p>{pairingError || "Création du code d’association…"}</p>
         )}
       </section>
+      </div>
     );
   }
 
   if (!snapshot) {
     return (
+      <div className="nr-pulse-slot">
       <section className="nr-pulse" aria-label="Télémétrie en attente">
         <div className="nr-pulse-head">
           <strong>ACTIVITÉ & SOMMEIL</strong>
           <span>EN ATTENTE</span>
         </div>
       </section>
+      </div>
     );
   }
 
@@ -452,7 +458,7 @@ export function ActivitySleepPulse() {
     : [];
 
   return (
-    <>
+    <div className="nr-pulse-slot">
       <button
         type="button"
         className="nr-pulse"
@@ -527,6 +533,6 @@ export function ActivitySleepPulse() {
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

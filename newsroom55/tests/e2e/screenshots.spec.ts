@@ -138,6 +138,136 @@ test.describe("Centre de nouvelles visual board", () => {
     expect(fs.existsSync(rail)).toBe(true);
   });
 
+  test("pulse sits under the news list at about a fifth of the column", async ({
+    page,
+  }) => {
+    const user = process.env.ADMIN_USERNAME;
+    const password = process.env.ADMIN_PASSWORD;
+    test.skip(!user || !password, "ADMIN_USERNAME / ADMIN_PASSWORD not set");
+    ensureDir();
+    const pulseFixture = {
+      generatedAt: "2026-11-13T18:00:00.000Z",
+      lastSyncAt: "2026-11-13T17:58:00.000Z",
+      stale: false,
+      privacyMode: false,
+      activity: {
+        date: "2026-11-13",
+        steps: 6400,
+        exerciseMinutes: 35,
+        activeEnergyKcal: 420,
+        dailyStepsGoal: 8000,
+        dailyExerciseGoal: 30,
+        weeklyExerciseMinutes: 120,
+        weeklyGoalMinutes: 150,
+        activeDays: 3,
+        days: [
+          { date: "2026-11-07", label: "SA", minutes: 20, status: "recorded" },
+          { date: "2026-11-08", label: "DI", minutes: null, status: "missing" },
+          { date: "2026-11-09", label: "LU", minutes: 40, status: "recorded" },
+          { date: "2026-11-10", label: "MA", minutes: 15, status: "recorded" },
+          { date: "2026-11-11", label: "ME", minutes: null, status: "missing" },
+          { date: "2026-11-12", label: "JE", minutes: 30, status: "recorded" },
+          { date: "2026-11-13", label: "VE", minutes: 35, status: "recorded" },
+        ],
+      },
+      sleep: {
+        lastNight: {
+          nightDate: "2026-11-12",
+          totalMinutes: 420,
+          inBedMinutes: 450,
+          awakeMinutes: 20,
+          coreMinutes: 220,
+          deepMinutes: 80,
+          remMinutes: 100,
+          sourceUpdatedAt: "2026-11-13T12:00:00.000Z",
+        },
+        averageMinutes: 410,
+        nightsUsed: 5,
+        incompleteHistory: true,
+        targetMinutes: 480,
+        showAverage: true,
+        showPhases: true,
+        trend: [{ nightDate: "2026-11-12", totalMinutes: 420 }],
+      },
+    };
+    await page.route("**/api/pulse", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "cache-control": "private, no-store" },
+        body: JSON.stringify(pulseFixture),
+      });
+    });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const login = await page.request.post("/api/auth/login", {
+      data: { username: user, password },
+    });
+    expect(login.ok()).toBeTruthy();
+    const csrf = ((await login.json()) as { csrf: string }).csrf;
+    const enabled = await page.request.post("/api/admin/health", {
+      headers: { "x-csrf-token": csrf, "content-type": "application/json" },
+      data: { settings: { enabled: true } },
+    });
+    expect(enabled.ok()).toBeTruthy();
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Fil de nouvelles")).toBeVisible();
+    await expect(page.locator(".nr-pulse-slot")).toBeVisible();
+    await expect(page.locator(".nr-headlines")).toBeVisible();
+    await expect(page.getByTestId("pulse-visual")).toBeVisible();
+    const split = await page.evaluate(() => {
+      const news = document.querySelector(".nr-news") as HTMLElement | null;
+      const pulse = document.querySelector(".nr-pulse-slot") as HTMLElement | null;
+      const headlines = document.querySelector(".nr-headlines") as HTMLElement | null;
+      if (!news || !pulse || !headlines) return null;
+      const remaining = news.getBoundingClientRect().height + pulse.getBoundingClientRect().height;
+      return {
+        pulseShare: pulse.getBoundingClientRect().height / remaining,
+        headlinesVisible: headlines.getBoundingClientRect().height > 48,
+        overlay: window.getComputedStyle(pulse).position,
+      };
+    });
+    expect(split).toBeTruthy();
+    expect(split!.overlay).not.toBe("absolute");
+    expect(split!.pulseShare).toBeGreaterThan(0.12);
+    expect(split!.pulseShare).toBeLessThanOrEqual(0.26);
+    expect(split!.headlinesVisible).toBe(true);
+    const dest = path.join(media, "pulse-news-split.png");
+    await page.screenshot({ path: dest, fullPage: false });
+    expect(fs.existsSync(dest)).toBe(true);
+  });
+
+  test("giverny admin health names EDGAR honestly", async ({ page }) => {
+    const user = process.env.ADMIN_USERNAME;
+    const password = process.env.ADMIN_PASSWORD;
+    test.skip(!user || !password, "ADMIN_USERNAME / ADMIN_PASSWORD not set");
+    ensureDir();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const login = await page.request.post("/api/auth/login", {
+      data: { username: user, password },
+    });
+    expect(login.ok()).toBeTruthy();
+    const csrf = ((await login.json()) as { csrf: string }).csrf;
+    const refresh = await page.request.post("/api/admin/giverny/refresh", {
+      headers: { "x-csrf-token": csrf, "content-type": "application/json" },
+      timeout: 60_000,
+    });
+    expect(refresh.ok()).toBeTruthy();
+    await page.goto("/admin");
+    await expect(page.getByRole("button", { name: "Add feed" })).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Giverny" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Indice synthétique Giverny" }),
+    ).toBeVisible();
+    await expect(page.getByText(/^(OK|Erreur) · edgar · /)).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.getByRole("heading", { name: "Couverture et fournisseurs" }).scrollIntoViewIfNeeded();
+    const dest = path.join(media, "giverny-edgar-health.png");
+    await page.screenshot({ path: dest, fullPage: false });
+    expect(fs.existsSync(dest)).toBe(true);
+  });
+
   test("giverny admin section", async ({ page }) => {
     const user = process.env.ADMIN_USERNAME;
     const password = process.env.ADMIN_PASSWORD;
