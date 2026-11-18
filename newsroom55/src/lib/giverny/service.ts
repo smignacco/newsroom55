@@ -1,5 +1,4 @@
 import { usEquitySession } from "@/lib/markets/session";
-import { quoteHasPrice } from "@/lib/markets/resolve";
 import {
   chartSeries,
   contributorsForSession,
@@ -16,11 +15,12 @@ import {
 import { downloadFiling, filingStoredDate, filingToHoldings, listEdgarFilings } from "@/lib/giverny/edgar";
 import { mapCusips } from "@/lib/giverny/cusip";
 import { refreshUsdCadHistory } from "@/lib/giverny/fx";
-import { refreshLiveQuotes, refreshYahooHistory } from "@/lib/giverny/prices";
+import { liveQuotePriceRows, refreshLiveQuotes, refreshYahooHistory } from "@/lib/giverny/prices";
 import { givernySettings } from "@/lib/giverny/settings";
 import {
   allPriceSeries,
   deleteOfficialMonth,
+  earliestFiledOn,
   filingBooks,
   fxSeries,
   lastGivernyError,
@@ -29,6 +29,7 @@ import {
   listFilings,
   listHoldings,
   listOfficialMonths,
+  mappedTickers,
   markGivernyError,
   markRefresh,
   priceSeries,
@@ -40,7 +41,7 @@ import {
   upsertOfficialMonth,
   upsertPrices,
 } from "@/lib/giverny/store";
-import { nySessionDate } from "@/lib/giverny/tickers";
+import { nySessionDate, nyTradingSessions } from "@/lib/giverny/tickers";
 import type {
   Contributor,
   GivernySummary,
@@ -140,7 +141,7 @@ export async function ingestFilings(force = false): Promise<void> {
 
 async function refreshMarketHistory(officialClose: boolean) {
   const books = filingBooks();
-  const tickers = [...new Set(books.flatMap((book) => book.holdings.map((row) => row.ticker)))];
+  const tickers = mappedTickers(books);
   if (!tickers.includes("SPX")) tickers.push("SPX");
   const today = nySessionDate();
   const stale = tickers.filter((ticker) => {
@@ -151,25 +152,12 @@ async function refreshMarketHistory(officialClose: boolean) {
     const history = await refreshYahooHistory(stale);
     providerNote("yahoo", history.count > 0, history.error || `${history.count} barres quotidiennes.`);
   }
-  const start = books.at(-1)?.filedOn ?? `${Number(today.slice(0, 4)) - 1}-01-01`;
+  const start = earliestFiledOn(books) ?? `${Number(today.slice(0, 4)) - 1}-01-01`;
   const fx = await refreshUsdCadHistory(start, today);
   providerNote("bankofcanada", fx.count > 0, fx.error || `${fx.count} observations USD/CAD.`);
 
   const live = await refreshLiveQuotes(tickers);
-  const liveRows = live.flatMap((quote) => {
-    if (!quoteHasPrice(quote) || quote.price == null) return [];
-    return [
-      {
-        symbol: quote.symbol,
-        sessionDate: today,
-        close: quote.price,
-        adjClose: quote.price,
-        provider: quote.provider,
-        official: officialClose,
-        asOf: quote.asOf,
-      },
-    ];
-  });
+  const liveRows = liveQuotePriceRows(live, today, officialClose);
   if (liveRows.length) upsertPrices(liveRows);
   markRefresh("prices");
 }
@@ -179,9 +167,9 @@ export async function recomputeIndex(): Promise<void> {
   computeInFlight = (async () => {
     const books = filingBooks();
     if (books.length === 0) return;
-    const tickers = [...new Set(books.flatMap((book) => book.holdings.map((row) => row.ticker)))];
+    const tickers = mappedTickers(books);
     const spx = priceSeries("SPX");
-    const sessions = [...spx.keys()].sort();
+    const sessions = nyTradingSessions(spx.keys());
     const today = nySessionDate();
     if (usEquitySession() !== "weekend" && !sessions.includes(today) && priceSeries(tickers[0] ?? "SPX").has(today)) {
       sessions.push(today);

@@ -84,7 +84,7 @@ export type HoldingRecord = {
 };
 
 export type HoldingWeight = {
-  ticker: string;
+  ticker: string | null;
   cusip: string;
   issuerName: string;
   weight: number;

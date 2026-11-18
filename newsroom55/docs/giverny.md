@@ -18,8 +18,12 @@ des titres. Les poids dérivent ; pas de rebalance quotidien. Un nouveau 13F pub
 réinitialise les poids à la date de dépôt, sans anticipation.
 
 Un cours manquant n’est pas un rendement de 0 %. Un dernier prix à 0 n’est pas
-affiché. La couverture du livre est indiquée. GIV-CAD applique le USD/CAD du jour
-lorsqu’il est disponible ; sinon le niveau CAD reste vide.
+affiché. La couverture du livre inclut les titres sans ticker ; sous 85 % le
+niveau du jour reste indisponible. Une séance indisponible ne décale pas la
+base du rendement suivant. GIV-CAD applique le USD/CAD du jour lorsqu’il est
+disponible, historisé depuis le premier 13F public ; sinon le niveau CAD reste
+vide. Les cours live sont rangés sous la séance NY du timestamp, pas sous la
+date civile du rafraîchissement.
 
 ## API
 

@@ -7,7 +7,7 @@ import type { Quote, SymbolConfig } from "@/lib/markets/provider";
 import { quoteHasPrice, usableMarketPrice } from "@/lib/markets/resolve";
 import { unavailableQuote } from "@/lib/markets/provider";
 import { fetchJson } from "@/lib/giverny/http";
-import { nySessionDate, yahooHistorySymbol } from "@/lib/giverny/tickers";
+import { isNyWeekend, nySessionDate, quoteTradingSession, yahooHistorySymbol } from "@/lib/giverny/tickers";
 import { upsertPrices } from "@/lib/giverny/store";
 import { usablePrice } from "@/lib/giverny/engine";
 
@@ -90,10 +90,12 @@ export async function refreshYahooHistory(tickers: string[]): Promise<{ count: n
       const close = closes[index] ?? null;
       const adjClose = adj[index] ?? close;
       if (!usablePrice(close) && !usablePrice(adjClose)) return [];
+      const sessionDate = nySessionDate(new Date(stamp * 1000));
+      if (isNyWeekend(sessionDate)) return [];
       return [
         {
           symbol: ticker,
-          sessionDate: nySessionDate(new Date(stamp * 1000)),
+          sessionDate,
           close: usablePrice(close) ? close : null,
           adjClose: usablePrice(adjClose) ? adjClose : null,
           provider: "yahoo",
@@ -167,7 +169,7 @@ export async function refreshLiveQuotes(tickers: string[]): Promise<Quote[]> {
           asOf:
             typeof meta?.regularMarketTime === "number"
               ? new Date(meta.regularMarketTime * 1000).toISOString()
-              : new Date().toISOString(),
+              : null,
           status: "DELAYED" as const,
           provider: "yahoo",
         };
@@ -177,4 +179,43 @@ export async function refreshLiveQuotes(tickers: string[]): Promise<Quote[]> {
   }
 
   return symbols.map((symbol) => usable.get(symbol.id) ?? unavailableQuote(symbol, "hybrid"));
+}
+
+export function liveQuotePriceRows(
+  quotes: Quote[],
+  today = nySessionDate(),
+  officialClose = false,
+): Array<{
+  symbol: string;
+  sessionDate: string;
+  close: number;
+  adjClose: number;
+  provider: string;
+  official: boolean;
+  asOf: string | null;
+}> {
+  const rows: Array<{
+    symbol: string;
+    sessionDate: string;
+    close: number;
+    adjClose: number;
+    provider: string;
+    official: boolean;
+    asOf: string | null;
+  }> = [];
+  for (const quote of quotes) {
+    if (!quoteHasPrice(quote) || quote.price == null) continue;
+    const sessionDate = quoteTradingSession(quote.asOf, today);
+    if (!sessionDate) continue;
+    rows.push({
+      symbol: quote.symbol,
+      sessionDate,
+      close: quote.price,
+      adjClose: quote.price,
+      provider: quote.provider,
+      official: officialClose || sessionDate < today,
+      asOf: quote.asOf,
+    });
+  }
+  return rows;
 }

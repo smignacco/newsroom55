@@ -60,3 +60,23 @@ export function nySessionDate(isoOrDate: Date | string = new Date()): string {
 export function yearMonthOf(sessionDate: string): string {
   return sessionDate.slice(0, 7);
 }
+
+export function isNyWeekend(sessionDate: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(sessionDate);
+  if (!match) return true;
+  const weekday = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0)).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+export function nyTradingSessions(dates: Iterable<string>): string[] {
+  return [...dates].filter((date) => !isNyWeekend(date)).sort();
+}
+
+export function quoteTradingSession(asOf: string | null | undefined, today = nySessionDate()): string | null {
+  if (!asOf) return null;
+  const parsed = Date.parse(asOf);
+  if (!Number.isFinite(parsed)) return null;
+  const session = nySessionDate(new Date(parsed));
+  if (!session || isNyWeekend(session) || session > today) return null;
+  return session;
+}

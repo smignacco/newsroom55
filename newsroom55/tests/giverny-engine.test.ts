@@ -10,6 +10,7 @@ import {
   trackingError,
   usablePrice,
 } from "../src/lib/giverny/engine";
+import { earliestFiledOn } from "../src/lib/giverny/store";
 import type { FilingBook, HoldingWeight } from "../src/lib/giverny/types";
 
 const book = (filedOn: string, weights: Array<[string, number]>): FilingBook => ({
@@ -127,5 +128,79 @@ describe("Giverny portfolio math", () => {
   it("measures official vs synthetic tracking without overwriting the synthetic series", () => {
     expect(trackingError([0.01, -0.01, 0])).toBeCloseTo(0.01);
     expect(cumulativeGap([0.02, 0.02], [0.01, 0.01])).toBeCloseTo((1.02 * 1.02) / (1.01 * 1.01) - 1);
+  });
+
+  it("counts unmapped equity weight in the coverage denominator", () => {
+    const unmapped = portfolioSessionReturn(
+      [
+        { ticker: "AAA", cusip: "1", issuerName: "A", weight: 0.1, shares: 1, value: 10 },
+        { ticker: null, cusip: "2", issuerName: "Unmapped", weight: 0.9, shares: 1, value: 90 },
+      ],
+      new Map([["AAA", 0.05]]),
+    );
+    expect(unmapped.coverage).toBeCloseTo(0.1);
+    expect(unmapped.value).toBeNull();
+    expect(unmapped.status).toBe("unavailable");
+  });
+
+  it("does not publish a mapped-subset return when most of the book is unmapped", () => {
+    const points = reconstructIndex({
+      sessions: ["2026-11-09", "2026-11-10"],
+      filings: [
+        {
+          accession: "acc-partial",
+          filedOn: "2026-11-01",
+          periodOfReport: "2026-09-30",
+          holdings: [
+            { ticker: "AAA", cusip: "1", issuerName: "A", weight: 0.1, shares: 1, value: 10 },
+            { ticker: null, cusip: "2", issuerName: "Unmapped", weight: 0.9, shares: 1, value: 90 },
+          ],
+        },
+      ],
+      prices: new Map([["AAA", series([["2026-11-09", 10], ["2026-11-10", 11]])]]),
+      fx: series([["2026-11-09", 1.4], ["2026-11-10", 1.4]]),
+      spx: series([["2026-11-09", 100], ["2026-11-10", 101]]),
+    });
+    expect(points[0]?.givUsd).toBe(100);
+    expect(points[1]?.status).toBe("unavailable");
+    expect(points[1]?.dayReturnUsd).toBeNull();
+    expect(points[1]?.coverage).toBeCloseTo(0.1);
+    expect(points[1]?.givUsd).toBe(100);
+  });
+
+  it("keeps last-good baselines across an unavailable session so recovered returns include the gap", () => {
+    const points = reconstructIndex({
+      sessions: ["2026-11-09", "2026-11-10", "2026-11-11"],
+      filings: [book("2026-11-01", [["AAA", 0.8], ["BBB", 0.2]])],
+      prices: new Map([
+        ["AAA", series([["2026-11-09", 10], ["2026-11-10", 11], ["2026-11-11", 12]])],
+        ["BBB", series([["2026-11-09", 10], ["2026-11-11", 12]])],
+      ]),
+      fx: series([
+        ["2026-11-09", 1.4],
+        ["2026-11-10", 1.4],
+        ["2026-11-11", 1.4],
+      ]),
+      spx: series([
+        ["2026-11-09", 100],
+        ["2026-11-10", 110],
+        ["2026-11-11", 121],
+      ]),
+    });
+    expect(points[0]?.givUsd).toBe(100);
+    expect(points[0]?.spxUsd).toBe(100);
+    expect(points[1]?.status).toBe("unavailable");
+    expect(points[1]?.dayReturnUsd).toBeNull();
+    expect(points[1]?.spxUsd).toBe(100);
+    expect(points[2]?.status).toBe("ok");
+    expect(points[2]?.spxUsd).toBeCloseTo(121);
+    expect(points[2]?.givUsd).toBeCloseTo(120);
+  });
+
+  it("starts FX history at the oldest filing, not the newest", () => {
+    expect(
+      earliestFiledOn([book("2026-11-14", [["AAA", 1]]), book("2025-02-14", [["AAA", 1]])]),
+    ).toBe("2025-02-14");
+    expect(earliestFiledOn([])).toBeNull();
   });
 });

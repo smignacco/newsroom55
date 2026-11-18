@@ -46,10 +46,10 @@ export function filingBooks(): FilingBook[] {
     filedOn: filing.filedAt.slice(0, 10),
     periodOfReport: filing.periodOfReport.slice(0, 10),
     holdings: listHoldings(filing.id)
-      .filter((row) => !row.derivative && row.ticker && row.weight != null && row.weight > 0)
+      .filter((row) => !row.derivative && row.weight != null && row.weight > 0)
       .map(
         (row): HoldingWeight => ({
-          ticker: row.ticker as string,
+          ticker: row.ticker,
           cusip: row.cusip,
           issuerName: row.issuerName,
           weight: row.weight as number,
@@ -58,6 +58,21 @@ export function filingBooks(): FilingBook[] {
         }),
       ),
   }));
+}
+
+export function earliestFiledOn(books: FilingBook[]): string | null {
+  const dates = books.map((book) => book.filedOn).filter(Boolean).sort();
+  return dates[0] ?? null;
+}
+
+export function mappedTickers(books: FilingBook[]): string[] {
+  return [
+    ...new Set(
+      books.flatMap((book) =>
+        book.holdings.map((holding) => holding.ticker).filter((ticker): ticker is string => Boolean(ticker)),
+      ),
+    ),
+  ];
 }
 
 export function replaceFiling(input: {

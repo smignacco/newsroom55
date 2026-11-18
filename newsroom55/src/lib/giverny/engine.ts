@@ -30,6 +30,17 @@ export function compoundReturns(returns: Array<number | null | undefined>): numb
   return product - 1;
 }
 
+function mappedTicker(holding: HoldingWeight): string | null {
+  return holding.ticker || null;
+}
+
+function holdingReturn(holding: HoldingWeight, returns: Map<string, number | null>): number | null {
+  const ticker = mappedTicker(holding);
+  if (!ticker) return null;
+  const value = returns.get(ticker);
+  return value == null || !Number.isFinite(value) ? null : value;
+}
+
 export function portfolioSessionReturn(
   weights: HoldingWeight[],
   returns: Map<string, number | null>,
@@ -41,8 +52,8 @@ export function portfolioSessionReturn(
   for (const holding of weights) {
     if (!(holding.weight > 0)) continue;
     total += holding.weight;
-    const value = returns.get(holding.ticker);
-    if (value == null || !Number.isFinite(value)) continue;
+    const value = holdingReturn(holding, returns);
+    if (value == null) continue;
     covered += holding.weight;
     weighted += holding.weight * value;
   }
@@ -62,8 +73,8 @@ export function driftWeights(
   returns: Map<string, number | null>,
 ): HoldingWeight[] {
   const next = weights.map((holding) => {
-    const value = returns.get(holding.ticker);
-    if (value == null || !Number.isFinite(value)) return { ...holding };
+    const value = holdingReturn(holding, returns);
+    if (value == null) return { ...holding };
     return { ...holding, weight: holding.weight * (1 + value) };
   });
   const sum = next.reduce((total, holding) => total + holding.weight, 0);
@@ -144,9 +155,11 @@ export function reconstructIndex(input: {
 
     const equityReturns = new Map<string, number | null>();
     for (const holding of weights) {
-      const previous = input.prices.get(holding.ticker)?.get(previousDate ?? "");
-      const current = input.prices.get(holding.ticker)?.get(sessionDate);
-      equityReturns.set(holding.ticker, sessionReturn(previous ?? null, current ?? null));
+      const ticker = mappedTicker(holding);
+      if (!ticker) continue;
+      const previous = input.prices.get(ticker)?.get(previousDate ?? "");
+      const current = input.prices.get(ticker)?.get(sessionDate);
+      equityReturns.set(ticker, sessionReturn(previous ?? null, current ?? null));
     }
     const portfolio = portfolioSessionReturn(weights, equityReturns, input.minCoverage);
     const spxReturn = sessionReturn(priceOn(input.spx, previousDate ?? ""), priceOn(input.spx, sessionDate));
@@ -174,7 +187,6 @@ export function reconstructIndex(input: {
         status,
         accession,
       });
-      previousDate = sessionDate;
       continue;
     }
 
@@ -239,11 +251,12 @@ export function contributorsForSession(
 ): { up: Contributor[]; down: Contributor[] } {
   const rows: Contributor[] = [];
   for (const holding of weights) {
-    const value = returns.get(holding.ticker);
-    if (value == null || !Number.isFinite(value)) continue;
+    const ticker = mappedTicker(holding);
+    const value = holdingReturn(holding, returns);
+    if (!ticker || value == null) continue;
     rows.push({
-      ticker: holding.ticker,
-      name: names.get(holding.ticker) ?? holding.issuerName,
+      ticker,
+      name: names.get(ticker) ?? holding.issuerName,
       weight: holding.weight,
       return: value,
       contribution: holding.weight * value,

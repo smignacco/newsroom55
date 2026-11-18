@@ -13,6 +13,10 @@
 - Administration → Giverny : activation, intervalle, CAD/USD, plage, hauteur,
   bandeau, rafraîchissement 13F manuel, mois officiels (comparés, jamais
   substitués) et santé des fournisseurs.
+- Couvre l’historique USD/CAD depuis le plus ancien 13F reconstitué, compte
+  les titres non appariés dans la couverture, conserve le dernier niveau
+  valable sur une séance indisponible, et range les cours live sous la séance
+  NY du timestamp (jamais sous le calendrier du week-end).
 
 ## 1.0.0-ha.18
 
