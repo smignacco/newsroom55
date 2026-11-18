@@ -29,6 +29,7 @@ import {
 } from "@/lib/health/time";
 
 const TIMEZONE = HEALTH_TIMEZONE;
+const MAX_SLEEP_MINUTES = 24 * 60;
 
 export type HealthMapping = {
   metric: HealthMetric;
@@ -246,6 +247,24 @@ function upsertActivity(
     );
 }
 
+function dropImplausibleSleepTotals() {
+  getDb()
+    .prepare(
+      `DELETE FROM sleep_nightly_totals WHERE total_minutes > ?`,
+    )
+    .run(MAX_SLEEP_MINUTES);
+}
+
+function rebuildSleepNights(nightDates: string[]) {
+  if (nightDates.length === 0) return;
+  const placeholders = nightDates.map(() => "?").join(", ");
+  getDb()
+    .prepare(
+      `DELETE FROM sleep_nightly_totals WHERE night_date IN (${placeholders})`,
+    )
+    .run(...nightDates);
+}
+
 function upsertSleep(
   nightDate: string,
   totalMinutes: number,
@@ -358,10 +377,9 @@ async function syncRecorderHistory(
       .slice()
       .filter((state) => activityInstant(state));
     if (mapping.metric === "sleep_duration") {
-      for (const [nightDate, point] of nightlySleepFromSeries(
-        series,
-        TIMEZONE,
-      )) {
+      const nights = nightlySleepFromSeries(series, TIMEZONE);
+      rebuildSleepNights([...nights.keys()]);
+      for (const [nightDate, point] of nights) {
         upsertSleep(
           nightDate,
           point.value,
@@ -490,6 +508,7 @@ async function performHealthSync(
         liveToday[field] = true;
       }
     }
+    dropImplausibleSleepTotals();
     if (options.history !== false) {
       await syncRecorderHistory(reader, mappings, syncedAt, today);
     }

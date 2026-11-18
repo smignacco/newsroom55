@@ -346,4 +346,112 @@ describe("health synchronization", () => {
       vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
     }
   });
+
+  it("rebuilds a prepopulated 481 h total when the same sample is replayed as minutes", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    const { getDb } = await import("@/lib/database");
+    vi.setSystemTime(new Date("2026-11-18T18:00:00Z"));
+    try {
+      getDb()
+        .prepare(
+          `INSERT INTO sleep_nightly_totals (
+            night_date, timezone, total_minutes, in_bed_minutes, awake_minutes,
+            core_minutes, deep_minutes, rem_minutes, source_updated_at, synced_at, reliable
+           ) VALUES (?, 'America/Toronto', ?, NULL, NULL, NULL, NULL, NULL, ?, ?, 1)
+           ON CONFLICT(night_date) DO UPDATE SET
+            total_minutes = excluded.total_minutes,
+            source_updated_at = excluded.source_updated_at,
+            synced_at = excluded.synced_at`,
+        )
+        .run(
+          "2026-11-17",
+          28_860,
+          "2026-11-18T15:00:00Z",
+          "2026-11-18T16:00:00Z",
+        );
+      const snapshot = await syncHealthData(
+        new Reader(
+          [
+            state(
+              "sensor.sleep_duration",
+              "481",
+              "h",
+              "2026-11-18T18:00:00Z",
+              "2026-11-18T15:00:00Z",
+            ),
+          ],
+          [
+            [
+              state(
+                "sensor.sleep_duration",
+                "481",
+                "h",
+                "2026-11-18T15:00:00Z",
+              ),
+            ],
+          ],
+        ),
+      );
+      expect(snapshot.sleep.lastNight).toMatchObject({
+        nightDate: "2026-11-17",
+        totalMinutes: 481,
+      });
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
+
+  it("rebuilds a plausible older total timestamped with a later last_updated", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    const { getDb } = await import("@/lib/database");
+    vi.setSystemTime(new Date("2026-11-18T18:00:00Z"));
+    try {
+      getDb()
+        .prepare(
+          `INSERT INTO sleep_nightly_totals (
+            night_date, timezone, total_minutes, in_bed_minutes, awake_minutes,
+            core_minutes, deep_minutes, rem_minutes, source_updated_at, synced_at, reliable
+           ) VALUES (?, 'America/Toronto', ?, NULL, NULL, NULL, NULL, NULL, ?, ?, 1)
+           ON CONFLICT(night_date) DO UPDATE SET
+            total_minutes = excluded.total_minutes,
+            source_updated_at = excluded.source_updated_at,
+            synced_at = excluded.synced_at`,
+        )
+        .run(
+          "2026-11-17",
+          295,
+          "2026-11-19T00:10:00Z",
+          "2026-11-19T00:10:00Z",
+        );
+      const snapshot = await syncHealthData(
+        new Reader(
+          [
+            state(
+              "sensor.sleep_duration",
+              "481",
+              "min",
+              "2026-11-18T18:00:00Z",
+              "2026-11-18T15:00:00Z",
+            ),
+          ],
+          [
+            [
+              state(
+                "sensor.sleep_duration",
+                "481",
+                "min",
+                "2026-11-18T15:00:00Z",
+              ),
+            ],
+          ],
+        ),
+      );
+      expect(snapshot.sleep.lastNight).toMatchObject({
+        nightDate: "2026-11-17",
+        totalMinutes: 481,
+      });
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
 });

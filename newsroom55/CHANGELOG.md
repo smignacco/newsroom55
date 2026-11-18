@@ -4,8 +4,10 @@
 
 - Le Board affiche la dernière durée de sommeil de la nuit (18 h–18 h
   Toronto), plus un échantillon Recorder plus ancien. 481 minutes restent
-  8 h 01 ; 4 h 55 n’est plus conservé s’il précède le total final. Aucune
-  mesure Santé n’est inventée.
+  8 h 01 ; 4 h 55 n’est plus conservé s’il précède le total final. Les nuits
+  déjà en base sont reconstruites avant la règle d’horodatage, pour qu’un
+  ancien 481 h (28 860 min) ou un `last_updated` trop tardif ne bloque pas
+  le total corrigé. Aucune mesure Santé n’est inventée.
 
 ## 1.0.0-ha.26
 
