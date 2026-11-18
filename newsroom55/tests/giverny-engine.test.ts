@@ -197,10 +197,27 @@ describe("Giverny portfolio math", () => {
         { sessionDate: "2026-11-18", givCad: 98.18, coverage: 0.98 } as never,
       ],
       [{ yearMonth: "2026-11", officialNav: 76.31 }],
+      undefined,
+      "2026-11-18",
     );
     expect(series.find((row) => row.date === "2026-11-12")?.value).toBeCloseTo(76.31);
     expect(series.find((row) => row.date === "2026-11-18")?.value).toBeCloseTo(76.31 * 0.9818);
     expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-11-12");
+  });
+
+  it("does not treat a finished month as in progress when later CAD is missing", () => {
+    const series = officialNavEstimate(
+      [
+        { sessionDate: "2026-10-01", givCad: 100, coverage: 0.98 } as never,
+        { sessionDate: "2026-10-29", givCad: 101, coverage: 0.98 } as never,
+        { sessionDate: "2026-10-30", givCad: null, coverage: 0.98 } as never,
+        { sessionDate: "2026-11-02", givCad: null, coverage: 0.98 } as never,
+      ],
+      [{ yearMonth: "2026-10", officialNav: 76.31 }],
+      undefined,
+      "2026-11-18",
+    );
+    expect(series).toEqual([]);
   });
 
   it("matches ISO session timestamps to the month-end calendar date", () => {

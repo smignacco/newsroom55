@@ -13,6 +13,7 @@ import {
   lastNyTradingSessionOfMonth,
   normalizeSessionDate,
   normalizeYearMonth,
+  nySessionDate,
   yearMonthOf,
 } from "@/lib/giverny/tickers";
 
@@ -459,6 +460,7 @@ export function officialNavEstimate(
   points: DailyPoint[],
   anchors: OfficialNavAnchor[],
   minCoverage = GIVERNY_MIN_COVERAGE,
+  today = nySessionDate(),
 ): NavEstimatePoint[] {
   const dated = points.flatMap((point) => {
     const sessionDate = normalizeSessionDate(point.sessionDate);
@@ -466,7 +468,7 @@ export function officialNavEstimate(
   });
   const byDate = new Map(dated.map((point) => [point.sessionDate, point]));
   const chronological = [...dated].sort((left, right) => left.sessionDate.localeCompare(right.sessionDate));
-  const lastUsable = [...chronological].reverse().find((point) => usableNavAnchorPoint(point, minCoverage));
+  const asOfDay = normalizeSessionDate(today) ?? nySessionDate();
   const resolved = anchors
     .flatMap((anchor) => {
       const yearMonth = normalizeYearMonth(anchor.yearMonth);
@@ -474,7 +476,7 @@ export function officialNavEstimate(
       const monthEndDate = yearMonth ? lastNyTradingSessionOfMonth(yearMonth) : null;
       if (!yearMonth || !nav || !monthEndDate) return [];
       const monthEnd = byDate.get(monthEndDate);
-      const monthInProgress = Boolean(lastUsable && monthEndDate > lastUsable.sessionDate);
+      const monthInProgress = asOfDay < monthEndDate;
       const later = chronological.find(
         (point) =>
           (monthInProgress
