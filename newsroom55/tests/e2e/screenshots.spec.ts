@@ -72,6 +72,90 @@ test.describe("Centre de nouvelles visual board", () => {
     expect(fs.existsSync(dest)).toBe(true);
   });
 
+  test("giverny synthetic tracker sits above the news feed", async ({ page }) => {
+    ensureDir();
+    await page.route("**/api/giverny/summary", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "cache-control": "no-store" },
+        body: JSON.stringify({
+          identity: "synthetic",
+          officialNav: false,
+          enabled: true,
+          currency: "CAD",
+          marketStatus: "delayed",
+          marketStatusLabel: "DONNÉES DIFFÉRÉES",
+          lastRefreshAt: "2026-11-18T19:00:00.000Z",
+          lastCloseAt: "2026-11-17T21:30:00.000Z",
+          lastSuccessfulRefreshAt: "2026-11-18T19:00:00.000Z",
+          coverage: 0.98,
+          filing: {
+            accession: "0001641864-26-000011",
+            periodOfReport: "2026-09-30",
+            filedAt: "2026-11-12",
+            holdings: 51,
+            mapped: 50,
+          },
+          levels: { givCad: 104.32, givUsd: 101.1, givAlpha: 101.8 },
+          last: { givCad: 104.32, givUsd: 101.1, asOf: "2026-11-18" },
+          returns: {
+            session: 0.0042,
+            last5: 0.011,
+            mtd: 0.021,
+            ytd: 0.087,
+            vsSpxSession: 0.001,
+            vsSpxYtd: 0.015,
+          },
+          chart: [
+            { date: "2026-11-12", value: 103.1 },
+            { date: "2026-11-13", value: 103.8 },
+            { date: "2026-11-14", value: 104.32 },
+          ],
+          contributors: {
+            up: [{ ticker: "META", name: "Meta", weight: 0.07, return: 0.02, contribution: 0.0014 }],
+            down: [{ ticker: "BKNG", name: "Booking", weight: 0.04, return: -0.01, contribution: -0.0004 }],
+          },
+          providerHealth: [],
+          message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
+        }),
+      });
+    });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("giverny-tracker")).toBeVisible();
+    await expect(page.getByText("Indice synthétique")).toBeVisible();
+    await expect(page.getByText("Pas un VL officiel")).toBeVisible();
+    await expect(page.getByText("GIV-CAD")).toBeVisible();
+    await expect(page.locator(".nr-breaking-badge")).toBeVisible();
+    await expect(page.locator(".nr-breaking-bar")).toHaveCount(0);
+    const dest = path.join(media, "giverny-board.png");
+    await page.screenshot({ path: dest, fullPage: false });
+    expect(fs.existsSync(dest)).toBe(true);
+  });
+
+  test("giverny admin section", async ({ page }) => {
+    const user = process.env.ADMIN_USERNAME;
+    const password = process.env.ADMIN_PASSWORD;
+    test.skip(!user || !password, "ADMIN_USERNAME / ADMIN_PASSWORD not set");
+    ensureDir();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/admin/login");
+    await page.locator('input[autocomplete="username"]').fill(user!);
+    await page.locator('input[type="password"]').fill(password!);
+    await page.getByRole("button", { name: "Enter" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    await page.getByRole("button", { name: "Giverny" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Indice synthétique Giverny" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Pas le VL officiel/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Actualiser le 13F maintenant" })).toBeVisible();
+    const dest = path.join(media, "giverny-admin.png");
+    await page.screenshot({ path: dest, fullPage: false });
+    expect(fs.existsSync(dest)).toBe(true);
+  });
+
   test("board tile menu, ticker and pulse fixture", async ({ page }) => {
     ensureDir();
     await page.route("**/api/pulse", async (route) => {

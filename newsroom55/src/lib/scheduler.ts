@@ -10,11 +10,14 @@ import {
   syncHealthData,
 } from "@/lib/health/service";
 import { homeAssistantConfigured } from "@/lib/home-assistant/client";
+import { tickGiverny } from "@/lib/giverny/service";
+import { givernySettings } from "@/lib/giverny/settings";
 
 let newsTimer: NodeJS.Timeout | null = null;
 let marketsTimer: NodeJS.Timeout | null = null;
 let iptvTimer: NodeJS.Timeout | null = null;
 let healthTimer: NodeJS.Timeout | null = null;
+let givernyTimer: NodeJS.Timeout | null = null;
 
 declare global {
   var __newsroomSchedulerStarted: boolean | undefined;
@@ -81,6 +84,24 @@ export function startScheduler() {
     marketsTimer.unref?.();
   };
 
+  const runGiverny = async (force = false) => {
+    if (!givernySettings().enabled && !force) return;
+    try {
+      await tickGiverny(force);
+    } catch (err) {
+      console.warn(
+        "[newsroom55] giverny cycle failed",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  };
+
+  const runGivernyAndSchedule = async () => {
+    await runGiverny(false);
+    givernyTimer = setTimeout(runGivernyAndSchedule, 60_000);
+    givernyTimer.unref?.();
+  };
+
   const runHealthAndSchedule = async () => {
     healthTicks += 1;
     const interval = healthSyncIntervalMs();
@@ -95,6 +116,7 @@ export function startScheduler() {
   void runNewsAndSchedule();
   void runMarketsAndSchedule();
   void runHealthAndSchedule();
+  void runGivernyAndSchedule();
   void runIptv();
   iptvTimer = setInterval(runIptv, 60_000);
   iptvTimer.unref?.();

@@ -57,6 +57,7 @@ See [DOCS.md](./DOCS.md) for the complete setup.
 | News | Live when publisher RSS fetches succeed (Radio-Canada, BBC, La Presse, CNBC, TechCrunch, The Verge — verified 2026-11-10) |
 | Markets | Cboe delayed US quotes work without a key. Optional Twelve Data symbols are routed separately in `hybrid` mode. No prices are invented. |
 | IPTV | 1–4 concurrent protected HLS streams; other adapter types remain stubs. |
+| Giverny Capital | Optional synthetic 13F index (GIV-CAD / GIV-USD / GIV-ALPHA) above the news feed. Public filings only; never a fake 0% when a quote is missing. Not the official NAV. |
 | Activity & Sleep | Optional Apple Health summaries through Home Assistant; private display authorization and privacy mode required. |
 | RoomOS | Documented, **not proven on a Board Pro 55 G2 in this project** |
 

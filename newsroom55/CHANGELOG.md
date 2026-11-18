@@ -1,5 +1,19 @@
 # Journal des modifications
 
+## 1.0.0-ha.19
+
+- Ajoute l’indice synthétique Giverny Capital au Board, au-dessus du fil de
+  nouvelles : GIV-CAD / GIV-USD / GIV-ALPHA, 5 séances, MTD, YTD, vs S&P 500,
+  contributions et horodatage du dernier succès. Ce n’est pas le VL officiel.
+- Lit les 13F EDGAR (CIK 0001641864 par défaut), apparie les CUSIP, reconstitue
+  l’historique sans anticipation et refuse tout cours manquant ou égal à zéro
+  comme un rendement de 0 %. Livre USD/CAD Banque du Canada déjà en place.
+- Remplace le grand bandeau d’alerte par une pastille compacte dans l’en-tête
+  du fil (sans décalage de mise en page). Le grand bandeau reste optionnel.
+- Administration → Giverny : activation, intervalle, CAD/USD, plage, hauteur,
+  bandeau, rafraîchissement 13F manuel, mois officiels (comparés, jamais
+  substitués) et santé des fournisseurs.
+
 ## 1.0.0-ha.18
 
 - Ajoute un curseur de volume tactile à côté des icônes 1–4 / grille / focus

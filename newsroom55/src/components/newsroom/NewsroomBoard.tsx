@@ -275,7 +275,12 @@ export function NewsroomBoard({
   });
 
   return (
-    <div className={`nr-board ${performance ? "performance" : ""}`} style={{ fontSize: `${snapshot.appearance.textScale}%` }}>
+    <div
+      className={`nr-board ${performance ? "performance" : ""} ${
+        snapshot.giverny.breakingBanner === "banner" ? "has-breaking-banner" : ""
+      }`}
+      style={{ fontSize: `${snapshot.appearance.textScale}%` }}
+    >
       <BroadcastHeader timezone={snapshot.appearance.timezone} />
       <LiveChannel
         channels={snapshot.channels}
@@ -331,7 +336,8 @@ export function NewsroomBoard({
       />
       <RightRail
         pulseEnabled={snapshot.personalPulse.enabled}
-        breaking={Boolean(snapshot.alert)}
+        givernyEnabled={snapshot.giverny.enabled}
+        givernyHeight={snapshot.giverny.height}
         newsFeed={{
           featured,
           headlines,
@@ -339,11 +345,15 @@ export function NewsroomBoard({
           timezone: snapshot.appearance.timezone,
           lastRefresh: snapshot.newsHealth.lastFetch,
           refreshIntervalSec: snapshot.appearance.newsRefreshIntervalSec,
+          breaking: snapshot.alert,
+          breakingMode: snapshot.giverny.breakingBanner,
           onCategory: setCategory,
           onOpen: setStory,
         }}
       />
-      <BreakingNews story={snapshot.alert} timezone={snapshot.appearance.timezone} />
+      {snapshot.giverny.breakingBanner === "banner" ? (
+        <BreakingNews story={snapshot.alert} timezone={snapshot.appearance.timezone} />
+      ) : null}
       <MarketTicker
         quotes={snapshot.markets.quotes}
         board={snapshot.markets.board}

@@ -1,0 +1,14 @@
+{
+  "note": "Validation-only expected table for the fixture 13F. Never used as the production book.",
+  "periodOfReport": "09-30-2026",
+  "holdings": [
+    { "ticker": "META", "cusip": "30303M102", "issuerName": "META PLATFORMS INC", "value": 250000, "weight": 0.25 },
+    { "ticker": "GOOG", "cusip": "02079K107", "issuerName": "ALPHABET INC", "value": 220000, "weight": 0.22 },
+    { "ticker": "BRK.B", "cusip": "084670702", "issuerName": "BERKSHIRE HATHAWAY INC DEL", "value": 150000, "weight": 0.15 },
+    { "ticker": "AMZN", "cusip": "023135106", "issuerName": "AMAZON COM INC", "value": 120000, "weight": 0.12 },
+    { "ticker": "SCHW", "cusip": "808513105", "issuerName": "SCHWAB CHARLES CORP", "value": 100000, "weight": 0.1 },
+    { "ticker": "HEI.A", "cusip": "422806208", "issuerName": "HEICO CORP NEW", "value": 80000, "weight": 0.08 },
+    { "ticker": "MSFT", "cusip": "594918104", "issuerName": "MICROSOFT CORP", "value": 50000, "weight": 0.05 },
+    { "ticker": null, "cusip": "000000000", "issuerName": "UNKNOWN ISSUER INC", "value": 30000, "weight": 0.03 }
+  ]
+}

@@ -22,6 +22,8 @@ export function NewsFeed({
   timezone,
   lastRefresh,
   refreshIntervalSec,
+  breaking,
+  breakingMode = "compact",
   onCategory,
   onOpen,
 }: {
@@ -31,6 +33,8 @@ export function NewsFeed({
   timezone: string;
   lastRefresh: string | null;
   refreshIntervalSec: number;
+  breaking: NewsStory | null;
+  breakingMode?: "compact" | "banner" | "off";
   onCategory: (c: string | null) => void;
   onOpen: (story: NewsStory) => void;
 }) {
@@ -128,11 +132,27 @@ export function NewsFeed({
             .toString()
             .padStart(2, "0")}:${(remaining % 60).toString().padStart(2, "0")}`;
 
+  const breakingLevel = breaking?.priority === "BREAKING" ? "breaking" : breaking ? "important" : "idle";
+
   return (
     <section className="nr-news">
       <div className="nr-section-head">
         <h2>Fil de nouvelles</h2>
-        <span className="nr-kicker nr-refresh-indicator">{refreshLabel}</span>
+        <div className="nr-news-head-meta">
+          {breakingMode !== "off" ? (
+            <span
+              className={`nr-breaking-badge is-${breakingLevel}`}
+              title={breaking?.title ?? "Aucune alerte"}
+            >
+              {breakingLevel === "breaking"
+                ? "ALERTE"
+                : breakingLevel === "important"
+                  ? "IMPORTANT"
+                  : "FIL"}
+            </span>
+          ) : null}
+          <span className="nr-kicker nr-refresh-indicator">{refreshLabel}</span>
+        </div>
       </div>
       <div className="nr-filters">
         <button

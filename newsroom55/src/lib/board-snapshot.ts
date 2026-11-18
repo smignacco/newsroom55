@@ -6,6 +6,7 @@ import { getSetting } from "@/lib/database";
 import { pulseEnabled } from "@/lib/health/service";
 import { isFreshAlert } from "@/lib/news/breaking";
 import { roomOsConfigured } from "@/lib/roomos/client";
+import { givernyBoardLayout } from "@/lib/giverny/settings";
 
 export async function getBoardSnapshot() {
   const timezone = getSetting("timezone", "America/Montreal");
@@ -38,6 +39,7 @@ export async function getBoardSnapshot() {
     personalPulse: {
       enabled: pulseEnabled(),
     },
+    giverny: givernyBoardLayout(),
     appearance: {
       layout: getSetting("layout", "broadcast-classic"),
       textScale: Number(getSetting("text_scale", "100")),

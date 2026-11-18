@@ -75,7 +75,6 @@ textarea {
   grid-template-rows:
     var(--nr-header-h)
     minmax(0, 1fr)
-    auto
     var(--nr-ticker-h)
     var(--nr-status-h);
   background:
@@ -83,6 +82,15 @@ textarea {
     radial-gradient(900px 500px at 92% 88%, rgba(50, 201, 151, 0.07), transparent 50%),
     radial-gradient(680px 500px at 78% 22%, rgba(143, 124, 247, 0.05), transparent 62%),
     linear-gradient(180deg, #08101c 0%, var(--nr-bg) 38%, #050b14 100%);
+}
+
+.nr-board.has-breaking-banner {
+  grid-template-rows:
+    var(--nr-header-h)
+    minmax(0, 1fr)
+    auto
+    var(--nr-ticker-h)
+    var(--nr-status-h);
 }
 
 .nr-board::before {
@@ -348,8 +356,242 @@ textarea {
   grid-template-rows: minmax(0, 68fr) minmax(11rem, 32fr);
 }
 
-.nr-right-rail.has-breaking.with-pulse {
-  grid-template-rows: minmax(0, 74fr) minmax(10.75rem, 26fr);
+.nr-right-rail.with-giverny {
+  --nr-giverny-h: 11.4rem;
+  grid-template-rows: var(--nr-giverny-h) minmax(0, 1fr);
+}
+
+.nr-right-rail.with-giverny.is-compact {
+  --nr-giverny-h: 9.8rem;
+}
+
+.nr-right-rail.with-giverny.is-tall {
+  --nr-giverny-h: 13.2rem;
+}
+
+.nr-right-rail.with-giverny.with-pulse {
+  grid-template-rows: var(--nr-giverny-h) minmax(0, 1fr) minmax(9.6rem, 26fr);
+}
+
+.nr-news-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.nr-breaking-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.6rem;
+  min-height: 1.15rem;
+  padding: 0 0.45rem;
+  border: 1px solid transparent;
+  font: 600 0.58rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nr-text-2);
+}
+
+.nr-breaking-badge.is-idle {
+  border-color: var(--nr-line-dim);
+}
+
+.nr-breaking-badge.is-important {
+  color: var(--nr-info);
+  border-color: rgba(242, 184, 91, 0.55);
+}
+
+.nr-breaking-badge.is-breaking {
+  color: #ffd7db;
+  border-color: rgba(240, 68, 82, 0.7);
+  animation: nr-pulse 2.4s ease-in-out infinite;
+}
+
+.nr-giverny {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--nr-line-dim);
+  background:
+    linear-gradient(90deg, rgba(53, 198, 244, 0.08), transparent 28%),
+    var(--nr-surface);
+  padding: 0.55rem 0.7rem 0.5rem;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 0.28rem;
+  color: var(--nr-text);
+}
+
+.nr-giverny::before {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.nr-giverny.is-wait {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--nr-text-2);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nr-giverny-kicker,
+.nr-giverny-head h2 {
+  font-family: var(--font-sora), sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.nr-giverny-kicker {
+  font-size: 0.58rem;
+  color: var(--nr-accent);
+}
+
+.nr-giverny-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.nr-giverny-head h2 {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.nr-giverny-status {
+  font: 600 0.58rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.12em;
+  color: var(--nr-text-2);
+}
+
+.nr-giverny-status.is-open,
+.nr-giverny-status.is-closed {
+  color: var(--nr-positive);
+}
+
+.nr-giverny-status.is-delayed {
+  color: var(--nr-info);
+}
+
+.nr-giverny-status.is-unavailable {
+  color: var(--nr-critical);
+}
+
+.nr-giverny-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.nr-giverny-level {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+}
+
+.nr-giverny-code {
+  width: 100%;
+  font: 600 0.58rem/1 var(--font-plex-mono), monospace;
+  letter-spacing: 0.16em;
+  color: var(--nr-text-2);
+}
+
+.nr-giverny-level strong {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nr-giverny-level b,
+.nr-giverny-metrics b,
+.nr-giverny-contrib span {
+  font-family: var(--font-plex-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.nr-giverny-level b {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.nr-giverny .is-up {
+  color: var(--nr-positive);
+}
+
+.nr-giverny .is-down {
+  color: var(--nr-critical);
+}
+
+.nr-giverny .is-flat,
+.nr-giverny .is-na {
+  color: var(--nr-text-2);
+}
+
+.nr-giverny-spark {
+  width: 100%;
+  height: 2.1rem;
+  display: block;
+}
+
+.nr-giverny-spark path {
+  fill: none;
+  stroke: var(--nr-positive);
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.nr-giverny-spark.is-down path {
+  stroke: var(--nr-critical);
+}
+
+.nr-giverny-spark.is-empty {
+  height: 2.1rem;
+  border-bottom: 1px dashed var(--nr-line-dim);
+}
+
+.nr-giverny-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nr-text-2);
+}
+
+.nr-giverny-contrib {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  min-height: 1rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.nr-giverny-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nr-text-2);
+}
+
+.nr-giverny-foot small {
+  color: var(--nr-info);
 }
 
 .nr-pulse {

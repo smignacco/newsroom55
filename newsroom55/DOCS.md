@@ -40,6 +40,31 @@ nuits; si son historique est incomplet, NEWSROOM affiche le nombre réel de
 nuits utilisées. Les phases absentes restent absentes et ne sont jamais
 transformées en zéro.
 
+## Indice synthétique Giverny Capital
+
+Le bandeau au-dessus du fil de nouvelles estime la performance quotidienne du
+livre 13F public de Giverny Capital Inc. (CIK 0001641864). Ce n’est **pas** la
+valeur liquidative officielle du fonds.
+
+Le livre de production n’est jamais saisi en dur : NEWSROOM télécharge le
+dernier 13F EDGAR, extrait les positions, apparie les CUSIP américains
+(OpenFIGI, avec cache SQLite) et applique les rendements de séance sur les
+poids de la veille. Un cours manquant n’est pas un rendement de 0 % et un
+dernier prix à 0 n’est jamais affiché.
+
+Les cotations réutilisent la pile existante (Twelve Data sous quota, Finnhub
+hors 429, Cboe différé, Yahoo en repli historique, USD/CAD Banque du Canada).
+Les identifiants restent côté serveur. L’historique quotidien et les dépôts
+sont dans SQLite (`/data` sur Home Assistant).
+
+Dans `/admin` → **Giverny** : activer le module, choisir CAD ou USD, l’intervalle,
+la plage du graphique, la hauteur, le bandeau d’alerte compact, forcer un
+rafraîchissement 13F, et saisir les rendements mensuels officiels. Ces mois
+servent à l’erreur de suivi ; ils ne remplacent pas la série synthétique.
+
+EDGAR exige un User-Agent déclaré. Si le dépôt est injoignable, le bandeau
+affiche « indisponible » sans inventer de niveaux.
+
 ## Marchés
 
 Le fournisseur `hybrid` utilise gratuitement les données différées Cboe pour

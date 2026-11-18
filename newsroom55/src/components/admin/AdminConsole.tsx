@@ -8,8 +8,9 @@ import { TIMEZONES } from "@/lib/time";
 import { TelevisionManager } from "@/components/admin/TelevisionManager";
 import { FinanceManager } from "@/components/admin/FinanceManager";
 import { HealthManager } from "@/components/admin/HealthManager";
+import { GivernyManager } from "@/components/admin/GivernyManager";
 
-type Tab = "news" | "finance" | "health" | "tv" | "look" | "alerts";
+type Tab = "news" | "finance" | "giverny" | "health" | "tv" | "look" | "alerts";
 
 async function api(path: string, csrf: string, init?: RequestInit) {
   const res = await fetch(path, {
@@ -100,6 +101,7 @@ export function AdminConsole({ username, csrf }: { username: string; csrf: strin
             [
               ["news", "News"],
               ["finance", "Finance"],
+              ["giverny", "Giverny"],
               ["health", "Activity & Sleep"],
               ["tv", "Television"],
               ["look", "Appearance"],
@@ -166,6 +168,8 @@ export function AdminConsole({ username, csrf }: { username: string; csrf: strin
           ) : null}
 
           {tab === "finance" ? <FinanceManager csrf={csrf} /> : null}
+
+          {tab === "giverny" ? <GivernyManager csrf={csrf} /> : null}
 
           {tab === "health" ? <HealthManager csrf={csrf} /> : null}
 

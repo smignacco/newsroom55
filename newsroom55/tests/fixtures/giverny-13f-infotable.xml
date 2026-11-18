@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <periodOfReport>09-30-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <name>Giverny Capital Inc.</name>
+      <cik>0001641864</cik>
+      <reportCalendarOrQuarter>09-30-2026</reportCalendarOrQuarter>
+      <tableEntryTotal>8</tableEntryTotal>
+      <tableValueTotal>1000000</tableValueTotal>
+    </coverPage>
+  </formData>
+  <informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+    <infoTable>
+      <nameOfIssuer>META PLATFORMS INC</nameOfIssuer>
+      <titleOfClass>CL A</titleOfClass>
+      <cusip>30303M102</cusip>
+      <value>250000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>400000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>400000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>ALPHABET INC</nameOfIssuer>
+      <titleOfClass>CAP STK CL C</titleOfClass>
+      <cusip>02079K107</cusip>
+      <value>220000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>120000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>120000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>BERKSHIRE HATHAWAY INC DEL</nameOfIssuer>
+      <titleOfClass>CL B NEW</titleOfClass>
+      <cusip>084670702</cusip>
+      <value>150000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>300000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>300000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>AMAZON COM INC</nameOfIssuer>
+      <titleOfClass>COM</titleOfClass>
+      <cusip>023135106</cusip>
+      <value>120000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>80000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>80000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>SCHWAB CHARLES CORP</nameOfIssuer>
+      <titleOfClass>COM</titleOfClass>
+      <cusip>808513105</cusip>
+      <value>100000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>110000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>110000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>HEICO CORP NEW</nameOfIssuer>
+      <titleOfClass>CL A</titleOfClass>
+      <cusip>422806208</cusip>
+      <value>80000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>35000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>35000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>MICROSOFT CORP</nameOfIssuer>
+      <titleOfClass>COM</titleOfClass>
+      <cusip>594918104</cusip>
+      <value>50000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>12000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>12000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+    <infoTable>
+      <nameOfIssuer>UNKNOWN ISSUER INC</nameOfIssuer>
+      <titleOfClass>COM</titleOfClass>
+      <cusip>000000000</cusip>
+      <value>30000</value>
+      <shrsOrPrnAmt>
+        <sshPrnamt>1000</sshPrnamt>
+        <sshPrnamtType>SH</sshPrnamtType>
+      </shrsOrPrnAmt>
+      <investmentDiscretion>SOLE</investmentDiscretion>
+      <votingAuthority><Sole>1000</Sole><Shared>0</Shared><None>0</None></votingAuthority>
+    </infoTable>
+  </informationTable>
+</edgarSubmission>

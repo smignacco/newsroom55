@@ -196,4 +196,90 @@ CREATE TABLE IF NOT EXISTS health_display_pairings (
 
 CREATE INDEX IF NOT EXISTS idx_health_display_pairings_expiry
   ON health_display_pairings(expires_at);
+
+CREATE TABLE IF NOT EXISTS giverny_filings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  accession TEXT NOT NULL UNIQUE,
+  cik TEXT NOT NULL,
+  filer_name TEXT NOT NULL,
+  form TEXT NOT NULL,
+  period_of_report TEXT NOT NULL,
+  filed_at TEXT NOT NULL,
+  accepted_at TEXT,
+  document_url TEXT NOT NULL,
+  holdings_count INTEGER NOT NULL DEFAULT 0,
+  mapped_count INTEGER NOT NULL DEFAULT 0,
+  table_value_total REAL,
+  fetched_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS giverny_holdings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  filing_id INTEGER NOT NULL,
+  cusip TEXT NOT NULL,
+  issuer_name TEXT NOT NULL,
+  title_of_class TEXT,
+  ticker TEXT,
+  shares REAL NOT NULL,
+  value REAL NOT NULL,
+  put_call TEXT,
+  share_type TEXT,
+  derivative INTEGER NOT NULL DEFAULT 0,
+  weight REAL,
+  FOREIGN KEY (filing_id) REFERENCES giverny_filings(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_giverny_holdings_filing
+  ON giverny_holdings(filing_id, value DESC);
+
+CREATE TABLE IF NOT EXISTS giverny_cusip_map (
+  cusip TEXT PRIMARY KEY,
+  ticker TEXT NOT NULL,
+  issuer_name TEXT,
+  source TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS giverny_prices (
+  symbol TEXT NOT NULL,
+  session_date TEXT NOT NULL,
+  close REAL,
+  adj_close REAL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  provider TEXT NOT NULL,
+  official INTEGER NOT NULL DEFAULT 1,
+  as_of TEXT,
+  PRIMARY KEY (symbol, session_date)
+);
+
+CREATE TABLE IF NOT EXISTS giverny_fx (
+  session_date TEXT PRIMARY KEY,
+  usd_cad REAL NOT NULL,
+  provider TEXT NOT NULL,
+  as_of TEXT
+);
+
+CREATE TABLE IF NOT EXISTS giverny_index_daily (
+  session_date TEXT PRIMARY KEY,
+  giv_usd REAL,
+  giv_cad REAL,
+  giv_alpha REAL,
+  spx_usd REAL,
+  spx_cad REAL,
+  usd_cad REAL,
+  day_return_usd REAL,
+  day_return_cad REAL,
+  spx_return_usd REAL,
+  coverage REAL,
+  status TEXT NOT NULL,
+  accession TEXT,
+  computed_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS giverny_official_months (
+  year_month TEXT PRIMARY KEY,
+  official_return REAL NOT NULL,
+  note TEXT,
+  entered_at TEXT NOT NULL
+);
 `;
