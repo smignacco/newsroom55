@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 1.0.0-ha.22
+
+- Relit EDGAR avec l’identité déclarée exigée par la SEC (pas un User-Agent de
+  navigateur), un courriel de contact configurable, et un repli TLS natif
+  (curl/wget) si Node est refusé. Un import XML 13F manuel reste possible ; le
+  livre n’est jamais inventé.
+- Corrige le diagramme d’effort : les totaux quotidiens suivent `last_changed`
+  (pas un sondage HA), ignorent le report du total de la veille, et étiquettent
+  LU/MA/ME/JE/VE/SA/DI.
+
 ## 1.0.0-ha.21
 
 - Intègre Activité & Sommeil dans la colonne du fil : au plus un cinquième à

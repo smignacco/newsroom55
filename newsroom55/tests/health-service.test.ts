@@ -15,11 +15,12 @@ function state(
   value: string,
   unit: string,
   updatedAt: string,
+  changedAt = updatedAt,
 ): HomeAssistantState {
   return {
     entity_id: entityId,
     state: value,
-    last_changed: updatedAt,
+    last_changed: changedAt,
     last_updated: updatedAt,
     attributes: { unit_of_measurement: unit },
   };
@@ -108,6 +109,58 @@ describe("health synchronization", () => {
       expect(
         snapshot.activity.days.find((day) => day.date === "2026-11-12")?.status,
       ).toBe("missing");
+    } finally {
+      vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
+    }
+  });
+
+  it("does not copy a polled yesterday total onto today's week bar", async () => {
+    const { syncHealthData } = await import("@/lib/health/service");
+    vi.setSystemTime(new Date("2026-11-12T15:00:00Z"));
+    try {
+      const snapshot = await syncHealthData(
+        new Reader(
+          [
+            state(
+              "sensor.health_steps",
+              "6400",
+              "steps",
+              "2026-11-12T15:00:00Z",
+              "2026-11-11T23:30:00Z",
+            ),
+            state(
+              "sensor.exercise_time",
+              "35",
+              "min",
+              "2026-11-12T15:00:00Z",
+              "2026-11-11T23:30:00Z",
+            ),
+          ],
+          [
+            [
+              state("sensor.exercise_time", "35", "min", "2026-11-11T23:30:00Z"),
+              state(
+                "sensor.exercise_time",
+                "35",
+                "min",
+                "2026-11-12T10:05:00Z",
+              ),
+              state("sensor.exercise_time", "12", "min", "2026-11-12T14:50:00Z"),
+            ],
+          ],
+        ),
+      );
+      expect(snapshot.activity.date).toBe("2026-11-12");
+      expect(
+        snapshot.activity.days.find((day) => day.date === "2026-11-11")?.minutes,
+      ).toBe(35);
+      expect(snapshot.activity.exerciseMinutes).toBe(12);
+      expect(
+        snapshot.activity.days.find((day) => day.date === "2026-11-12")?.minutes,
+      ).toBe(12);
+      expect(
+        snapshot.activity.days.find((day) => day.date === "2026-11-12")?.label,
+      ).toBe("JE");
     } finally {
       vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
     }

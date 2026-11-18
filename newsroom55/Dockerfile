@@ -33,7 +33,7 @@ LABEL io.hass.type="app" \
   io.hass.version="${BUILD_VERSION}" \
   org.opencontainers.image.title="NEWSROOM55" \
   org.opencontainers.image.description="Centre de nouvelles pour Cisco Board et Home Assistant"
-RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates gosu \
+RUN apt-get update && apt-get install -y --no-install-recommends wget curl ca-certificates gosu \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd --system newsroom \
   && useradd --system --gid newsroom --home /app newsroom

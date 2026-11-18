@@ -12,7 +12,15 @@ import {
   usablePrice,
   yearToDateReturn,
 } from "@/lib/giverny/engine";
-import { downloadFiling, filingStoredDate, filingToHoldings, listEdgarFilings } from "@/lib/giverny/edgar";
+import {
+  downloadFiling,
+  filingStoredDate,
+  filingToHoldings,
+  listEdgarFilings,
+  type EdgarFilingMeta,
+} from "@/lib/giverny/edgar";
+import { parse13FDocuments } from "@/lib/giverny/parse-13f";
+import type { Parsed13FFiling } from "@/lib/giverny/types";
 import { mapCusips } from "@/lib/giverny/cusip";
 import { refreshUsdCadHistory } from "@/lib/giverny/fx";
 import { liveQuotePriceRows, refreshLiveQuotes, refreshYahooHistory } from "@/lib/giverny/prices";
@@ -41,7 +49,7 @@ import {
   upsertOfficialMonth,
   upsertPrices,
 } from "@/lib/giverny/store";
-import { nySessionDate, nyTradingSessions } from "@/lib/giverny/tickers";
+import { nySessionDate, nyTradingSessions, padCik } from "@/lib/giverny/tickers";
 import type {
   Contributor,
   GivernySummary,
@@ -91,6 +99,39 @@ export async function tickGiverny(force = false): Promise<void> {
   }
 }
 
+const ACCESSION = /^\d{10}-\d{2}-\d{6}$/;
+
+async function persistParsedFiling(
+  parsed: Parsed13FFiling,
+  meta: Pick<EdgarFilingMeta, "accession" | "form" | "filingDate" | "reportDate" | "acceptanceDateTime">,
+  filerName: string,
+) {
+  const settings = givernySettings();
+  const accession = parsed.accession || meta.accession;
+  const cik = padCik(parsed.cik || settings.cik);
+  const mapped = await mapCusips(
+    parsed.holdings.map((row) => ({ cusip: row.cusip, issuerName: row.issuerName })),
+  );
+  providerNote("openfigi", mapped.error == null, mapped.error || "CUSIP appariés.");
+  const holdings = filingToHoldings(parsed).map((holding) => ({
+    ...holding,
+    ticker: mapped.mapped.get(holding.cusip) ?? null,
+  }));
+  replaceFiling({
+    accession,
+    cik,
+    filerName: parsed.filerName || filerName || GIVERNY_DEFAULT_FILER,
+    form: parsed.form || meta.form || "13F-HR",
+    periodOfReport: filingStoredDate(parsed.periodOfReport || meta.reportDate),
+    filedAt: filingStoredDate(parsed.filedAt || meta.filingDate || parsed.periodOfReport),
+    acceptedAt: parsed.acceptedAt || meta.acceptanceDateTime,
+    documentUrl: `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession.replace(/-/g, "")}/`,
+    tableValueTotal: parsed.tableValueTotal,
+    holdings,
+  });
+  return holdings.length;
+}
+
 export async function ingestFilings(force = false): Promise<void> {
   if (ingestInFlight) return ingestInFlight;
   ingestInFlight = (async () => {
@@ -110,24 +151,7 @@ export async function ingestFilings(force = false): Promise<void> {
       }
       const parsed = await downloadFiling(settings.cik, meta);
       if (!parsed || parsed.holdings.length === 0) continue;
-      const mapped = await mapCusips(parsed.holdings.map((row) => ({ cusip: row.cusip, issuerName: row.issuerName })));
-      providerNote("openfigi", mapped.error == null, mapped.error || "CUSIP appariés.");
-      const holdings = filingToHoldings(parsed).map((holding) => ({
-        ...holding,
-        ticker: mapped.mapped.get(holding.cusip) ?? null,
-      }));
-      replaceFiling({
-        accession: parsed.accession || meta.accession,
-        cik: settings.cik,
-        filerName: parsed.filerName || listed.name || GIVERNY_DEFAULT_FILER,
-        form: parsed.form || meta.form,
-        periodOfReport: filingStoredDate(parsed.periodOfReport || meta.reportDate),
-        filedAt: filingStoredDate(parsed.filedAt || meta.filingDate),
-        acceptedAt: parsed.acceptedAt || meta.acceptanceDateTime,
-        documentUrl: `https://www.sec.gov/Archives/edgar/data/${Number(settings.cik)}/${meta.accession.replace(/-/g, "")}/`,
-        tableValueTotal: parsed.tableValueTotal,
-        holdings,
-      });
+      await persistParsedFiling(parsed, meta, listed.name);
       stored += 1;
     }
     if (stored === 0) markGivernyError("Aucun tableau 13F n’a pu être lu.");
@@ -137,6 +161,44 @@ export async function ingestFilings(force = false): Promise<void> {
     ingestInFlight = null;
   });
   return ingestInFlight;
+}
+
+export async function ingestUploadedFiling(xml: string, accessionHint?: string | null) {
+  const trimmed = xml.trim();
+  if (trimmed.length < 40 || trimmed.length > 2_000_000) {
+    throw new Error("Fichier 13F invalide.");
+  }
+  if (!/<infoTable\b/i.test(trimmed)) {
+    throw new Error("Le XML ne contient pas de tableau infoTable.");
+  }
+  const parsed = parse13FDocuments(trimmed);
+  if (parsed.holdings.length === 0) {
+    throw new Error("Aucun titre lisible dans le 13F.");
+  }
+  const accession = ACCESSION.test((parsed.accession || "").trim())
+    ? (parsed.accession || "").trim()
+    : (accessionHint || "").trim();
+  if (!ACCESSION.test(accession)) {
+    throw new Error("Numéro d’accession manquant ou invalide (ex. 0001641864-26-000011).");
+  }
+  const settings = givernySettings();
+  await persistParsedFiling(
+    { ...parsed, accession },
+    {
+      accession,
+      form: parsed.form || "13F-HR",
+      filingDate: parsed.filedAt || parsed.periodOfReport || "",
+      reportDate: parsed.periodOfReport,
+      acceptanceDateTime: parsed.acceptedAt,
+    },
+    parsed.filerName || settings.filerName || GIVERNY_DEFAULT_FILER,
+  );
+  providerNote("edgar", true, `13F importé ${accession} (${parsed.holdings.length} titres).`);
+  markGivernyError(null);
+  markRefresh("filings");
+  await refreshMarketHistory(usEquitySession() === "closed");
+  await recomputeIndex();
+  return { accession, holdings: parsed.holdings.length };
 }
 
 async function refreshMarketHistory(officialClose: boolean) {

@@ -55,3 +55,11 @@ export function sevenDayDates(today: string) {
   const monday = mondayOfWeek(today);
   return Array.from({ length: 7 }, (_, index) => shiftDate(monday, index));
 }
+
+const WEEKDAY_FR = ["DI", "LU", "MA", "ME", "JE", "VE", "SA"];
+
+export function weekdayLabel(date: string) {
+  const utc = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(utc.getTime())) throw new Error("Date locale invalide.");
+  return WEEKDAY_FR[utc.getUTCDay()] ?? "";
+}

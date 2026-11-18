@@ -1,5 +1,5 @@
 name: "NEWSROOM55"
-version: "1.0.0-ha.21"
+version: "1.0.0-ha.22"
 slug: "newsroom55"
 description: "Centre de nouvelles, marchés et multivue pour Cisco Board. Configurez le mot de passe administrateur dans l’onglet Configuration — aucun fichier .env."
 stage: "experimental"
@@ -32,6 +32,7 @@ options:
   ha_token: ""
   ha_sync_interval_seconds: 15
   activity_pulse_enabled: false
+  edgar_contact_email: ""
   roomos_device_ip: ""
   roomos_username: ""
   roomos_password: ""
@@ -51,6 +52,7 @@ schema:
   ha_token: "password?"
   ha_sync_interval_seconds: "int(15,86400)"
   activity_pulse_enabled: "bool"
+  edgar_contact_email: "str?"
   roomos_device_ip: "str?"
   roomos_username: "str?"
   roomos_password: "password?"

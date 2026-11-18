@@ -5,6 +5,7 @@ import {
   sevenDayDates,
   shiftDate,
   sleepNightDate,
+  weekdayLabel,
 } from "@/lib/health/time";
 
 describe("health calendar handling", () => {
@@ -33,6 +34,15 @@ describe("health calendar handling", () => {
       "2026-11-13",
       "2026-11-14",
       "2026-11-15",
+    ]);
+    expect(sevenDayDates("2026-11-11").map(weekdayLabel)).toEqual([
+      "LU",
+      "MA",
+      "ME",
+      "JE",
+      "VE",
+      "SA",
+      "DI",
     ]);
   });
 });

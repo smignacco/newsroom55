@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EDGAR_CONTACT_EMAIL, EDGAR_BLOCKED_FR, SEC_USER_AGENT } from "../src/lib/giverny/types";
+import { EDGAR_CONTACT_EMAIL, EDGAR_BLOCKED_FR } from "../src/lib/giverny/types";
 import { fetchText, isEdgarUrl, requestHeaders } from "../src/lib/giverny/http";
 import { listEdgarFilings, parseEftsFilings } from "../src/lib/giverny/edgar";
+import { secUserAgent } from "../src/lib/giverny/identity";
 
 afterEach(() => {
+  delete process.env.EDGAR_CONTACT_EMAIL;
+  delete process.env.EDGAR_USER_AGENT;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -22,20 +25,28 @@ function fakeResponse(status: number, body: string) {
 }
 
 describe("EDGAR HTTP identity", () => {
-  it("sends a browser-like User-Agent, SEC contact, and never a Host override", () => {
+  it("sends a declared SEC User-Agent, contact, and never a Host override", () => {
     const headers = requestHeaders("https://data.sec.gov/submissions/CIK0001641864.json", {
       host: "data.sec.gov",
     });
     expect(isEdgarUrl("https://data.sec.gov/submissions/CIK0001641864.json")).toBe(true);
-    expect(headers["user-agent"]).toBe(SEC_USER_AGENT);
-    expect(headers["user-agent"]).toMatch(/Mozilla\/5\.0/);
+    expect(headers["user-agent"]).toBe(secUserAgent(EDGAR_CONTACT_EMAIL));
+    expect(headers["user-agent"]).toMatch(/^NEWSROOM55 GivernyTracker /);
+    expect(headers["user-agent"]).not.toMatch(/Mozilla\/5\.0/);
     expect(headers.from).toBe(EDGAR_CONTACT_EMAIL);
     expect(headers.referer).toBe("https://www.sec.gov/");
     expect(headers.host).toBeUndefined();
     expect(headers.Host).toBeUndefined();
   });
 
-  it("does not apply the SEC browser profile to Yahoo or Bank of Canada", () => {
+  it("uses EDGAR_CONTACT_EMAIL when it is a reachable address", () => {
+    process.env.EDGAR_CONTACT_EMAIL = "desk@example.com";
+    const headers = requestHeaders("https://data.sec.gov/submissions/CIK0001641864.json");
+    expect(headers.from).toBe("desk@example.com");
+    expect(headers["user-agent"]).toBe("NEWSROOM55 GivernyTracker desk@example.com");
+  });
+
+  it("does not apply the SEC profile to Yahoo or Bank of Canada", () => {
     const yahoo = requestHeaders("https://query1.finance.yahoo.com/v8/finance/chart/AAPL");
     expect(yahoo["user-agent"]).toBe("NEWSROOM55/1.0");
     expect(yahoo.from).toBeUndefined();
@@ -55,7 +66,7 @@ describe("EDGAR HTTP identity", () => {
       | { headers?: Record<string, string> }
       | undefined;
     expect(firstInit?.headers?.from).toBe(EDGAR_CONTACT_EMAIL);
-    expect(firstInit?.headers?.["user-agent"]).toMatch(/Chrome\/131/);
+    expect(firstInit?.headers?.["user-agent"]).toMatch(/^NEWSROOM55 GivernyTracker /);
   });
 
   it("recovers after a transient EDGAR 403", async () => {
@@ -68,6 +79,23 @@ describe("EDGAR HTTP identity", () => {
     expect(result.ok).toBe(true);
     expect(result.body).toBe('{"ok":true}');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses native TLS when Node is forbidden", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse(403, "blocked")));
+    const nativeFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      body: '{"cik":"0001641864"}',
+    }));
+    const result = await fetchText("https://data.sec.gov/submissions/CIK0001641864.json", {
+      attempts: 1,
+      backoffMs: 0,
+      nativeFetch,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.body).toContain("0001641864");
+    expect(nativeFetch).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -62,10 +62,12 @@ la plage du graphique, la hauteur, le bandeau d’alerte compact, forcer un
 rafraîchissement 13F, et saisir les rendements mensuels officiels. Ces mois
 servent à l’erreur de suivi ; ils ne remplacent pas la série synthétique.
 
-EDGAR exige un User-Agent identifiable et un contact. NEWSROOM envoie un
-profil de navigateur plus l’en-tête `From`, avec des reprises si le dépôt
-répond 403/429/503. Si EDGAR refuse encore le trafic automatisé, le bandeau
-affiche « indisponible » sans inventer de niveaux ni le livre 13F.
+EDGAR exige un User-Agent déclaré (`NEWSROOM55 GivernyTracker` + courriel) et
+l’en-tête `From`. Un courriel joignable se règle dans `/admin` → Giverny ou
+l’option add-on `edgar_contact_email`. Si Node est bloqué, NEWSROOM retente
+via curl/wget. Si EDGAR refuse encore, importez le XML 13F téléchargé dans un
+navigateur ; le bandeau reste « indisponible » tant qu’aucun tableau n’est
+lisible — aucun livre ni niveau inventé.
 
 ## Marchés
 

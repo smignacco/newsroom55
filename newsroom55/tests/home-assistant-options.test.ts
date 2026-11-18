@@ -32,6 +32,8 @@ describe("Home Assistant options", () => {
     expect(config).not.toContain('ha_base_url: "url?"');
     expect(config).toContain("ha_sync_interval_seconds: 15");
     expect(config).toContain('ha_sync_interval_seconds: "int(15,86400)"');
+    expect(config).toContain('edgar_contact_email: ""');
+    expect(config).toContain('edgar_contact_email: "str?"');
   });
 
   it("maps the configuration form onto environment variables and skips blanks", () => {
@@ -47,6 +49,7 @@ describe("Home Assistant options", () => {
     expect(env.HA_TOKEN).toBe("test-only-placeholder");
     expect(env.HA_SYNC_INTERVAL_SECONDS).toBe("300");
     expect(env.ACTIVITY_PULSE_ENABLED).toBe("1");
+    expect(env.EDGAR_CONTACT_EMAIL).toBeUndefined();
     expect(env.ROOMOS_PROTOCOL).toBe("https");
     expect(env.ROOMOS_INSECURE_TLS).toBe("0");
     expect(env.FINNHUB_API_KEY).toBeUndefined();
@@ -63,12 +66,14 @@ describe("Home Assistant options", () => {
         timezone: "America/Toronto",
         roomos_insecure_tls: true,
         newsroom_url: "http://192.168.10.10:3000",
+        edgar_contact_email: "desk@example.com",
       },
       env,
     );
     expect(env.ADMIN_PASSWORD).toBe("board-pass-99");
     expect(env.ROOMOS_INSECURE_TLS).toBe("1");
     expect(env.NEWSROOM_URL).toBe("http://192.168.10.10:3000");
+    expect(env.EDGAR_CONTACT_EMAIL).toBe("desk@example.com");
     requireAdminPassword(env);
   });
 

@@ -14,14 +14,20 @@ import {
   type HealthMetric,
 } from "@/lib/health/metrics";
 import {
+  activityInstant,
+  dailyTotalsFromSeries,
+  HEALTH_TIMEZONE,
+} from "@/lib/health/daily";
+import {
   localDate,
   mondayOfWeek,
   sevenDayDates,
   shiftDate,
   sleepNightDate,
+  weekdayLabel,
 } from "@/lib/health/time";
 
-const TIMEZONE = "America/Toronto";
+const TIMEZONE = HEALTH_TIMEZONE;
 
 export type HealthMapping = {
   metric: HealthMetric;
@@ -186,19 +192,24 @@ function sourceTime(states: (HomeAssistantState | undefined)[]) {
   );
 }
 
-function stateForLocalDate(
-  state: HomeAssistantState | undefined,
-  expectedDate: string,
-) {
-  if (!state?.last_updated) return undefined;
+function dateForState(state: HomeAssistantState | undefined) {
+  const instant = state ? activityInstant(state) : null;
+  if (!instant) return null;
   try {
-    return localDate(state.last_updated, TIMEZONE) === expectedDate
-      ? state
-      : undefined;
+    return localDate(instant, TIMEZONE);
   } catch {
-    return undefined;
+    return null;
   }
 }
+
+const LIVE_ACTIVITY_FIELDS = [
+  ["steps", "steps"],
+  ["exercise_minutes", "exerciseMinutes"],
+  ["active_energy", "activeEnergyKcal"],
+  ["move_goal", "moveGoalKcal"],
+  ["exercise_goal", "exerciseGoalMinutes"],
+  ["stand_hours", "standHours"],
+] as const;
 
 function upsertActivity(
   date: string,
@@ -300,6 +311,7 @@ async function syncRecorderHistory(
   reader: HomeAssistantReader,
   mappings: HealthMapping[],
   syncedAt: string,
+  today: string,
 ) {
   const relevant = mappings.filter((mapping) =>
     ["steps", "exercise_minutes", "sleep_duration"].includes(mapping.metric),
@@ -321,37 +333,90 @@ async function syncRecorderHistory(
   for (const mapping of relevant) {
     const series = (byEntity.get(mapping.entityId) || [])
       .slice()
-      .filter(
-        (state) =>
-          typeof state.last_updated === "string" &&
-          !Number.isNaN(new Date(state.last_updated).getTime()),
-      )
-      .sort((a, b) => a.last_updated.localeCompare(b.last_updated));
-    for (const state of series) {
-      const value = measurementValue(mapping.metric, state);
-      if (value == null || !state.last_updated) continue;
-      if (mapping.metric === "sleep_duration") {
-        if (value <= 0) continue;
+      .filter((state) => activityInstant(state));
+    if (mapping.metric === "sleep_duration") {
+      for (const state of series) {
+        const value = measurementValue(mapping.metric, state);
+        const instant = activityInstant(state);
+        if (value == null || value <= 0 || !instant) continue;
         upsertSleep(
-          sleepNightDate(state.last_updated, TIMEZONE),
+          sleepNightDate(instant, TIMEZONE),
           value,
           {
-            sourceUpdatedAt: state.last_updated,
+            sourceUpdatedAt: instant,
           },
           syncedAt,
         );
-      } else {
-        const date = localDate(state.last_updated, TIMEZONE);
-        upsertActivity(
-          date,
-          mapping.metric === "steps"
-            ? { steps: value, sourceUpdatedAt: state.last_updated }
-            : { exerciseMinutes: value, sourceUpdatedAt: state.last_updated },
-          syncedAt,
-        );
       }
+      continue;
+    }
+    if (mapping.metric !== "steps" && mapping.metric !== "exercise_minutes") {
+      continue;
+    }
+    const totals = dailyTotalsFromSeries(
+      series,
+      mapping.metric,
+      today,
+      TIMEZONE,
+    );
+    for (const [date, point] of totals) {
+      upsertActivity(
+        date,
+        mapping.metric === "steps"
+          ? { steps: point.value, sourceUpdatedAt: point.sourceUpdatedAt }
+          : {
+              exerciseMinutes: point.value,
+              sourceUpdatedAt: point.sourceUpdatedAt,
+            },
+        syncedAt,
+      );
     }
   }
+}
+
+function retractCarriedDailyTotals(
+  today: string,
+  live: { steps: boolean; exerciseMinutes: boolean },
+) {
+  const yesterday = shiftDate(today, -1);
+  const rows = getDb()
+    .prepare(
+      `SELECT activity_date, steps, exercise_minutes
+       FROM activity_daily_totals WHERE activity_date IN (?, ?)`,
+    )
+    .all(yesterday, today) as Array<{
+    activity_date: string;
+    steps: number | null;
+    exercise_minutes: number | null;
+  }>;
+  const byDate = new Map(rows.map((row) => [row.activity_date, row]));
+  const previous = byDate.get(yesterday);
+  const current = byDate.get(today);
+  if (!current) return;
+  const steps =
+    !live.steps &&
+    current.steps != null &&
+    previous?.steps != null &&
+    current.steps === previous.steps
+      ? null
+      : current.steps;
+  const exerciseMinutes =
+    !live.exerciseMinutes &&
+    current.exercise_minutes != null &&
+    previous?.exercise_minutes != null &&
+    current.exercise_minutes === previous.exercise_minutes
+      ? null
+      : current.exercise_minutes;
+  if (steps === current.steps && exerciseMinutes === current.exercise_minutes) {
+    return;
+  }
+  getDb()
+    .prepare(
+      `UPDATE activity_daily_totals
+       SET steps = ?, exercise_minutes = ?
+       WHERE activity_date = ?`,
+    )
+    .run(steps, exerciseMinutes, today);
 }
 
 let healthSyncInFlight: Promise<PulseSnapshot> | null = null;
@@ -377,67 +442,33 @@ async function performHealthSync(
     const mapped = stateMap(states, mappings);
     const syncedAt = new Date().toISOString();
     const today = localDate(syncedAt, TIMEZONE);
-    const currentActivity = new Map<
-      HealthMetric,
-      HomeAssistantState | undefined
-    >(
-      [
-        "steps",
-        "exercise_minutes",
-        "active_energy",
-        "move_goal",
-        "exercise_goal",
-        "stand_hours",
-      ].map((metric) => [
-        metric as HealthMetric,
-        stateForLocalDate(mapped.get(metric as HealthMetric), today),
-      ]),
-    );
-    const activityStates = [
-      currentActivity.get("steps"),
-      currentActivity.get("exercise_minutes"),
-      currentActivity.get("active_energy"),
-      currentActivity.get("move_goal"),
-      currentActivity.get("exercise_goal"),
-      currentActivity.get("stand_hours"),
-    ];
-    const activityValues = {
-      steps: measurementValue("steps", currentActivity.get("steps")),
-      exerciseMinutes: measurementValue(
-        "exercise_minutes",
-        currentActivity.get("exercise_minutes"),
-      ),
-      activeEnergyKcal: measurementValue(
-        "active_energy",
-        currentActivity.get("active_energy"),
-      ),
-      moveGoalKcal: measurementValue(
-        "move_goal",
-        currentActivity.get("move_goal"),
-      ),
-      exerciseGoalMinutes: measurementValue(
-        "exercise_goal",
-        currentActivity.get("exercise_goal"),
-      ),
-      standHours: measurementValue(
-        "stand_hours",
-        currentActivity.get("stand_hours"),
-      ),
-      sourceUpdatedAt: sourceTime(activityStates),
-    };
-    if (
-      [
-        activityValues.steps,
-        activityValues.exerciseMinutes,
-        activityValues.activeEnergyKcal,
-        activityValues.moveGoalKcal,
-        activityValues.exerciseGoalMinutes,
-        activityValues.standHours,
-      ].some((value) => value != null)
-    ) {
-      upsertActivity(today, activityValues, syncedAt);
+    const activityByDate = new Map<
+      string,
+      {
+        steps?: number | null;
+        exerciseMinutes?: number | null;
+        activeEnergyKcal?: number | null;
+        moveGoalKcal?: number | null;
+        exerciseGoalMinutes?: number | null;
+        standHours?: number | null;
+        sourceUpdatedAt?: string | null;
+      }
+    >();
+    const liveToday = { steps: false, exerciseMinutes: false };
+    for (const [metric, field] of LIVE_ACTIVITY_FIELDS) {
+      const state = mapped.get(metric);
+      const date = dateForState(state);
+      if (!state || !date || date > today) continue;
+      const value = measurementValue(metric, state);
+      if (value == null) continue;
+      const row = activityByDate.get(date) ?? {};
+      row[field] = value;
+      row.sourceUpdatedAt = activityInstant(state);
+      activityByDate.set(date, row);
+      if (date === today && (field === "steps" || field === "exerciseMinutes")) {
+        liveToday[field] = true;
+      }
     }
-
     const totalState = mapped.get("sleep_duration");
     const totalMinutes = measurementValue("sleep_duration", totalState);
     if (totalState?.last_updated && totalMinutes != null && totalMinutes > 0) {
@@ -465,8 +496,12 @@ async function performHealthSync(
     }
 
     if (options.history !== false) {
-      await syncRecorderHistory(reader, mappings, syncedAt);
+      await syncRecorderHistory(reader, mappings, syncedAt, today);
     }
+    for (const [date, values] of activityByDate) {
+      upsertActivity(date, values, syncedAt);
+    }
+    retractCarriedDailyTotals(today, liveToday);
     database
       .prepare(
         `INSERT INTO health_sync_state (id, last_attempt_at, last_success_at, last_error)
@@ -604,11 +639,11 @@ export function getPulseSnapshot(now = new Date()): PulseSnapshot {
     activityRows.map((row) => [row.activity_date, row]),
   );
   const todayActivity = activityByDate.get(today);
-  const days = weekDates.map((date, index) => {
+  const days = weekDates.map((date) => {
     const row = activityByDate.get(date);
     return {
       date,
-      label: ["L", "M", "M", "J", "V", "S", "D"][index],
+      label: weekdayLabel(date),
       minutes: row?.exercise_minutes ?? null,
       status: (date > today ? "future" : row ? "recorded" : "missing") as
         "recorded" | "missing" | "future",

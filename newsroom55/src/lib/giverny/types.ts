@@ -7,8 +7,6 @@ export const GIVERNY_COMPLETE_COVERAGE = 0.995;
 export const EDGAR_CONTACT_EMAIL = "newsroom55@users.noreply.github.com";
 export const EDGAR_BLOCKED_FR =
   "EDGAR a refusé le trafic automatisé. L’indice reste indisponible tant que le dépôt n’est pas lisible.";
-export const SEC_USER_AGENT =
-  `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 NEWSROOM55/1.0 (+https://github.com/smignacco/newsroom55; ${EDGAR_CONTACT_EMAIL})`;
 
 export type GivernyCurrency = "CAD" | "USD";
 export type GivernyChartRange = "1M" | "3M" | "YTD" | "1Y";
@@ -27,6 +25,7 @@ export type GivernySettings = {
   breakingBanner: BreakingBannerMode;
   cik: string;
   filerName: string;
+  contactEmail: string;
 };
 
 export type Parsed13FHolding = {

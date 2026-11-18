@@ -5,9 +5,10 @@ VL officiel.
 
 ## Données
 
-- Dépôts : SEC EDGAR, CIK `0001641864` (réglable). User-Agent de navigateur,
-  en-tête `From` de contact, reprises avec délai. Le livre n’est pas saisi en
-  dur : un 403 laisse l’indice indisponible.
+- Dépôts : SEC EDGAR, CIK `0001641864` (réglable). User-Agent déclaré
+  (`NEWSROOM55 GivernyTracker` + courriel), en-tête `From`, repli curl/wget
+  si Node est refusé, import XML manuel. Le livre n’est pas saisi en dur : un
+  403 sans XML laisse l’indice indisponible.
 - Appariement CUSIP → ticker : OpenFIGI, cache SQLite.
 - Cours : pile marchés existante (Twelve Data, Finnhub, Cboe, Yahoo historique).
 - Change : Banque du Canada `FXUSDCAD` (déjà dans le dépôt).

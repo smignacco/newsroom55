@@ -300,9 +300,15 @@ test.describe("Centre de nouvelles visual board", () => {
     ).toBeVisible();
     await expect(page.getByText(/Pas le VL officiel/i)).toBeVisible();
     await expect(page.getByRole("button", { name: "Actualiser le 13F maintenant" })).toBeVisible();
+    await expect(page.getByText("Courriel de contact EDGAR")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Import XML 13F" })).toBeVisible();
     const dest = path.join(media, "giverny-admin.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);
+    await page.getByRole("heading", { name: "Import XML 13F" }).scrollIntoViewIfNeeded();
+    const importDest = path.join(media, "giverny-edgar-import.png");
+    await page.screenshot({ path: importDest, fullPage: false });
+    expect(fs.existsSync(importDest)).toBe(true);
   });
 
   test("board tile menu, ticker and pulse fixture", async ({ page }) => {

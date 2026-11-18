@@ -26,6 +26,7 @@ export const OPTION_ENVIRONMENT = {
   ha_token: "HA_TOKEN",
   ha_sync_interval_seconds: "HA_SYNC_INTERVAL_SECONDS",
   activity_pulse_enabled: "ACTIVITY_PULSE_ENABLED",
+  edgar_contact_email: "EDGAR_CONTACT_EMAIL",
   roomos_device_ip: "ROOMOS_DEVICE_IP",
   roomos_username: "ROOMOS_USERNAME",
   roomos_password: "ROOMOS_PASSWORD",
