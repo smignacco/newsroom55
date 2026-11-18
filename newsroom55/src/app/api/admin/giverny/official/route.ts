@@ -20,7 +20,7 @@ function privateJson(body: unknown, init?: { status?: number }) {
 
 const postSchema = z.object({
   yearMonth: z.string().regex(/^\d{4}-\d{2}$/),
-  officialReturn: z.number().gt(-1).lt(2),
+  officialReturn: z.number().gt(-1).lt(2).optional(),
   officialNav: z.number().positive().lt(100_000).nullable().optional(),
   note: z.string().max(240).nullable().optional(),
 });
@@ -37,10 +37,15 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return privateJson({ error: "Mois officiel invalide" }, { status: 400 });
   }
+  const officialNav = parsed.data.officialNav ?? null;
+  const officialReturn = parsed.data.officialReturn;
+  if (officialReturn == null && officialNav == null) {
+    return privateJson({ error: "Indiquez le rendement mensuel officiel et/ou le VL CAD." }, { status: 400 });
+  }
   saveOfficialMonth(
     parsed.data.yearMonth,
-    parsed.data.officialReturn,
-    parsed.data.officialNav ?? null,
+    officialReturn ?? 0,
+    officialNav,
     parsed.data.note ?? null,
   );
   return privateJson({ validation: getGivernyValidation() });

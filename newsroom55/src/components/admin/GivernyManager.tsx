@@ -115,7 +115,10 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         Estimation quotidienne à partir des 13F publics. Ce n’est pas le VL officiel.
         Un VL de fin de mois saisi ancre l’affichage CAD entre deux rapports ; les
         rendements 13F restent la série de calcul, jamais remplacés par un VL
-        inventé.
+        inventé. Le mois s’inscrit en AAAA-MM (31 octobre 2026 → 2026-10). Le
+        prix unitaire NBN125 va dans VL CAD, pas dans le %. Si le 13F public
+        n’existe qu’après la fin de mois, l’estimation part de la première
+        séance 13F suivante — le trou n’est pas inventé.
       </p>
 
       <label className="nr-field">
@@ -325,18 +328,41 @@ export function GivernyManager({ csrf }: { csrf: string }) {
       <form
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
-          const parsed = Number(officialPct.replace(",", "."));
+          const parsed = officialPct.trim() ? Number(officialPct.replace(",", ".")) : null;
           const nav = officialNav.trim()
             ? Number(officialNav.replace(",", "."))
             : null;
-          if (!month || !Number.isFinite(parsed)) return;
-          if (nav != null && !(nav > 0)) return;
+          if (!month) {
+            setMessage("");
+            setError("Indiquez le mois en AAAA-MM (ex. 2026-10).");
+            return;
+          }
+          if (parsed != null && !Number.isFinite(parsed)) {
+            setMessage("");
+            setError("Le % officiel est un rendement mensuel, pas le prix unitaire.");
+            return;
+          }
+          if (parsed != null && Math.abs(parsed) > 50) {
+            setMessage("");
+            setError("Le % mensuel est un rendement (ex. 1,2), pas le VL. Le prix unitaire NBN125 va dans VL CAD.");
+            return;
+          }
+          if (nav != null && !(nav > 0)) {
+            setMessage("");
+            setError("Le VL CAD doit être un prix unitaire positif.");
+            return;
+          }
+          if (parsed == null && nav == null) {
+            setMessage("");
+            setError("Indiquez le rendement mensuel officiel et/ou le VL CAD de fin de mois.");
+            return;
+          }
           void run("official", async () => {
             await givernyApi("/api/admin/giverny/official", csrf, {
               method: "POST",
               body: JSON.stringify({
                 yearMonth: month,
-                officialReturn: parsed / 100,
+                officialReturn: parsed == null ? undefined : parsed / 100,
                 officialNav: nav,
                 note: note || null,
               }),
@@ -351,19 +377,27 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         }}
         style={{ display: "grid", gap: "0.6rem", gridTemplateColumns: "8rem 7rem 7rem 1fr auto" }}
       >
-        <input className="nr-field" type="month" value={month} onChange={(event) => setMonth(event.target.value)} required />
         <input
           className="nr-field"
-          placeholder="% officiel"
+          type="month"
+          value={month}
+          onChange={(event) => setMonth(event.target.value)}
+          aria-label="Mois AAAA-MM"
+          required
+        />
+        <input
+          className="nr-field"
+          placeholder="% mensuel"
           value={officialPct}
           onChange={(event) => setOfficialPct(event.target.value)}
-          required
+          aria-label="Rendement mensuel officiel en pourcent"
         />
         <input
           className="nr-field"
           placeholder="VL CAD"
           value={officialNav}
           onChange={(event) => setOfficialNav(event.target.value)}
+          aria-label="Prix unitaire CAD de fin de mois"
         />
         <input className="nr-field" placeholder="Note" value={note} onChange={(event) => setNote(event.target.value)} />
         <button type="submit" className="nr-chip">

@@ -426,31 +426,35 @@ export type NavEstimatePoint = {
   anchorDate: string;
 };
 
+function usableNavAnchorPoint(point: DailyPoint | undefined, minCoverage: number): point is DailyPoint {
+  return Boolean(point && (point.coverage ?? 0) >= minCoverage && usablePrice(point.givCad));
+}
+
 export function officialNavEstimate(
   points: DailyPoint[],
   anchors: OfficialNavAnchor[],
   minCoverage = GIVERNY_MIN_COVERAGE,
 ): NavEstimatePoint[] {
   const byDate = new Map(points.map((point) => [point.sessionDate, point]));
+  const chronological = [...points].sort((left, right) => left.sessionDate.localeCompare(right.sessionDate));
   const resolved = anchors
     .filter((anchor) => usablePrice(anchor.officialNav))
     .flatMap((anchor) => {
       const monthEndDate = lastNyTradingSessionOfMonth(anchor.yearMonth);
-      const end = monthEndDate ? byDate.get(monthEndDate) : undefined;
-      if (
-        !monthEndDate ||
-        !end ||
-        (end.coverage ?? 0) < minCoverage ||
-        !usablePrice(end.givCad)
-      ) {
-        return [];
-      }
+      if (!monthEndDate) return [];
+      const monthEnd = byDate.get(monthEndDate);
+      const chosen = usableNavAnchorPoint(monthEnd, minCoverage)
+        ? monthEnd
+        : chronological.find(
+            (point) => point.sessionDate > monthEndDate && usableNavAnchorPoint(point, minCoverage),
+          );
+      if (!chosen || !usablePrice(chosen.givCad)) return [];
       return [
         {
           yearMonth: anchor.yearMonth,
-          asOf: monthEndDate,
+          asOf: chosen.sessionDate,
           nav: anchor.officialNav,
-          index: end.givCad,
+          index: chosen.givCad,
         },
       ];
     })
