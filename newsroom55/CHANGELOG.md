@@ -7,7 +7,8 @@
   pas de taux.
 - Ignore l’ancienne santé `edgar` (403) après l’abandon du téléchargement SEC.
 - L’actualisation admin publie une progression (CUSIP, Yahoo, change, indice)
-  au lieu d’un bouton « en cours » silencieux.
+  au lieu d’un bouton « en cours » silencieux. Un tick planifié ou un import
+  XML n’écrit plus cette progression et ne bloque plus le bouton.
 
 ## 1.0.0-ha.25
 

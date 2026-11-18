@@ -105,6 +105,21 @@ describe("manual 13F XML import", () => {
     expect(listHoldings(filing.id).some((row) => row.cusip === "30303M102")).toBe(true);
   });
 
+  it("does not leave admin refresh progress running after XML import or tick", async () => {
+    stubFetch();
+    const { ingestUploadedFiling, getGivernyRefreshProgress, tickGiverny } = await import(
+      "@/lib/giverny/service"
+    );
+    await ingestUploadedFiling(fixture, "0001641864-26-000016", "2026-11-12");
+    const afterImport = getGivernyRefreshProgress();
+    expect(afterImport.running).toBe(false);
+    expect(afterImport.percent).not.toBe(78);
+    await tickGiverny(true);
+    const afterTick = getGivernyRefreshProgress();
+    expect(afterTick.running).toBe(false);
+    expect(afterTick.percent).not.toBe(78);
+  });
+
   it("accepts namespace-prefixed information-table elements", async () => {
     stubFetch();
     const { ingestUploadedFiling } = await import("@/lib/giverny/service");

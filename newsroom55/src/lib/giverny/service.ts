@@ -64,6 +64,12 @@ import { GIVERNY_DEFAULT_FILER, GIVERNY_MIN_COVERAGE } from "@/lib/giverny/types
 
 let computeInFlight: Promise<void> | null = null;
 let refreshInFlight: Promise<void> | null = null;
+let manualRefreshProgress = false;
+
+function reportManualRefreshProgress(patch: Parameters<typeof setRefreshProgress>[0]) {
+  if (!manualRefreshProgress) return;
+  setRefreshProgress(patch);
+}
 
 function hoursSince(iso: string | null): number {
   if (!iso) return Number.POSITIVE_INFINITY;
@@ -226,7 +232,7 @@ async function refreshMarketHistory(officialClose: boolean) {
   });
   if (stale.length > 0) {
     const history = await refreshYahooHistory(stale, (done, total) => {
-      setRefreshProgress({
+      reportManualRefreshProgress({
         running: true,
         stage: "Cours",
         detail: `Historique Yahoo ${done}/${total}.`,
@@ -236,7 +242,7 @@ async function refreshMarketHistory(officialClose: boolean) {
     providerNote("yahoo", history.count > 0, history.error || `${history.count} barres quotidiennes.`);
   }
   const start = earliestFiledOn(books) ?? `${Number(today.slice(0, 4)) - 1}-01-01`;
-  setRefreshProgress({
+  reportManualRefreshProgress({
     running: true,
     stage: "Change",
     detail: "USD/CAD Banque du Canada.",
@@ -545,6 +551,7 @@ export async function refreshGivernyNow() {
 }
 
 async function runGivernyRefresh() {
+  manualRefreshProgress = true;
   try {
     markGivernyError(null);
     setRefreshProgress({
@@ -587,5 +594,7 @@ async function runGivernyRefresh() {
       finishedAt: new Date().toISOString(),
       error: message,
     });
+  } finally {
+    manualRefreshProgress = false;
   }
 }
