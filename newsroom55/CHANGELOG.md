@@ -6,7 +6,9 @@
   uniquement de l’import XML manuel. Actualiser relance CUSIP + cours, sans
   appeler EDGAR (plus de 403 qui masque un XML déjà importé).
 - Calcule GIV même si l’historique SPX manque : vs S&P et α restent vides
-  plutôt que de cacher l’indice.
+  plutôt que de cacher l’indice. Une séance sans SPX n’avance pas la base du
+  benchmark : le niveau S&P et α se rétablissent sur la prochaine observation,
+  sans publier α contre un SPX périmé.
 
 ## 1.0.0-ha.24
 

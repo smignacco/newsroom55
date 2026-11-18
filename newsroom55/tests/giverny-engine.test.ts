@@ -211,6 +211,45 @@ describe("Giverny portfolio math", () => {
     expect(points[2]?.givUsd).toBeCloseTo(120);
   });
 
+  it("recovers the SPX baseline across a missing intermediate session", () => {
+    const points = reconstructIndex({
+      sessions: ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12"],
+      filings: [book("2026-11-01", [["AAA", 1]])],
+      prices: new Map([
+        [
+          "AAA",
+          series([
+            ["2026-11-09", 10],
+            ["2026-11-10", 11],
+            ["2026-11-11", 12],
+            ["2026-11-12", 12],
+          ]),
+        ],
+      ]),
+      fx: series([
+        ["2026-11-09", 1.4],
+        ["2026-11-10", 1.4],
+        ["2026-11-11", 1.4],
+        ["2026-11-12", 1.4],
+      ]),
+      spx: series([
+        ["2026-11-09", 100],
+        ["2026-11-11", 121],
+        ["2026-11-12", 133.1],
+      ]),
+    });
+    expect(points[0]?.spxUsd).toBe(100);
+    expect(points[0]?.givAlpha).toBe(100);
+    expect(points[1]?.givUsd).toBeCloseTo(110);
+    expect(points[1]?.spxReturnUsd).toBeNull();
+    expect(points[1]?.givAlpha).toBeNull();
+    expect(points[1]?.status).toBe("incomplete");
+    expect(points[2]?.spxUsd).toBeCloseTo(121);
+    expect(points[2]?.givAlpha).toBeCloseTo((120 / 121) * 100);
+    expect(points[3]?.spxUsd).toBeCloseTo(133.1);
+    expect(points[3]?.givAlpha).toBeCloseTo((120 / 133.1) * 100);
+  });
+
   it("still publishes GIV when SPX history is missing", () => {
     const points = reconstructIndex({
       sessions: ["2026-11-09", "2026-11-10"],

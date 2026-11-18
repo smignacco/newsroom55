@@ -124,6 +124,7 @@ export function reconstructIndex(input: {
   let spxUsd: number | null = null;
   let fx0: number | null = null;
   let previousDate: string | null = null;
+  let previousSpxDate: string | null = null;
 
   for (const sessionDate of sessions) {
     const book = bookAsOf(input.filings, sessionDate);
@@ -151,6 +152,7 @@ export function reconstructIndex(input: {
       spxUsd = usablePrice(spx) ? GIVERNY_INCEPTION_LEVEL : null;
       fx0 = fx;
       previousDate = sessionDate;
+      previousSpxDate = usablePrice(spx) ? sessionDate : null;
       points.push({
         sessionDate,
         givUsd,
@@ -178,7 +180,8 @@ export function reconstructIndex(input: {
       equityReturns.set(ticker, sessionReturn(previous ?? null, current ?? null));
     }
     const portfolio = portfolioSessionReturn(weights, equityReturns, input.minCoverage);
-    const spxReturn = sessionReturn(priceOn(input.spx, previousDate ?? ""), priceOn(input.spx, sessionDate));
+    const currentSpx = priceOn(input.spx, sessionDate);
+    const spxReturn = sessionReturn(priceOn(input.spx, previousSpxDate ?? ""), currentSpx);
     const fx = priceOn(input.fx, sessionDate);
 
     if (portfolio.value == null) {
@@ -186,7 +189,7 @@ export function reconstructIndex(input: {
         sessionDate,
         givUsd,
         givCad: cadLevel(givUsd, fx, fx0),
-        givAlpha: alphaLevel(givUsd, spxUsd),
+        givAlpha: currentSpx != null ? alphaLevel(givUsd, spxUsd) : null,
         spxUsd,
         spxCad: cadLevel(spxUsd, fx, fx0),
         usdCad: fx,
@@ -201,7 +204,12 @@ export function reconstructIndex(input: {
     }
 
     givUsd *= 1 + portfolio.value;
-    if (spxUsd != null && spxReturn != null) spxUsd *= 1 + spxReturn;
+    let givAlpha: number | null = null;
+    if (spxUsd != null && spxReturn != null) {
+      spxUsd *= 1 + spxReturn;
+      previousSpxDate = sessionDate;
+      givAlpha = alphaLevel(givUsd, spxUsd);
+    }
     const givCad = cadLevel(givUsd, fx, fx0);
     const previousCad = points.at(-1)?.givCad ?? null;
     weights = driftWeights(weights, equityReturns);
@@ -215,7 +223,7 @@ export function reconstructIndex(input: {
       sessionDate,
       givUsd,
       givCad,
-      givAlpha: alphaLevel(givUsd, spxUsd),
+      givAlpha,
       spxUsd,
       spxCad: cadLevel(spxUsd, fx, fx0),
       usdCad: fx,

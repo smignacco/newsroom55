@@ -28,7 +28,9 @@ niveau du jour reste indisponible. Une séance indisponible ne décale pas la
 base du rendement suivant. GIV-CAD applique le USD/CAD du jour lorsqu’il est
 disponible, historisé depuis le premier 13F public ; sinon le niveau CAD reste
 vide. Un historique SPX manquant laisse vs S&P et α vides, mais n’empêche plus
-GIV de s’afficher. Les cours live sont rangés sous la séance NY du timestamp,
+GIV de s’afficher. Une séance sans SPX n’avance pas la base du benchmark : le
+niveau S&P récupère le mouvement du trou, et α reste vide tant que le S&P du
+jour n’est pas lisible. Les cours live sont rangés sous la séance NY du timestamp,
 pas sous la date civile du rafraîchissement. Le Board n’affiche pas de courbe
 de l’indice.
 
