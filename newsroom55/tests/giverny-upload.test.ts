@@ -249,6 +249,35 @@ describe("manual 13F XML import", () => {
     expect(jobs.every((job) => mapped.has(job.cusip))).toBe(true);
   });
 
+  it("shrinks OpenFIGI batches after a 413 instead of leaving the book unmapped", async () => {
+    delete process.env.OPENFIGI_API_KEY;
+    const jobs = Array.from({ length: 12 }, (_, index) => ({
+      cusip: String(index + 41).padStart(9, "0"),
+      issuerName: `Issuer ${index + 41}`,
+    }));
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body || "[]")) as Array<{ idValue: string }>;
+      if (body.length > 5) {
+        return {
+          ok: false,
+          status: 413,
+          headers: new Headers(),
+          json: async () => ({}),
+          text: async () => "",
+        };
+      }
+      return figiOk(body);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { mapCusips } = await import("@/lib/giverny/cusip");
+    const { mapped, error } = await mapCusips(jobs);
+    const sizes = fetchMock.mock.calls.map((call) => JSON.parse(String(call[1]?.body || "[]")).length);
+    expect(sizes[0]).toBe(10);
+    expect(sizes.slice(1).every((size) => size <= 5)).toBe(true);
+    expect(jobs.every((job) => mapped.has(job.cusip))).toBe(true);
+    expect(error).toBeNull();
+  });
+
   it("does not show the previous month's return as the current MTD", async () => {
     stubFetch();
     const { ingestUploadedFiling, getGivernySummary } = await import("@/lib/giverny/service");

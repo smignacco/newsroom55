@@ -107,6 +107,7 @@ async function mapChunk(
   discovered: Array<{ cusip: string; ticker: string; issuerName?: string | null; source: string }>;
   error: string | null;
   retry: boolean;
+  shrink: boolean;
   delayMs: number;
 }> {
   const controller = new AbortController();
@@ -125,6 +126,16 @@ async function mapChunk(
         discovered: [],
         error: "OpenFIGI 429: quota minute atteinte.",
         retry: true,
+        shrink: false,
+        delayMs,
+      };
+    }
+    if (posted.status === 413) {
+      return {
+        discovered: [],
+        error: "OpenFIGI 413: trop de CUSIP dans une seule requête.",
+        retry: false,
+        shrink: chunk.length > 1,
         delayMs,
       };
     }
@@ -133,6 +144,7 @@ async function mapChunk(
         discovered: [],
         error: `OpenFIGI ${posted.status}: correspondance CUSIP incomplète.`,
         retry: false,
+        shrink: false,
         delayMs,
       };
     }
@@ -149,12 +161,13 @@ async function mapChunk(
         source: "openfigi",
       });
     });
-    return { discovered, error: null, retry: false, delayMs };
+    return { discovered, error: null, retry: false, shrink: false, delayMs };
   } catch {
     return {
       discovered: [],
       error: "OpenFIGI injoignable; les titres non mis en cache restent non appariés.",
       retry: false,
+      shrink: false,
       delayMs: openFigiDefaultPaceMs(),
     };
   } finally {
@@ -175,13 +188,19 @@ export async function mapCusips(
   }
   if (missing.length === 0) return { mapped: known, error: null };
 
-  const size = openFigiBatchSize();
+  let batchSize = openFigiBatchSize();
   const discoveredAll: Array<{ cusip: string; ticker: string; issuerName?: string | null; source: string }> = [];
   let error: string | null = null;
   let retries = 0;
   for (let offset = 0; offset < missing.length; ) {
-    const chunk = missing.slice(offset, offset + size);
-    const { discovered, error: chunkError, retry, delayMs } = await mapChunk(chunk);
+    const chunk = missing.slice(offset, offset + batchSize);
+    const { discovered, error: chunkError, retry, shrink, delayMs } = await mapChunk(chunk);
+    if (shrink && chunk.length > 1) {
+      batchSize = Math.max(1, Math.min(10, Math.floor(chunk.length / 2)));
+      retries = 0;
+      await pacedSleep(delayMs);
+      continue;
+    }
     if (retry && retries < OPENFIGI_429_RETRIES) {
       retries += 1;
       await pacedSleep(delayMs);
@@ -191,7 +210,7 @@ export async function mapCusips(
     discoveredAll.push(...discovered);
     for (const row of discovered) known.set(row.cusip, row.ticker);
     if (chunkError) error = error ?? chunkError;
-    offset += size;
+    offset += chunk.length;
     if (offset < missing.length) {
       await pacedSleep(delayMs);
     }

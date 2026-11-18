@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.0.0-ha.24
+
+- Si OpenFIGI répond 413 (trop de CUSIP dans une requête), le mapping relance
+  le même livre en lots plus petits (jusqu’à 1) au lieu d’abandonner. Aucun
+  ticker n’est inventé.
+
 ## 1.0.0-ha.23
 
 - Apparie les CUSIP OpenFIGI par lots (10 sans clé, 100 avec) et réécrit les

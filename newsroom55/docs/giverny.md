@@ -10,8 +10,9 @@ VL officiel.
   si Node est refusé, import XML manuel. Le livre n’est pas saisi en dur : un
   403 sans XML laisse l’indice indisponible.
 - Appariement CUSIP → ticker : OpenFIGI par lots (10 jobs sans clé, 100 avec
-  `OPENFIGI_API_KEY`), cadence selon `ratelimit-*` / `retry-after`, cache
-  SQLite, réappliqué sur les 13F déjà stockés. Aucun ticker n’est inventé.
+  `OPENFIGI_API_KEY`), cadence selon `ratelimit-*` / `retry-after`. Un 413
+  relance le même livre en lots plus petits. Cache SQLite, réappliqué sur les
+  13F déjà stockés. Aucun ticker n’est inventé.
 - Cours : pile marchés existante (Twelve Data, Finnhub, Cboe, Yahoo historique).
 - Change : Banque du Canada `FXUSDCAD` (déjà dans le dépôt).
 - Persistance : tables `giverny_*` dans SQLite (`/data` sur Home Assistant).
