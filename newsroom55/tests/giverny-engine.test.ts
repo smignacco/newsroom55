@@ -8,6 +8,7 @@ import {
   portfolioSessionReturn,
   reconstructIndex,
   latestDisplayPoint,
+  officialNavEstimate,
   sessionReturn,
   yearToDateReturn,
   tickerCoverage,
@@ -132,6 +133,29 @@ describe("Giverny portfolio math", () => {
   it("measures official vs synthetic tracking without overwriting the synthetic series", () => {
     expect(trackingError([0.01, -0.01, 0])).toBeCloseTo(0.01);
     expect(cumulativeGap([0.02, 0.02], [0.01, 0.01])).toBeCloseTo((1.02 * 1.02) / (1.01 * 1.01) - 1);
+  });
+
+  it("scales the synthetic CAD index onto a user-entered month-end NAV", () => {
+    const series = officialNavEstimate(
+      [
+        { sessionDate: "2026-10-30", givCad: 100, coverage: 0.98 } as never,
+        { sessionDate: "2026-10-31", givCad: 100, coverage: 0.98 } as never,
+        { sessionDate: "2026-11-18", givCad: 102, coverage: 0.98 } as never,
+      ],
+      [{ yearMonth: "2026-10", officialNav: 76.31 }],
+    );
+    expect(series.find((row) => row.date === "2026-10-31")?.value).toBeCloseTo(76.31);
+    expect(series.find((row) => row.date === "2026-11-18")?.value).toBeCloseTo(76.31 * 1.02);
+    expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-10-31");
+  });
+
+  it("does not invent a NAV when no official unit price was entered", () => {
+    expect(
+      officialNavEstimate(
+        [{ sessionDate: "2026-11-18", givCad: 98.19, coverage: 0.98 } as never],
+        [],
+      ),
+    ).toEqual([]);
   });
 
   it("counts unmapped equity weight in the coverage denominator", () => {

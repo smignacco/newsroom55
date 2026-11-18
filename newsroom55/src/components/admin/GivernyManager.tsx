@@ -28,6 +28,7 @@ export function GivernyManager({ csrf }: { csrf: string }) {
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [month, setMonth] = useState("");
   const [officialPct, setOfficialPct] = useState("");
+  const [officialNav, setOfficialNav] = useState("");
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -112,7 +113,9 @@ export function GivernyManager({ csrf }: { csrf: string }) {
       </h2>
       <p className="nr-time">
         Estimation quotidienne à partir des 13F publics. Ce n’est pas le VL officiel.
-        Les mois officiels sont comparés à la série synthétique, jamais substitués.
+        Un VL de fin de mois saisi ancre l’affichage CAD entre deux rapports ; les
+        rendements 13F restent la série de calcul, jamais remplacés par un VL
+        inventé.
       </p>
 
       <label className="nr-field">
@@ -323,22 +326,30 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
           const parsed = Number(officialPct.replace(",", "."));
+          const nav = officialNav.trim()
+            ? Number(officialNav.replace(",", "."))
+            : null;
           if (!month || !Number.isFinite(parsed)) return;
+          if (nav != null && !(nav > 0)) return;
           void run("official", async () => {
             await givernyApi("/api/admin/giverny/official", csrf, {
               method: "POST",
               body: JSON.stringify({
                 yearMonth: month,
                 officialReturn: parsed / 100,
+                officialNav: nav,
                 note: note || null,
               }),
             });
             setOfficialPct("");
+            setOfficialNav("");
             setNote("");
-            return "Mois officiel enregistré. La série synthétique est inchangée.";
+            return nav
+              ? "Mois officiel enregistré. Le Board estime le VL à partir de ce niveau et du 13F, sans inventer de titres."
+              : "Mois officiel enregistré. La série synthétique est inchangée.";
           });
         }}
-        style={{ display: "grid", gap: "0.6rem", gridTemplateColumns: "8rem 8rem 1fr auto" }}
+        style={{ display: "grid", gap: "0.6rem", gridTemplateColumns: "8rem 7rem 7rem 1fr auto" }}
       >
         <input className="nr-field" type="month" value={month} onChange={(event) => setMonth(event.target.value)} required />
         <input
@@ -347,6 +358,12 @@ export function GivernyManager({ csrf }: { csrf: string }) {
           value={officialPct}
           onChange={(event) => setOfficialPct(event.target.value)}
           required
+        />
+        <input
+          className="nr-field"
+          placeholder="VL CAD"
+          value={officialNav}
+          onChange={(event) => setOfficialNav(event.target.value)}
         />
         <input className="nr-field" placeholder="Note" value={note} onChange={(event) => setNote(event.target.value)} />
         <button type="submit" className="nr-chip">
@@ -359,6 +376,7 @@ export function GivernyManager({ csrf }: { csrf: string }) {
           <tr>
             <th>Mois</th>
             <th>Officiel</th>
+            <th>VL CAD</th>
             <th>Synthétique</th>
             <th>Écart</th>
             <th></th>
@@ -367,7 +385,7 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         <tbody>
           {(validation?.officialMonths ?? []).length === 0 ? (
             <tr>
-              <td colSpan={5} className="nr-time">
+              <td colSpan={6} className="nr-time">
                 Aucun mois officiel. La série synthétique continue d’être calculée.
               </td>
             </tr>
@@ -376,6 +394,14 @@ export function GivernyManager({ csrf }: { csrf: string }) {
               <tr key={row.yearMonth}>
                 <td>{row.yearMonth}</td>
                 <td>{pct(row.officialReturn)}</td>
+                <td>
+                  {row.officialNav == null
+                    ? "—"
+                    : row.officialNav.toLocaleString("fr-CA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                </td>
                 <td>{pct(row.syntheticReturn)}</td>
                 <td>{pct(row.gap)}</td>
                 <td>

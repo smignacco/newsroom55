@@ -117,6 +117,7 @@ test.describe("Centre de nouvelles visual board", () => {
             down: [{ ticker: "BKNG", name: "Booking", weight: 0.04, return: -0.01, contribution: -0.0004 }],
           },
           providerHealth: [],
+          navEstimate: null,
           message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
         }),
       });

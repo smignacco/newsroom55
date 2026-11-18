@@ -12,6 +12,7 @@ import {
   usablePrice,
   yearToDateReturn,
   latestDisplayPoint,
+  officialNavEstimate,
 } from "@/lib/giverny/engine";
 import {
   filingStoredDate,
@@ -358,6 +359,25 @@ export function getGivernySummary(): GivernySummary {
   const hasLevel = usablePrice(display?.[field] ?? null);
   const status = marketStatus(display?.coverage ?? null, hasLevel);
   const lastError = lastGivernyError();
+  const navAnchors = listOfficialMonths().flatMap((row) =>
+    usablePrice(row.officialNav)
+      ? [{ yearMonth: row.yearMonth, officialNav: row.officialNav }]
+      : [],
+  );
+  const navSeries = officialNavEstimate(qualified, navAnchors);
+  const navByDate = new Map(navSeries.map((row) => [row.date, row]));
+  const navToday =
+    (display?.sessionDate ? navByDate.get(display.sessionDate) : undefined) ??
+    navSeries.at(-1) ??
+    null;
+  const showNav = settings.currency === "CAD" && navToday != null;
+  const scaledPoints = showNav
+    ? qualified.map((point) => {
+        const estimate = navByDate.get(point.sessionDate);
+        return estimate ? { ...point, givCad: estimate.value } : { ...point, givCad: null };
+      })
+    : qualified;
+  const displayCad = showNav ? navToday.value : (display?.givCad ?? null);
   return {
     identity: "synthetic",
     officialNav: false,
@@ -379,12 +399,12 @@ export function getGivernySummary(): GivernySummary {
         }
       : null,
     levels: {
-      givCad: display?.givCad ?? null,
+      givCad: displayCad,
       givUsd: display?.givUsd ?? null,
       givAlpha: display?.givAlpha ?? null,
     },
     last: {
-      givCad: display?.givCad ?? null,
+      givCad: displayCad,
       givUsd: display?.givUsd ?? null,
       asOf: display?.sessionDate ?? null,
     },
@@ -397,15 +417,25 @@ export function getGivernySummary(): GivernySummary {
         sessionUsd != null && display?.spxReturnUsd != null ? sessionUsd - display.spxReturnUsd : null,
       vsSpxYtd: ytd != null && spxYtd != null ? ytd - spxYtd : null,
     },
-    chart: chartSeries(qualified, settings.chartRange, asOf, field),
+    chart: chartSeries(scaledPoints, settings.chartRange, asOf, field),
     contributors: liveContributors(points),
     providerHealth: readProviderNotes(),
+    navEstimate: showNav
+      ? {
+          value: navToday.value,
+          officialNav: navToday.officialNav,
+          officialMonth: navToday.officialMonth,
+          anchorDate: navToday.anchorDate,
+        }
+      : null,
     message: !settings.enabled
       ? "Module désactivé."
       : listFilings().length === 0
         ? "Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur."
         : hasLevel
-          ? "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel."
+          ? showNav
+            ? "Estimation du VL à partir du dernier VL saisi et du 13F public. Ce n’est pas le VL officiel."
+            : "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel."
           : lastError
             ? lastError
             : (points.at(-1)?.coverage ?? 0) < GIVERNY_MIN_COVERAGE
@@ -500,8 +530,13 @@ export function getGivernyValidation(): ValidationReport {
   };
 }
 
-export function saveOfficialMonth(yearMonth: string, officialReturn: number, note: string | null) {
-  upsertOfficialMonth(yearMonth, officialReturn, note);
+export function saveOfficialMonth(
+  yearMonth: string,
+  officialReturn: number,
+  officialNav: number | null,
+  note: string | null,
+) {
+  upsertOfficialMonth(yearMonth, officialReturn, officialNav, note);
 }
 
 export function removeOfficialMonth(yearMonth: string) {

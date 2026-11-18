@@ -412,3 +412,60 @@ export function cumulativeGap(official: number[], synthetic: number[]): number |
   if (!(syn > 0)) return null;
   return off / syn - 1;
 }
+
+export type OfficialNavAnchor = {
+  yearMonth: string;
+  officialNav: number;
+};
+
+export type NavEstimatePoint = {
+  date: string;
+  value: number;
+  officialMonth: string;
+  officialNav: number;
+  anchorDate: string;
+};
+
+export function officialNavEstimate(
+  points: DailyPoint[],
+  anchors: OfficialNavAnchor[],
+): NavEstimatePoint[] {
+  const usable = points.filter((point) => usablePrice(point.givCad));
+  const monthEnd = new Map<string, DailyPoint>();
+  for (const point of usable) {
+    monthEnd.set(yearMonthOf(point.sessionDate), point);
+  }
+  const resolved = anchors
+    .filter((anchor) => usablePrice(anchor.officialNav))
+    .flatMap((anchor) => {
+      const end = monthEnd.get(anchor.yearMonth);
+      if (!end || !usablePrice(end.givCad)) return [];
+      return [
+        {
+          yearMonth: anchor.yearMonth,
+          asOf: end.sessionDate,
+          nav: anchor.officialNav,
+          index: end.givCad,
+        },
+      ];
+    })
+    .sort((left, right) => left.asOf.localeCompare(right.asOf));
+  if (resolved.length === 0) return [];
+
+  const out: NavEstimatePoint[] = [];
+  for (const point of usable) {
+    let chosen: (typeof resolved)[number] | null = null;
+    for (const anchor of resolved) {
+      if (anchor.asOf <= point.sessionDate) chosen = anchor;
+    }
+    if (!chosen || !(chosen.index > 0) || !usablePrice(point.givCad)) continue;
+    out.push({
+      date: point.sessionDate,
+      value: point.givCad * (chosen.nav / chosen.index),
+      officialMonth: chosen.yearMonth,
+      officialNav: chosen.nav,
+      anchorDate: chosen.asOf,
+    });
+  }
+  return out;
+}

@@ -30,7 +30,7 @@ export function GivernyPanel({ summary }: { summary: GivernySummary }) {
       <header className="nr-giverny-head">
         <div>
           <div className="nr-giverny-kicker">Giverny Capital</div>
-          <h2>Indice synthétique</h2>
+          <h2>{summary.navEstimate ? "Estimation VL" : "Indice synthétique"}</h2>
         </div>
         <span className={`nr-giverny-status is-${summary.marketStatus}`}>{summary.marketStatusLabel}</span>
       </header>
@@ -84,7 +84,11 @@ export function GivernyPanel({ summary }: { summary: GivernySummary }) {
             : ""}
           {summary.filing ? ` · 13F ${summary.filing.filedAt.slice(0, 10)}` : ""}
         </span>
-        <small>Pas un VL officiel</small>
+        <small>
+          {summary.navEstimate
+            ? `Ancré sur le VL saisi (${summary.navEstimate.anchorDate}) · pas le VL officiel`
+            : "Pas un VL officiel"}
+        </small>
       </footer>
     </section>
   );

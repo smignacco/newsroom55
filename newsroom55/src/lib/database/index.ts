@@ -88,6 +88,14 @@ function migrate(database: Database.Database) {
      ON tv_channels(catalog_source, catalog_key)
      WHERE catalog_source IS NOT NULL AND catalog_key IS NOT NULL`,
   );
+  const officialMonthColumns = new Set(
+    (database.pragma("table_info(giverny_official_months)") as { name: string }[]).map(
+      (column) => column.name,
+    ),
+  );
+  if (!officialMonthColumns.has("official_nav")) {
+    database.exec("ALTER TABLE giverny_official_months ADD COLUMN official_nav REAL");
+  }
 }
 
 export function getDb(): Database.Database {

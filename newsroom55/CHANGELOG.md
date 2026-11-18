@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.28
+
+- Un VL de fin de mois saisi en admin ancre GIV-CAD pour estimer le prix
+  unitaire entre deux rapports mensuels (ex. NBN125). L’estimation applique
+  les rendements du 13F public ; elle n’invente ni titres ni VL, et n’est
+  pas le VL officiel.
+
 ## 1.0.0-ha.27
 
 - Le Board affiche la dernière durée de sommeil de la nuit (18 h–18 h

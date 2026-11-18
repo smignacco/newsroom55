@@ -279,6 +279,7 @@ CREATE TABLE IF NOT EXISTS giverny_index_daily (
 CREATE TABLE IF NOT EXISTS giverny_official_months (
   year_month TEXT PRIMARY KEY,
   official_return REAL NOT NULL,
+  official_nav REAL,
   note TEXT,
   entered_at TEXT NOT NULL
 );

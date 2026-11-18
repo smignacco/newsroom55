@@ -44,6 +44,7 @@ const summary: GivernySummary = {
     down: [{ ticker: "BKNG", name: "Booking", weight: 0.04, return: -0.01, contribution: -0.0004 }],
   },
   providerHealth: [],
+  navEstimate: null,
   message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
 };
 
@@ -57,6 +58,26 @@ describe("Giverny board treatment", () => {
     expect(html).toContain("META");
     expect(html).not.toContain(">0,00</strong>");
     expect(html).not.toContain("nr-giverny-spark");
+  });
+
+  it("labels a NAV estimate without claiming an official fund price", () => {
+    const html = renderToStaticMarkup(
+      <GivernyPanel
+        summary={{
+          ...summary,
+          levels: { ...summary.levels, givCad: 77.84 },
+          navEstimate: {
+            value: 77.84,
+            officialNav: 76.31,
+            officialMonth: "2026-10",
+            anchorDate: "2026-10-31",
+          },
+        }}
+      />,
+    );
+    expect(html).toContain("Estimation VL");
+    expect(html).toContain("pas le VL officiel");
+    expect(html).not.toContain(">76,31</strong>");
   });
 
   it("keeps a reserved compact breaking slot so the news header does not shift", () => {

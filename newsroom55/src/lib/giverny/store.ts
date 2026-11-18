@@ -340,27 +340,46 @@ export function readIndexPoints(): DailyPoint[] {
     .all() as DailyPoint[];
 }
 
-export function listOfficialMonths(): Array<{ yearMonth: string; officialReturn: number; note: string | null; enteredAt: string }> {
+export function listOfficialMonths(): Array<{
+  yearMonth: string;
+  officialReturn: number;
+  officialNav: number | null;
+  note: string | null;
+  enteredAt: string;
+}> {
   return getDb()
     .prepare(
-      `SELECT year_month as yearMonth, official_return as officialReturn, note, entered_at as enteredAt
+      `SELECT year_month as yearMonth, official_return as officialReturn,
+              official_nav as officialNav, note, entered_at as enteredAt
        FROM giverny_official_months
        ORDER BY year_month ASC`,
     )
-    .all() as Array<{ yearMonth: string; officialReturn: number; note: string | null; enteredAt: string }>;
+    .all() as Array<{
+    yearMonth: string;
+    officialReturn: number;
+    officialNav: number | null;
+    note: string | null;
+    enteredAt: string;
+  }>;
 }
 
-export function upsertOfficialMonth(yearMonth: string, officialReturn: number, note: string | null) {
+export function upsertOfficialMonth(
+  yearMonth: string,
+  officialReturn: number,
+  officialNav: number | null,
+  note: string | null,
+) {
   getDb()
     .prepare(
-      `INSERT INTO giverny_official_months (year_month, official_return, note, entered_at)
-       VALUES (?, ?, ?, ?)
+      `INSERT INTO giverny_official_months (year_month, official_return, official_nav, note, entered_at)
+       VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(year_month) DO UPDATE SET
          official_return = excluded.official_return,
+         official_nav = excluded.official_nav,
          note = excluded.note,
          entered_at = excluded.entered_at`,
     )
-    .run(yearMonth, officialReturn, note, new Date().toISOString());
+    .run(yearMonth, officialReturn, officialNav, note, new Date().toISOString());
 }
 
 export function deleteOfficialMonth(yearMonth: string) {

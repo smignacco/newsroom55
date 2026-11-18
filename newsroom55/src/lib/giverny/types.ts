@@ -171,12 +171,19 @@ export type GivernySummary = {
   chart: Array<{ date: string; value: number }>;
   contributors: { up: Contributor[]; down: Contributor[] };
   providerHealth: Array<{ provider: string; ok: boolean; detail: string }>;
+  navEstimate: {
+    value: number;
+    officialNav: number;
+    officialMonth: string;
+    anchorDate: string;
+  } | null;
   message: string | null;
 };
 
 export type OfficialMonth = {
   yearMonth: string;
   officialReturn: number;
+  officialNav: number | null;
   syntheticReturn: number | null;
   gap: number | null;
   note: string | null;
