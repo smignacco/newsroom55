@@ -9,7 +9,7 @@ import {
   type GivernyPointStatus,
   type HoldingWeight,
 } from "@/lib/giverny/types";
-import { yearMonthOf } from "@/lib/giverny/tickers";
+import { lastNyTradingSessionOfMonth, yearMonthOf } from "@/lib/giverny/tickers";
 
 export function usablePrice(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
@@ -429,21 +429,26 @@ export type NavEstimatePoint = {
 export function officialNavEstimate(
   points: DailyPoint[],
   anchors: OfficialNavAnchor[],
+  minCoverage = GIVERNY_MIN_COVERAGE,
 ): NavEstimatePoint[] {
-  const usable = points.filter((point) => usablePrice(point.givCad));
-  const monthEnd = new Map<string, DailyPoint>();
-  for (const point of usable) {
-    monthEnd.set(yearMonthOf(point.sessionDate), point);
-  }
+  const byDate = new Map(points.map((point) => [point.sessionDate, point]));
   const resolved = anchors
     .filter((anchor) => usablePrice(anchor.officialNav))
     .flatMap((anchor) => {
-      const end = monthEnd.get(anchor.yearMonth);
-      if (!end || !usablePrice(end.givCad)) return [];
+      const monthEndDate = lastNyTradingSessionOfMonth(anchor.yearMonth);
+      const end = monthEndDate ? byDate.get(monthEndDate) : undefined;
+      if (
+        !monthEndDate ||
+        !end ||
+        (end.coverage ?? 0) < minCoverage ||
+        !usablePrice(end.givCad)
+      ) {
+        return [];
+      }
       return [
         {
           yearMonth: anchor.yearMonth,
-          asOf: end.sessionDate,
+          asOf: monthEndDate,
           nav: anchor.officialNav,
           index: end.givCad,
         },
@@ -453,12 +458,13 @@ export function officialNavEstimate(
   if (resolved.length === 0) return [];
 
   const out: NavEstimatePoint[] = [];
-  for (const point of usable) {
+  for (const point of points) {
+    if ((point.coverage ?? 0) < minCoverage || !usablePrice(point.givCad)) continue;
     let chosen: (typeof resolved)[number] | null = null;
     for (const anchor of resolved) {
       if (anchor.asOf <= point.sessionDate) chosen = anchor;
     }
-    if (!chosen || !(chosen.index > 0) || !usablePrice(point.givCad)) continue;
+    if (!chosen || !(chosen.index > 0)) continue;
     out.push({
       date: point.sessionDate,
       value: point.givCad * (chosen.nav / chosen.index),

@@ -16,6 +16,7 @@ import {
   usablePrice,
 } from "../src/lib/giverny/engine";
 import { earliestFiledOn } from "../src/lib/giverny/store";
+import { lastNyTradingSessionOfMonth } from "../src/lib/giverny/tickers";
 import type { FilingBook, HoldingWeight } from "../src/lib/giverny/types";
 
 const book = (filedOn: string, weights: Array<[string, number]>): FilingBook => ({
@@ -136,17 +137,55 @@ describe("Giverny portfolio math", () => {
   });
 
   it("scales the synthetic CAD index onto a user-entered month-end NAV", () => {
+    expect(lastNyTradingSessionOfMonth("2026-10")).toBe("2026-10-30");
     const series = officialNavEstimate(
       [
         { sessionDate: "2026-10-30", givCad: 100, coverage: 0.98 } as never,
-        { sessionDate: "2026-10-31", givCad: 100, coverage: 0.98 } as never,
         { sessionDate: "2026-11-18", givCad: 102, coverage: 0.98 } as never,
       ],
       [{ yearMonth: "2026-10", officialNav: 76.31 }],
     );
-    expect(series.find((row) => row.date === "2026-10-31")?.value).toBeCloseTo(76.31);
+    expect(series.find((row) => row.date === "2026-10-30")?.value).toBeCloseTo(76.31);
     expect(series.find((row) => row.date === "2026-11-18")?.value).toBeCloseTo(76.31 * 1.02);
-    expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-10-31");
+    expect(series.find((row) => row.date === "2026-11-18")?.anchorDate).toBe("2026-10-30");
+  });
+
+  it("does not substitute an earlier session when the month-end CAD is missing", () => {
+    expect(
+      officialNavEstimate(
+        [
+          { sessionDate: "2026-10-29", givCad: 100, coverage: 0.98 } as never,
+          { sessionDate: "2026-10-30", givCad: null, coverage: 0.98 } as never,
+          { sessionDate: "2026-11-18", givCad: 102, coverage: 0.98 } as never,
+        ],
+        [{ yearMonth: "2026-10", officialNav: 76.31 }],
+      ),
+    ).toEqual([]);
+  });
+
+  it("does not substitute an earlier session when the month-end coverage is below the floor", () => {
+    expect(
+      officialNavEstimate(
+        [
+          { sessionDate: "2026-10-29", givCad: 100, coverage: 0.98 } as never,
+          { sessionDate: "2026-10-30", givCad: 101, coverage: 0.5 } as never,
+          { sessionDate: "2026-11-18", givCad: 102, coverage: 0.98 } as never,
+        ],
+        [{ yearMonth: "2026-10", officialNav: 76.31 }],
+      ),
+    ).toEqual([]);
+  });
+
+  it("leaves the anchor unusable when the month-end session is absent", () => {
+    expect(
+      officialNavEstimate(
+        [
+          { sessionDate: "2026-10-29", givCad: 100, coverage: 0.98 } as never,
+          { sessionDate: "2026-11-18", givCad: 102, coverage: 0.98 } as never,
+        ],
+        [{ yearMonth: "2026-10", officialNav: 76.31 }],
+      ),
+    ).toEqual([]);
   });
 
   it("does not invent a NAV when no official unit price was entered", () => {

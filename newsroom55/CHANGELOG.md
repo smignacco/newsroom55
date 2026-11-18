@@ -3,9 +3,11 @@
 ## 1.0.0-ha.28
 
 - Un VL de fin de mois saisi en admin ancre GIV-CAD pour estimer le prix
-  unitaire entre deux rapports mensuels (ex. NBN125). L’estimation applique
-  les rendements du 13F public ; elle n’invente ni titres ni VL, et n’est
-  pas le VL officiel.
+  unitaire entre deux rapports mensuels (ex. NBN125). L’ancre exige la
+  dernière séance NY du mois avec un CAD synthétique lisible ; une séance
+  antérieure n’est pas substituée. L’estimation n’apparaît que sur un jour
+  dont la couverture passe le plancher. Elle applique les rendements du 13F
+  public ; elle n’invente ni titres ni VL, et n’est pas le VL officiel.
 
 ## 1.0.0-ha.27
 

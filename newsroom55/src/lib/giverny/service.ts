@@ -364,12 +364,11 @@ export function getGivernySummary(): GivernySummary {
       ? [{ yearMonth: row.yearMonth, officialNav: row.officialNav }]
       : [],
   );
-  const navSeries = officialNavEstimate(qualified, navAnchors);
+  const navSeries = officialNavEstimate(points, navAnchors);
   const navByDate = new Map(navSeries.map((row) => [row.date, row]));
-  const navToday =
-    (display?.sessionDate ? navByDate.get(display.sessionDate) : undefined) ??
-    navSeries.at(-1) ??
-    null;
+  const navToday = display?.sessionDate
+    ? (navByDate.get(display.sessionDate) ?? null)
+    : null;
   const showNav = settings.currency === "CAD" && navToday != null;
   const scaledPoints = showNav
     ? qualified.map((point) => {

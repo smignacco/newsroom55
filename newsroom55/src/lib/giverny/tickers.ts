@@ -61,6 +61,18 @@ export function yearMonthOf(sessionDate: string): string {
   return sessionDate.slice(0, 7);
 }
 
+export function lastNyTradingSessionOfMonth(yearMonth: string): string | null {
+  if (!/^\d{4}-\d{2}$/.test(yearMonth)) return null;
+  const year = Number(yearMonth.slice(0, 4));
+  const month = Number(yearMonth.slice(5, 7));
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  for (let day = lastDay; day >= 1; day -= 1) {
+    const date = `${yearMonth}-${String(day).padStart(2, "0")}`;
+    if (!isNyWeekend(date)) return date;
+  }
+  return null;
+}
+
 export function isNyWeekend(sessionDate: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(sessionDate);
   if (!match) return true;

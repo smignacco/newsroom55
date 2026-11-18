@@ -234,6 +234,23 @@ describe("manual 13F XML import", () => {
     expect(summary.returns.ytd).toBeNull();
     expect(summary.levels.givCad).toBeNull();
     expect(summary.levels.givAlpha).toBeNull();
+    expect(summary.navEstimate).toBeNull();
+  });
+
+  it("does not display the last historical NAV estimate when latest coverage is below the floor", async () => {
+    stubFetch();
+    const { ingestUploadedFiling, getGivernySummary } = await import("@/lib/giverny/service");
+    const { replaceIndexPoints, upsertOfficialMonth } = await import("@/lib/giverny/store");
+    await ingestUploadedFiling(fixture, "0001641864-26-000017", "2026-11-12");
+    upsertOfficialMonth("2026-10", 0, 76.31, null);
+    replaceIndexPoints([
+      point("2026-10-30", 100, 0.98),
+      point("2026-11-18", 102, 0),
+    ]);
+    const summary = getGivernySummary();
+    expect(summary.marketStatus).toBe("unavailable");
+    expect(summary.levels.givCad).toBeNull();
+    expect(summary.navEstimate).toBeNull();
   });
 
   it("retries a 429 OpenFIGI chunk after Retry-After instead of dropping the rest", async () => {

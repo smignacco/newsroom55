@@ -63,8 +63,9 @@ Dans `/admin` → **Giverny** : activer le module, choisir CAD ou USD, l’inter
 la hauteur, le bandeau d’alerte compact, importer le XML 13F, actualiser CUSIP
 et cours (avec une progression CUSIP / Yahoo / change / indice), et saisir les
 rendements mensuels officiels. Un VL CAD de fin de mois (ex. NBN125) ancre
-l’affichage entre deux rapports via les rendements 13F ; ce n’est pas le VL
-officiel et aucun titre n’est inventé. Les mois sans VL restent une comparaison
+l’affichage sur la dernière séance NY du mois, via les rendements 13F, si
+cette séance a un CAD synthétique lisible ; ce n’est pas le VL officiel et
+aucun titre n’est inventé. Les mois sans VL restent une comparaison
 de rendements seulement. Un XML
 importé n’affiche un niveau qu’après appariement CUSIP et historique de cours
 — jamais un MTD inventé.
