@@ -56,6 +56,7 @@ describe("Giverny board treatment", () => {
     expect(html).toContain("DONNÉES DIFFÉRÉES");
     expect(html).toContain("META");
     expect(html).not.toContain(">0,00</strong>");
+    expect(html).not.toContain("nr-giverny-spark");
   });
 
   it("keeps a reserved compact breaking slot so the news header does not shift", () => {

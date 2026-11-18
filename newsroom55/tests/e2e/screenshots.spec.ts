@@ -127,6 +127,7 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.getByText("Indice synthétique")).toBeVisible();
     await expect(page.getByText("Pas un VL officiel")).toBeVisible();
     await expect(page.getByText("GIV-CAD")).toBeVisible();
+    await expect(page.locator(".nr-giverny-spark")).toHaveCount(0);
     await expect(page.locator(".nr-breaking-badge")).toBeVisible();
     await expect(page.locator(".nr-breaking-bar")).toHaveCount(0);
     await expect(page.locator(".nr-featured")).toHaveCount(0);

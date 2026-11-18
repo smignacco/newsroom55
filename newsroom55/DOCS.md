@@ -58,9 +58,10 @@ Les identifiants restent côté serveur. L’historique quotidien et les dépôt
 sont dans SQLite (`/data` sur Home Assistant).
 
 Dans `/admin` → **Giverny** : activer le module, choisir CAD ou USD, l’intervalle,
-la plage du graphique, la hauteur, le bandeau d’alerte compact, forcer un
-rafraîchissement 13F, et saisir les rendements mensuels officiels. Ces mois
-servent à l’erreur de suivi ; ils ne remplacent pas la série synthétique.
+la hauteur, le bandeau d’alerte compact, forcer un rafraîchissement 13F, et
+saisir les rendements mensuels officiels. Ces mois servent à l’erreur de suivi ;
+ils ne remplacent pas la série synthétique. Un XML importé n’affiche un niveau
+qu’après appariement CUSIP et historique de cours — jamais un MTD inventé.
 
 EDGAR exige un User-Agent déclaré (`NEWSROOM55 GivernyTracker` + courriel) et
 l’en-tête `From`. Un courriel joignable se règle dans `/admin` → Giverny ou

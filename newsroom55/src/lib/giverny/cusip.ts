@@ -12,6 +12,11 @@ type OpenFigiHit = {
 type OpenFigiRow = { data?: OpenFigiHit[]; error?: string };
 
 const US_EXCHANGES = new Set(["US", "UN", "UW", "UA", "N", "A", "P", "OQ"]);
+const OPENFIGI_URL = "https://api.openfigi.com/v3/mapping";
+
+export function openFigiBatchSize() {
+  return process.env.OPENFIGI_API_KEY?.trim() ? 100 : 10;
+}
 
 function scoreHit(hit: OpenFigiHit): number {
   let score = 0;
@@ -28,26 +33,37 @@ export function pickOpenFigiTicker(hits: OpenFigiHit[] | undefined): string | nu
   return normalizeUsTicker(ranked[0]?.ticker ?? null);
 }
 
-export async function mapCusips(
-  rows: Array<{ cusip: string; issuerName: string }>,
-): Promise<{ mapped: Map<string, string>; error: string | null }> {
-  const known = readCusipMap();
-  const missing = rows.filter((row) => !known.has(row.cusip));
-  if (missing.length === 0) return { mapped: known, error: null };
+function figiHeaders() {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+  const key = process.env.OPENFIGI_API_KEY?.trim();
+  if (key) headers["X-OPENFIGI-APIKEY"] = key;
+  return headers;
+}
 
+function sleep(ms: number) {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function mapChunk(
+  chunk: Array<{ cusip: string; issuerName: string }>,
+): Promise<{ discovered: Array<{ cusip: string; ticker: string; issuerName?: string | null; source: string }>; error: string | null }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
-    const posted = await fetch("https://api.openfigi.com/v3/mapping", {
+    const posted = await fetch(OPENFIGI_URL, {
       method: "POST",
       cache: "no-store",
       signal: controller.signal,
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(missing.map((row) => ({ idType: "ID_CUSIP", idValue: row.cusip }))),
+      headers: figiHeaders(),
+      body: JSON.stringify(chunk.map((row) => ({ idType: "ID_CUSIP", idValue: row.cusip }))),
     });
     if (!posted.ok) {
       return {
-        mapped: known,
+        discovered: [],
         error: `OpenFIGI ${posted.status}: correspondance CUSIP incomplète.`,
       };
     }
@@ -55,27 +71,57 @@ export async function mapCusips(
     const discovered: Array<{ cusip: string; ticker: string; issuerName?: string | null; source: string }> = [];
     payload.forEach((row, index) => {
       const ticker = pickOpenFigiTicker(row.data);
-      const cusip = missing[index]?.cusip;
+      const cusip = chunk[index]?.cusip;
       if (!ticker || !cusip) return;
-      known.set(cusip, ticker);
       discovered.push({
         cusip,
         ticker,
-        issuerName: missing[index]?.issuerName,
+        issuerName: chunk[index]?.issuerName,
         source: "openfigi",
       });
     });
-    if (discovered.length) upsertCusipMap(discovered);
-    return {
-      mapped: known,
-      error: discovered.length === missing.length ? null : "Certains CUSIP n’ont pas de ticker américain.",
-    };
+    return { discovered, error: null };
   } catch {
     return {
-      mapped: known,
+      discovered: [],
       error: "OpenFIGI injoignable; les titres non mis en cache restent non appariés.",
     };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function mapCusips(
+  rows: Array<{ cusip: string; issuerName: string }>,
+): Promise<{ mapped: Map<string, string>; error: string | null }> {
+  const known = readCusipMap();
+  const missing: Array<{ cusip: string; issuerName: string }> = [];
+  const queued = new Set<string>();
+  for (const row of rows) {
+    if (!row.cusip || known.has(row.cusip) || queued.has(row.cusip)) continue;
+    queued.add(row.cusip);
+    missing.push(row);
+  }
+  if (missing.length === 0) return { mapped: known, error: null };
+
+  const size = openFigiBatchSize();
+  const discoveredAll: Array<{ cusip: string; ticker: string; issuerName?: string | null; source: string }> = [];
+  let error: string | null = null;
+  for (let offset = 0; offset < missing.length; offset += size) {
+    const chunk = missing.slice(offset, offset + size);
+    const { discovered, error: chunkError } = await mapChunk(chunk);
+    discoveredAll.push(...discovered);
+    for (const row of discovered) known.set(row.cusip, row.ticker);
+    if (chunkError) error = error ?? chunkError;
+    if (offset + size < missing.length && process.env.VITEST !== "true") {
+      await sleep(400);
+    }
+  }
+  if (discoveredAll.length) upsertCusipMap(discoveredAll);
+  if (discoveredAll.length !== missing.length) {
+    error = error ?? "Certains CUSIP n’ont pas de ticker américain.";
+  } else {
+    error = null;
+  }
+  return { mapped: known, error };
 }

@@ -27,6 +27,7 @@ import { liveQuotePriceRows, refreshLiveQuotes, refreshYahooHistory } from "@/li
 import { givernySettings } from "@/lib/giverny/settings";
 import {
   allPriceSeries,
+  applyCusipMapToHoldings,
   deleteOfficialMonth,
   earliestFiledOn,
   filingBooks,
@@ -56,7 +57,7 @@ import type {
   OfficialMonth,
   ValidationReport,
 } from "@/lib/giverny/types";
-import { GIVERNY_DEFAULT_FILER } from "@/lib/giverny/types";
+import { GIVERNY_DEFAULT_FILER, GIVERNY_MIN_COVERAGE } from "@/lib/giverny/types";
 
 let ingestInFlight: Promise<void> | null = null;
 let computeInFlight: Promise<void> | null = null;
@@ -89,10 +90,11 @@ export async function tickGiverny(force = false): Promise<void> {
   if (force || hoursSince(lastRefresh("filings")) > 20) {
     await ingestFilings(force);
   }
+  const newlyMapped = await remapStoredHoldings();
   const session = usEquitySession();
   const priceDue = hoursSince(lastRefresh("prices")) * 60 >= settings.refreshMinutes;
   const closeDue = session === "closed" && minutesInNewYork().minutes >= 16 * 60 + 30 && hoursSince(lastRefresh("close")) > 12;
-  if (force || priceDue || closeDue || hoursSince(lastRefresh("success")) > 24) {
+  if (force || priceDue || closeDue || newlyMapped > 0 || hoursSince(lastRefresh("success")) > 24) {
     await refreshMarketHistory(closeDue);
     await recomputeIndex();
     if (closeDue) markRefresh("close");
@@ -211,9 +213,30 @@ export async function ingestUploadedFiling(
   providerNote("edgar", true, `13F importé ${accession} (${parsed.holdings.length} titres).`);
   markGivernyError(null);
   markRefresh("filings");
+  await remapStoredHoldings();
   await refreshMarketHistory(usEquitySession() === "closed");
   await recomputeIndex();
   return { accession, holdings: parsed.holdings.length };
+}
+
+async function remapStoredHoldings() {
+  const filings = listFilings();
+  if (filings.length === 0) return 0;
+  const before = mappedTickers(filingBooks()).length;
+  const seen = new Set<string>();
+  const rows: Array<{ cusip: string; issuerName: string }> = [];
+  for (const filing of filings) {
+    for (const row of listHoldings(filing.id)) {
+      if (!row.cusip || seen.has(row.cusip)) continue;
+      seen.add(row.cusip);
+      rows.push({ cusip: row.cusip, issuerName: row.issuerName });
+    }
+  }
+  const mapped = await mapCusips(rows);
+  providerNote("openfigi", mapped.error == null, mapped.error || "CUSIP appariés.");
+  applyCusipMapToHoldings(mapped.mapped);
+  const after = mappedTickers(filingBooks()).length;
+  return Math.max(0, after - before);
 }
 
 async function refreshMarketHistory(officialClose: boolean) {
@@ -271,6 +294,7 @@ export async function recomputeIndex(): Promise<void> {
 
 function marketStatus(coverage: number | null, hasLevel: boolean): GivernySummary["marketStatus"] {
   if (!hasLevel) return "unavailable";
+  if (coverage != null && coverage < GIVERNY_MIN_COVERAGE) return "unavailable";
   const session = usEquitySession();
   if (coverage != null && coverage < 0.995) return "delayed";
   if (session === "open") return "delayed";
@@ -320,15 +344,19 @@ function liveContributors(points: ReturnType<typeof readIndexPoints>): { up: Con
 export function getGivernySummary(): GivernySummary {
   const settings = givernySettings();
   const points = readIndexPoints();
+  const qualified = points.filter((point) => (point.coverage ?? 0) >= GIVERNY_MIN_COVERAGE);
   const latest = points.at(-1) ?? null;
-  const asOf = latest?.sessionDate ?? nySessionDate();
+  const published = qualified.at(-1) ?? null;
+  const asOf = published?.sessionDate ?? latest?.sessionDate ?? nySessionDate();
   const field = settings.currency === "USD" ? "givUsd" : "givCad";
   const spxField = settings.currency === "USD" ? "spxUsd" : "spxCad";
-  const session = latest?.dayReturnUsd ?? null;
-  const ytd = yearToDateReturn(points, asOf, field);
-  const spxYtd = yearToDateReturn(points, asOf, spxField);
+  const bookReady = (latest?.coverage ?? 0) >= GIVERNY_MIN_COVERAGE;
+  const display = bookReady ? latest : null;
+  const session = display?.dayReturnUsd ?? null;
+  const ytd = yearToDateReturn(qualified, asOf, field);
+  const spxYtd = yearToDateReturn(qualified, asOf, spxField);
   const filing = latestFiling();
-  const hasLevel = usablePrice(latest?.[field] ?? null);
+  const hasLevel = usablePrice(display?.[field] ?? null);
   const status = marketStatus(latest?.coverage ?? null, hasLevel);
   const lastError = lastGivernyError();
   return {
@@ -352,32 +380,34 @@ export function getGivernySummary(): GivernySummary {
         }
       : null,
     levels: {
-      givCad: latest?.givCad ?? null,
-      givUsd: latest?.givUsd ?? null,
-      givAlpha: latest?.givAlpha ?? null,
+      givCad: display?.givCad ?? null,
+      givUsd: display?.givUsd ?? null,
+      givAlpha: display?.givAlpha ?? null,
     },
     last: {
-      givCad: latest?.givCad ?? null,
-      givUsd: latest?.givUsd ?? null,
-      asOf: latest?.sessionDate ?? null,
+      givCad: display?.givCad ?? null,
+      givUsd: display?.givUsd ?? null,
+      asOf: display?.sessionDate ?? null,
     },
     returns: {
-      session: settings.currency === "USD" ? session : (latest?.dayReturnCad ?? null),
-      last5: lastCompletedReturn(points, 5, settings.currency === "USD" ? "dayReturnUsd" : "dayReturnCad"),
-      mtd: monthToDateReturn(points, asOf, field),
+      session: settings.currency === "USD" ? session : (display?.dayReturnCad ?? null),
+      last5: lastCompletedReturn(qualified, 5, settings.currency === "USD" ? "dayReturnUsd" : "dayReturnCad"),
+      mtd: monthToDateReturn(qualified, asOf, field),
       ytd,
       vsSpxSession:
-        session != null && latest?.spxReturnUsd != null ? session - latest.spxReturnUsd : null,
+        session != null && display?.spxReturnUsd != null ? session - display.spxReturnUsd : null,
       vsSpxYtd: ytd != null && spxYtd != null ? ytd - spxYtd : null,
     },
-    chart: chartSeries(points, settings.chartRange, asOf, field),
+    chart: chartSeries(qualified, settings.chartRange, asOf, field),
     contributors: liveContributors(points),
     providerHealth: readProviderNotes(),
     message: !settings.enabled
       ? "Module désactivé."
       : lastError
         ? lastError
-        : !hasLevel
+        : (latest?.coverage ?? 0) < GIVERNY_MIN_COVERAGE
+          ? "Indice synthétique indisponible — CUSIP non appariés ou cours insuffisants."
+          : !hasLevel
           ? "Indice synthétique indisponible — aucun cours fiable pour cette séance."
           : "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
   };
@@ -479,6 +509,7 @@ export function removeOfficialMonth(yearMonth: string) {
 
 export async function refreshGivernyNow() {
   await ingestFilings(true);
+  await remapStoredHoldings();
   await refreshMarketHistory(usEquitySession() === "closed");
   await recomputeIndex();
 }

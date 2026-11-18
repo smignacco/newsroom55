@@ -9,7 +9,9 @@ VL officiel.
   (`NEWSROOM55 GivernyTracker` + courriel), en-tête `From`, repli curl/wget
   si Node est refusé, import XML manuel. Le livre n’est pas saisi en dur : un
   403 sans XML laisse l’indice indisponible.
-- Appariement CUSIP → ticker : OpenFIGI, cache SQLite.
+- Appariement CUSIP → ticker : OpenFIGI par lots (10 jobs sans clé, 100 avec
+  `OPENFIGI_API_KEY`), cache SQLite, réappliqué sur les 13F déjà stockés. Aucun
+  ticker n’est inventé.
 - Cours : pile marchés existante (Twelve Data, Finnhub, Cboe, Yahoo historique).
 - Change : Banque du Canada `FXUSDCAD` (déjà dans le dépôt).
 - Persistance : tables `giverny_*` dans SQLite (`/data` sur Home Assistant).
@@ -26,7 +28,7 @@ niveau du jour reste indisponible. Une séance indisponible ne décale pas la
 base du rendement suivant. GIV-CAD applique le USD/CAD du jour lorsqu’il est
 disponible, historisé depuis le premier 13F public ; sinon le niveau CAD reste
 vide. Les cours live sont rangés sous la séance NY du timestamp, pas sous la
-date civile du rafraîchissement.
+date civile du rafraîchissement. Le Board n’affiche pas de courbe de l’indice.
 
 ## API
 

@@ -7,6 +7,7 @@ import {
   portfolioSessionReturn,
   reconstructIndex,
   sessionReturn,
+  tickerCoverage,
   trackingError,
   usablePrice,
 } from "../src/lib/giverny/engine";
@@ -161,11 +162,22 @@ describe("Giverny portfolio math", () => {
       fx: series([["2026-11-09", 1.4], ["2026-11-10", 1.4]]),
       spx: series([["2026-11-09", 100], ["2026-11-10", 101]]),
     });
-    expect(points[0]?.givUsd).toBe(100);
+    expect(points[0]?.givUsd).toBeNull();
+    expect(points[0]?.status).toBe("unavailable");
+    expect(points[0]?.coverage).toBeCloseTo(0.1);
     expect(points[1]?.status).toBe("unavailable");
     expect(points[1]?.dayReturnUsd).toBeNull();
     expect(points[1]?.coverage).toBeCloseTo(0.1);
-    expect(points[1]?.givUsd).toBe(100);
+    expect(points[1]?.givUsd).toBeNull();
+  });
+
+  it("reports ticker coverage without treating unmapped weight as a complete book", () => {
+    expect(
+      tickerCoverage([
+        { ticker: "AAA", cusip: "1", issuerName: "A", weight: 0.4, shares: 1, value: 40 },
+        { ticker: null, cusip: "2", issuerName: "B", weight: 0.6, shares: 1, value: 60 },
+      ]),
+    ).toBeCloseTo(0.4);
   });
 
   it("keeps last-good baselines across an unavailable session so recovered returns include the gap", () => {

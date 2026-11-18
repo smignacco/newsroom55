@@ -22,31 +22,6 @@ function tone(value: number | null | undefined) {
   return "flat";
 }
 
-function Sparkline({ points }: { points: Array<{ date: string; value: number }> }) {
-  if (points.length < 2) {
-    return <div className="nr-giverny-spark is-empty" aria-hidden />;
-  }
-  const values = points.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const d = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * 100;
-      const y = 28 - ((value - min) / span) * 24;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
-  const last = values[values.length - 1] ?? 0;
-  const first = values[0] ?? 0;
-  const rising = last >= first;
-  return (
-    <svg className={`nr-giverny-spark ${rising ? "is-up" : "is-down"}`} viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden>
-      <path d={d} />
-    </svg>
-  );
-}
-
 export function GivernyPanel({ summary }: { summary: GivernySummary }) {
   const field = summary.currency === "USD" ? summary.levels.givUsd : summary.levels.givCad;
   const sessionTone = tone(summary.returns.session);
@@ -65,7 +40,6 @@ export function GivernyPanel({ summary }: { summary: GivernySummary }) {
           <strong className={`is-${sessionTone}`}>{formatLevel(field)}</strong>
           <b className={`is-${sessionTone}`}>{formatPct(summary.returns.session)}</b>
         </div>
-        <Sparkline points={summary.chart} />
       </div>
       <div className="nr-giverny-metrics">
         <span>

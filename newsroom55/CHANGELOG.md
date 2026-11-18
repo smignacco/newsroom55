@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.23
+
+- Apparie les CUSIP OpenFIGI par lots (10 sans clé, 100 avec) et réécrit les
+  tickers sur les 13F déjà importés, même si EDGAR reste en 403. Un livre sans
+  tickers ne démarre plus l’indice à 100 ni un MTD CAD dû au seul change.
+- Retire la courbe de l’indice synthétique du Board et le réglage de plage.
+
 ## 1.0.0-ha.22
 
 - Relit EDGAR avec l’identité déclarée exigée par la SEC (pas un User-Agent de

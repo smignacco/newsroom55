@@ -34,6 +34,17 @@ function mappedTicker(holding: HoldingWeight): string | null {
   return holding.ticker || null;
 }
 
+export function tickerCoverage(weights: HoldingWeight[]): number {
+  let total = 0;
+  let mapped = 0;
+  for (const holding of weights) {
+    if (!(holding.weight > 0)) continue;
+    total += holding.weight;
+    if (mappedTicker(holding)) mapped += holding.weight;
+  }
+  return total > 0 ? mapped / total : 0;
+}
+
 function holdingReturn(holding: HoldingWeight, returns: Map<string, number | null>): number | null {
   const ticker = mappedTicker(holding);
   if (!ticker) return null;
@@ -131,6 +142,15 @@ export function reconstructIndex(input: {
         points.push(emptyPoint(sessionDate, "unavailable", accession));
         continue;
       }
+      const mappedShare = tickerCoverage(weights);
+      if (mappedShare < GIVERNY_MIN_COVERAGE) {
+        points.push({
+          ...emptyPoint(sessionDate, "unavailable", accession),
+          coverage: mappedShare,
+          usdCad: fx,
+        });
+        continue;
+      }
       givUsd = GIVERNY_INCEPTION_LEVEL;
       spxUsd = GIVERNY_INCEPTION_LEVEL;
       fx0 = fx;
@@ -146,7 +166,7 @@ export function reconstructIndex(input: {
         dayReturnUsd: null,
         dayReturnCad: null,
         spxReturnUsd: null,
-        coverage: 1,
+        coverage: mappedShare,
         status: fx == null ? "incomplete" : "ok",
         accession,
       });

@@ -147,27 +147,6 @@ export function GivernyManager({ csrf }: { csrf: string }) {
       </label>
 
       <label className="nr-field">
-        Plage du graphique
-        <select
-          value={settings.chartRange}
-          onChange={(event) =>
-            run("range", async () => {
-              await givernyApi("/api/admin/giverny", csrf, {
-                method: "POST",
-                body: JSON.stringify({ chartRange: event.target.value }),
-              });
-              return "Plage enregistrée.";
-            })
-          }
-        >
-          <option value="1M">1 mois</option>
-          <option value="3M">3 mois</option>
-          <option value="YTD">Depuis le 1er janvier</option>
-          <option value="1Y">12 mois</option>
-        </select>
-      </label>
-
-      <label className="nr-field">
         Hauteur du bandeau
         <select
           value={settings.height}

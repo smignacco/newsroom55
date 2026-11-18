@@ -175,6 +175,31 @@ export function upsertCusipMap(rows: Array<{ cusip: string; ticker: string; issu
   tx();
 }
 
+export function applyCusipMapToHoldings(mapped: Map<string, string>) {
+  if (mapped.size === 0) return;
+  const db = getDb();
+  const update = db.prepare(
+    `UPDATE giverny_holdings SET ticker = ?
+     WHERE cusip = ? AND (ticker IS NULL OR ticker = '')`,
+  );
+  const recount = db.prepare(
+    `UPDATE giverny_filings SET mapped_count = (
+       SELECT COUNT(*) FROM giverny_holdings
+       WHERE filing_id = giverny_filings.id
+         AND ticker IS NOT NULL AND ticker != ''
+         AND derivative = 0
+     )`,
+  );
+  const tx = db.transaction(() => {
+    for (const [cusip, ticker] of mapped) {
+      if (!ticker) continue;
+      update.run(ticker, cusip);
+    }
+    recount.run();
+  });
+  tx();
+}
+
 export function upsertPrices(
   rows: Array<{
     symbol: string;
