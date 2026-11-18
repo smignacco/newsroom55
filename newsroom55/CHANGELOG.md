@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 1.0.0-ha.26
+
+- Affiche le dernier niveau GIV réellement calculé : une séance du jour sans
+  USD/CAD Banque du Canada ne masque plus le CAD de la veille, et n’invente
+  pas de taux.
+- Ignore l’ancienne santé `edgar` (403) après l’abandon du téléchargement SEC.
+- L’actualisation admin publie une progression (CUSIP, Yahoo, change, indice)
+  au lieu d’un bouton « en cours » silencieux.
+
 ## 1.0.0-ha.25
 
 - Arrête tout téléchargement automatique des 13F sur sec.gov. Le livre vient

@@ -275,6 +275,7 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(
       page.getByRole("heading", { name: "Indice synthétique Giverny" }),
     ).toBeVisible();
+    await expect(page.getByText(/Erreur · edgar ·/)).toHaveCount(0);
     await expect(page.getByText(/^(OK|Erreur) · (13f|openfigi|yahoo|bankofcanada) · /)).toBeVisible({
       timeout: 20_000,
     });

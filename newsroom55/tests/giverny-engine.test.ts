@@ -7,6 +7,7 @@ import {
   monthToDateReturn,
   portfolioSessionReturn,
   reconstructIndex,
+  latestDisplayPoint,
   sessionReturn,
   yearToDateReturn,
   tickerCoverage,
@@ -248,6 +249,46 @@ describe("Giverny portfolio math", () => {
     expect(points[2]?.givAlpha).toBeCloseTo((120 / 121) * 100);
     expect(points[3]?.spxUsd).toBeCloseTo(133.1);
     expect(points[3]?.givAlpha).toBeCloseTo((120 / 133.1) * 100);
+  });
+
+  it("keeps the last CAD level when the latest session has no FX yet", () => {
+    const points = reconstructIndex({
+      sessions: ["2026-11-12", "2026-11-13", "2026-11-14"],
+      filings: [book("2026-11-01", [["AAA", 1]])],
+      prices: new Map([
+        [
+          "AAA",
+          series([
+            ["2026-11-12", 10],
+            ["2026-11-13", 11],
+            ["2026-11-14", 12],
+          ]),
+        ],
+      ]),
+      fx: series([
+        ["2026-11-12", 1.4],
+        ["2026-11-13", 1.4],
+      ]),
+      spx: series([
+        ["2026-11-12", 100],
+        ["2026-11-13", 101],
+        ["2026-11-14", 102],
+      ]),
+    });
+    expect(points[2]?.givUsd).toBeCloseTo(120);
+    expect(points[2]?.givCad).toBeNull();
+    expect(latestDisplayPoint(points, "givUsd")?.sessionDate).toBe("2026-11-14");
+    expect(latestDisplayPoint(points, "givCad")?.sessionDate).toBe("2026-11-13");
+    expect(latestDisplayPoint(points, "givCad")?.givCad).toBeCloseTo(110);
+    expect(
+      latestDisplayPoint(
+        [
+          { sessionDate: "2026-10-31", givCad: 110, coverage: 0.98 } as never,
+          { sessionDate: "2026-11-02", givCad: 110, coverage: 0 } as never,
+        ],
+        "givCad",
+      ),
+    ).toBeNull();
   });
 
   it("still publishes GIV when SPX history is missing", () => {

@@ -30,7 +30,8 @@ disponible, historisé depuis le premier 13F public ; sinon le niveau CAD reste
 vide. Un historique SPX manquant laisse vs S&P et α vides, mais n’empêche plus
 GIV de s’afficher. Une séance sans SPX n’avance pas la base du benchmark : le
 niveau S&P récupère le mouvement du trou, et α reste vide tant que le S&P du
-jour n’est pas lisible. Les cours live sont rangés sous la séance NY du timestamp,
+jour n’est pas lisible. GIV-CAD affiche la dernière séance avec un USD/CAD
+lisible ; le jour sans observation BdC reste vide, sans taux inventé. Les cours live sont rangés sous la séance NY du timestamp,
 pas sous la date civile du rafraîchissement. Le Board n’affiche pas de courbe
 de l’indice.
 

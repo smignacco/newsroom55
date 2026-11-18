@@ -61,9 +61,14 @@ async function mapPool<T>(items: T[], limit: number, worker: (item: T) => Promis
   );
 }
 
-export async function refreshYahooHistory(tickers: string[]): Promise<{ count: number; error: string | null }> {
+export async function refreshYahooHistory(
+  tickers: string[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ count: number; error: string | null }> {
   let count = 0;
+  let done = 0;
   let error: string | null = null;
+  const total = tickers.length;
   await mapPool(tickers, 4, async (ticker) => {
     const yahoo = yahooHistorySymbol(ticker);
     const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahoo)}`);
@@ -106,6 +111,8 @@ export async function refreshYahooHistory(tickers: string[]): Promise<{ count: n
     });
     upsertPrices(rows);
     count += rows.length;
+    done += 1;
+    onProgress?.(done, total);
   });
   return { count, error };
 }

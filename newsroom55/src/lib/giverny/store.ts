@@ -3,9 +3,11 @@ import type {
   DailyPoint,
   FilingBook,
   FilingRecord,
+  GivernyRefreshProgress,
   HoldingRecord,
   HoldingWeight,
 } from "@/lib/giverny/types";
+import { GIVERNY_IDLE_PROGRESS } from "@/lib/giverny/types";
 
 export function listFilings(): FilingRecord[] {
   return getDb()
@@ -365,8 +367,16 @@ export function deleteOfficialMonth(yearMonth: string) {
   getDb().prepare("DELETE FROM giverny_official_months WHERE year_month = ?").run(yearMonth);
 }
 
+const RETIRED_HEALTH_PROVIDERS = new Set(["edgar"]);
+const REFRESH_PROGRESS_KEY = "giverny_refresh_progress";
+
 export function providerNote(provider: string, ok: boolean, detail: string) {
+  if (RETIRED_HEALTH_PROVIDERS.has(provider)) return;
   setSetting(`giverny_health_${provider}`, JSON.stringify({ ok, detail, at: new Date().toISOString() }));
+}
+
+export function clearRetiredProviderNotes() {
+  getDb().prepare("DELETE FROM settings WHERE key = ?").run("giverny_health_edgar");
 }
 
 export function readProviderNotes(): Array<{ provider: string; ok: boolean; detail: string }> {
@@ -374,16 +384,20 @@ export function readProviderNotes(): Array<{ provider: string; ok: boolean; deta
   const rows = db
     .prepare("SELECT key, value FROM settings WHERE key LIKE 'giverny_health_%'")
     .all() as Array<{ key: string; value: string }>;
-  return rows.map((row) => {
+  return rows.flatMap((row) => {
+    const provider = row.key.replace("giverny_health_", "");
+    if (RETIRED_HEALTH_PROVIDERS.has(provider) || !row.value) return [];
     try {
       const parsed = JSON.parse(row.value) as { ok?: boolean; detail?: string };
-      return {
-        provider: row.key.replace("giverny_health_", ""),
-        ok: Boolean(parsed.ok),
-        detail: parsed.detail || "",
-      };
+      return [
+        {
+          provider,
+          ok: Boolean(parsed.ok),
+          detail: parsed.detail || "",
+        },
+      ];
     } catch {
-      return { provider: row.key.replace("giverny_health_", ""), ok: false, detail: row.value };
+      return [{ provider, ok: false, detail: row.value }];
     }
   });
 }
@@ -393,7 +407,41 @@ export function markGivernyError(message: string | null) {
 }
 
 export function lastGivernyError(): string | null {
-  return getSetting("giverny_last_error", "") || null;
+  const stored = getSetting("giverny_last_error", "") || null;
+  if (stored && /EDGAR a refusé/i.test(stored)) {
+    markGivernyError(null);
+    return null;
+  }
+  return stored;
+}
+
+export function setRefreshProgress(patch: Partial<GivernyRefreshProgress>) {
+  const current = getRefreshProgress();
+  const next: GivernyRefreshProgress = {
+    ...current,
+    ...patch,
+    percent: Math.max(0, Math.min(100, patch.percent ?? current.percent)),
+  };
+  setSetting(REFRESH_PROGRESS_KEY, JSON.stringify(next));
+}
+
+export function getRefreshProgress(): GivernyRefreshProgress {
+  const raw = getSetting(REFRESH_PROGRESS_KEY, "");
+  if (!raw) return { ...GIVERNY_IDLE_PROGRESS };
+  try {
+    const parsed = JSON.parse(raw) as Partial<GivernyRefreshProgress>;
+    return {
+      running: Boolean(parsed.running),
+      stage: typeof parsed.stage === "string" ? parsed.stage : "",
+      detail: typeof parsed.detail === "string" ? parsed.detail : "",
+      percent: typeof parsed.percent === "number" && Number.isFinite(parsed.percent) ? parsed.percent : 0,
+      startedAt: parsed.startedAt ?? null,
+      finishedAt: parsed.finishedAt ?? null,
+      error: parsed.error ?? null,
+    };
+  } catch {
+    return { ...GIVERNY_IDLE_PROGRESS };
+  }
 }
 
 export function markRefresh(kind: "filings" | "prices" | "close" | "success") {

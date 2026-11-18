@@ -3,7 +3,7 @@ import { z } from "zod";
 import { boot } from "@/lib/boot";
 import { requireAdmin } from "@/lib/security/auth";
 import { givernySettings, updateGivernySettings } from "@/lib/giverny/settings";
-import { getGivernyValidation } from "@/lib/giverny/service";
+import { getGivernyRefreshProgress, getGivernyValidation } from "@/lib/giverny/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
   return privateJson({
     settings: givernySettings(),
     validation: getGivernyValidation(),
+    progress: getGivernyRefreshProgress(),
   });
 }
 
@@ -48,5 +49,6 @@ export async function POST(req: NextRequest) {
   return privateJson({
     settings: givernySettings(),
     validation: getGivernyValidation(),
+    progress: getGivernyRefreshProgress(),
   });
 }

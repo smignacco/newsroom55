@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import type { GivernySettings, ValidationReport } from "@/lib/giverny/types";
+import type { GivernyRefreshProgress, GivernySettings, ValidationReport } from "@/lib/giverny/types";
 
 function pct(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -34,21 +34,55 @@ export function GivernyManager({ csrf }: { csrf: string }) {
   const [error, setError] = useState("");
   const [accessionHint, setAccessionHint] = useState("");
   const [filedAtHint, setFiledAtHint] = useState("");
+  const [progress, setProgress] = useState<GivernyRefreshProgress | null>(null);
 
   async function load() {
     const data = await givernyApi("/api/admin/giverny", csrf);
     setSettings(data.settings);
     setValidation(data.validation);
+    if (data.progress) setProgress(data.progress);
+    return data;
   }
 
   useEffect(() => {
     // Initial API hydration is the effect's synchronization target.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load().catch((caught) =>
-      setError(caught instanceof Error ? caught.message : "Chargement impossible"),
-    );
+    void load()
+      .then((data) => {
+        if (data.progress?.running) setPending("refresh13f");
+      })
+      .catch((caught) =>
+        setError(caught instanceof Error ? caught.message : "Chargement impossible"),
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (pending !== "refresh13f") return;
+    let cancelled = false;
+    const timer = window.setInterval(() => {
+      void load()
+        .then((data) => {
+          if (cancelled) return;
+          const next = data.progress as GivernyRefreshProgress | undefined;
+          if (next && !next.running && (next.finishedAt || next.error || next.percent >= 100)) {
+            setPending(null);
+            if (next.error) setError(next.error);
+            else if (next.detail) setMessage(next.detail);
+          }
+        })
+        .catch((caught) => {
+          if (cancelled) return;
+          setPending(null);
+          setError(caught instanceof Error ? caught.message : "L’actualisation a échoué");
+        });
+    }, 800);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
 
   async function run(key: string, action: () => Promise<string>) {
     setPending(key);
@@ -188,15 +222,35 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         type="button"
         className="nr-chip"
         disabled={pending === "refresh13f"}
-        onClick={() =>
-          run("refresh13f", async () => {
-            await givernyApi("/api/admin/giverny/refresh", csrf, { method: "POST" });
-            return "Appariement CUSIP et cours relancés.";
-          })
-        }
+        onClick={() => {
+          setPending("refresh13f");
+          setMessage("");
+          setError("");
+          void givernyApi("/api/admin/giverny/refresh", csrf, { method: "POST" })
+            .then((data) => {
+              if (data.progress) setProgress(data.progress);
+              if (data.validation) setValidation(data.validation);
+              if (data.progress && !data.progress.running) {
+                setPending(null);
+                if (data.progress.error) setError(data.progress.error);
+                else setMessage(data.progress.detail || "CUSIP et cours à jour.");
+              }
+            })
+            .catch((caught) => {
+              setPending(null);
+              setError(caught instanceof Error ? caught.message : "L’actualisation a échoué");
+            });
+        }}
       >
-        Actualiser CUSIP et cours
+        {pending === "refresh13f" ? "Actualisation en cours…" : "Actualiser CUSIP et cours"}
       </button>
+      {pending === "refresh13f" ? (
+        <p className="nr-time" aria-live="polite">
+          {progress?.stage ? `${progress.stage} — ` : ""}
+          {progress?.detail || "Démarrage de l’actualisation…"}
+          {progress?.percent != null ? ` (${progress.percent} %)` : ""}
+        </p>
+      ) : null}
 
       <h2 className="nr-brand-name" style={{ letterSpacing: "0.18em", fontSize: "0.9rem" }}>
         Import XML 13F

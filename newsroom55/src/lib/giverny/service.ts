@@ -11,6 +11,7 @@ import {
   cumulativeGap,
   usablePrice,
   yearToDateReturn,
+  latestDisplayPoint,
 } from "@/lib/giverny/engine";
 import {
   filingStoredDate,
@@ -45,12 +46,16 @@ import {
   readProviderNotes,
   replaceFiling,
   replaceIndexPoints,
+  setRefreshProgress,
+  getRefreshProgress,
+  clearRetiredProviderNotes,
   upsertOfficialMonth,
   upsertPrices,
 } from "@/lib/giverny/store";
 import { nySessionDate, nyTradingSessions, padCik } from "@/lib/giverny/tickers";
 import type {
   Contributor,
+  GivernyRefreshProgress,
   GivernySummary,
   OfficialMonth,
   ValidationReport,
@@ -58,6 +63,7 @@ import type {
 import { GIVERNY_DEFAULT_FILER, GIVERNY_MIN_COVERAGE } from "@/lib/giverny/types";
 
 let computeInFlight: Promise<void> | null = null;
+let refreshInFlight: Promise<void> | null = null;
 
 function hoursSince(iso: string | null): number {
   if (!iso) return Number.POSITIVE_INFINITY;
@@ -84,6 +90,7 @@ function minutesInNewYork() {
 export async function tickGiverny(force = false): Promise<void> {
   const settings = givernySettings();
   if (!settings.enabled && !force) return;
+  clearRetiredProviderNotes();
   if (listFilings().length === 0) {
     markGivernyError("Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur.");
     return;
@@ -179,6 +186,7 @@ export async function ingestUploadedFiling(
     parsed.filerName || settings.filerName || GIVERNY_DEFAULT_FILER,
   );
   providerNote("13f", true, `13F importé ${accession} (${parsed.holdings.length} titres).`);
+  clearRetiredProviderNotes();
   markGivernyError(null);
   markRefresh("filings");
   await remapStoredHoldings();
@@ -217,10 +225,23 @@ async function refreshMarketHistory(officialClose: boolean) {
     return !last || last < today;
   });
   if (stale.length > 0) {
-    const history = await refreshYahooHistory(stale);
+    const history = await refreshYahooHistory(stale, (done, total) => {
+      setRefreshProgress({
+        running: true,
+        stage: "Cours",
+        detail: `Historique Yahoo ${done}/${total}.`,
+        percent: 25 + Math.round((done / Math.max(total, 1)) * 45),
+      });
+    });
     providerNote("yahoo", history.count > 0, history.error || `${history.count} barres quotidiennes.`);
   }
   const start = earliestFiledOn(books) ?? `${Number(today.slice(0, 4)) - 1}-01-01`;
+  setRefreshProgress({
+    running: true,
+    stage: "Change",
+    detail: "USD/CAD Banque du Canada.",
+    percent: 78,
+  });
   const fx = await refreshUsdCadHistory(start, today);
   providerNote("bankofcanada", fx.count > 0, fx.error || `${fx.count} observations USD/CAD.`);
 
@@ -317,19 +338,19 @@ function liveContributors(points: ReturnType<typeof readIndexPoints>): { up: Con
 export function getGivernySummary(): GivernySummary {
   const settings = givernySettings();
   const points = readIndexPoints();
-  const qualified = points.filter((point) => (point.coverage ?? 0) >= GIVERNY_MIN_COVERAGE);
-  const latest = points.at(-1) ?? null;
-  const asOf = latest?.sessionDate ?? nySessionDate();
   const field = settings.currency === "USD" ? "givUsd" : "givCad";
   const spxField = settings.currency === "USD" ? "spxUsd" : "spxCad";
-  const bookReady = (latest?.coverage ?? 0) >= GIVERNY_MIN_COVERAGE;
-  const display = bookReady ? latest : null;
-  const session = display?.dayReturnUsd ?? null;
+  const latest = points.at(-1) ?? null;
+  const display = latestDisplayPoint(points, field);
+  const qualified = points.filter((point) => (point.coverage ?? 0) >= GIVERNY_MIN_COVERAGE);
+  const asOf = display?.sessionDate ?? latest?.sessionDate ?? nySessionDate();
+  const sessionUsd = display?.dayReturnUsd ?? null;
+  const session = settings.currency === "USD" ? sessionUsd : (display?.dayReturnCad ?? null);
   const ytd = yearToDateReturn(qualified, asOf, field);
   const spxYtd = yearToDateReturn(qualified, asOf, spxField);
   const filing = latestFiling();
   const hasLevel = usablePrice(display?.[field] ?? null);
-  const status = marketStatus(latest?.coverage ?? null, hasLevel);
+  const status = marketStatus(display?.coverage ?? null, hasLevel);
   const lastError = lastGivernyError();
   return {
     identity: "synthetic",
@@ -341,7 +362,7 @@ export function getGivernySummary(): GivernySummary {
     lastRefreshAt: lastRefresh("prices"),
     lastCloseAt: lastRefresh("close"),
     lastSuccessfulRefreshAt: lastRefresh("success"),
-    coverage: latest?.coverage ?? null,
+    coverage: display?.coverage ?? null,
     filing: filing
       ? {
           accession: filing.accession,
@@ -362,12 +383,12 @@ export function getGivernySummary(): GivernySummary {
       asOf: display?.sessionDate ?? null,
     },
     returns: {
-      session: settings.currency === "USD" ? session : (display?.dayReturnCad ?? null),
+      session,
       last5: lastCompletedReturn(qualified, 5, settings.currency === "USD" ? "dayReturnUsd" : "dayReturnCad"),
       mtd: monthToDateReturn(qualified, asOf, field),
       ytd,
       vsSpxSession:
-        session != null && display?.spxReturnUsd != null ? session - display.spxReturnUsd : null,
+        sessionUsd != null && display?.spxReturnUsd != null ? sessionUsd - display.spxReturnUsd : null,
       vsSpxYtd: ytd != null && spxYtd != null ? ytd - spxYtd : null,
     },
     chart: chartSeries(qualified, settings.chartRange, asOf, field),
@@ -375,15 +396,15 @@ export function getGivernySummary(): GivernySummary {
     providerHealth: readProviderNotes(),
     message: !settings.enabled
       ? "Module désactivé."
-      : lastError
-        ? lastError
-        : listFilings().length === 0
-          ? "Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur."
-        : (latest?.coverage ?? 0) < GIVERNY_MIN_COVERAGE
-          ? "Indice synthétique indisponible — CUSIP non appariés ou cours insuffisants."
-          : !hasLevel
-          ? "Indice synthétique indisponible — aucun cours fiable pour cette séance."
-          : "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
+      : listFilings().length === 0
+        ? "Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur."
+        : hasLevel
+          ? "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel."
+          : lastError
+            ? lastError
+            : (points.at(-1)?.coverage ?? 0) < GIVERNY_MIN_COVERAGE
+              ? "Indice synthétique indisponible — CUSIP non appariés ou cours insuffisants."
+              : "Indice synthétique indisponible — aucun cours fiable pour cette séance.",
   };
 }
 
@@ -481,14 +502,90 @@ export function removeOfficialMonth(yearMonth: string) {
   deleteOfficialMonth(yearMonth);
 }
 
-export async function refreshGivernyNow() {
+export function getGivernyRefreshProgress(): GivernyRefreshProgress {
+  return getRefreshProgress();
+}
+
+export function startGivernyRefresh(): GivernyRefreshProgress {
+  clearRetiredProviderNotes();
   if (listFilings().length === 0) {
     markGivernyError("Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur.");
     providerNote("13f", false, "Aucun XML 13F importé.");
-    return;
+    setRefreshProgress({
+      running: false,
+      stage: "13F",
+      detail: "Aucun XML 13F importé.",
+      percent: 0,
+      error: "Aucun 13F importé. Chargez le XML depuis sec.gov dans un navigateur.",
+      finishedAt: new Date().toISOString(),
+    });
+    return getRefreshProgress();
   }
-  markGivernyError(null);
-  await remapStoredHoldings();
-  await refreshMarketHistory(usEquitySession() === "closed");
-  await recomputeIndex();
+  if (!refreshInFlight) {
+    const startedAt = new Date().toISOString();
+    setRefreshProgress({
+      running: true,
+      stage: "Préparation",
+      detail: "Lecture du 13F importé.",
+      percent: 5,
+      startedAt,
+      finishedAt: null,
+      error: null,
+    });
+    refreshInFlight = runGivernyRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return getRefreshProgress();
+}
+
+export async function refreshGivernyNow() {
+  startGivernyRefresh();
+  if (refreshInFlight) await refreshInFlight;
+}
+
+async function runGivernyRefresh() {
+  try {
+    markGivernyError(null);
+    setRefreshProgress({
+      running: true,
+      stage: "CUSIP",
+      detail: "Appariement OpenFIGI en cours.",
+      percent: 12,
+    });
+    await remapStoredHoldings();
+    setRefreshProgress({
+      running: true,
+      stage: "Cours",
+      detail: "Téléchargement des historiques et du change.",
+      percent: 25,
+    });
+    await refreshMarketHistory(usEquitySession() === "closed");
+    setRefreshProgress({
+      running: true,
+      stage: "Indice",
+      detail: "Calcul de la série synthétique.",
+      percent: 88,
+    });
+    await recomputeIndex();
+    setRefreshProgress({
+      running: false,
+      stage: "Terminé",
+      detail: "CUSIP et cours à jour.",
+      percent: 100,
+      finishedAt: new Date().toISOString(),
+      error: null,
+    });
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : "L’actualisation a échoué.";
+    markGivernyError(message);
+    setRefreshProgress({
+      running: false,
+      stage: "Erreur",
+      detail: message,
+      percent: 100,
+      finishedAt: new Date().toISOString(),
+      error: message,
+    });
+  }
 }

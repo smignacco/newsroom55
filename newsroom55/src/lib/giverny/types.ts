@@ -12,6 +12,16 @@ export type BreakingBannerMode = "compact" | "banner" | "off";
 export type GivernyPointStatus = "ok" | "delayed" | "incomplete" | "unavailable";
 export type GivernyMarketStatus = "open" | "closed" | "delayed" | "unavailable";
 
+export type GivernyRefreshProgress = {
+  running: boolean;
+  stage: string;
+  detail: string;
+  percent: number;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+};
+
 export type GivernySettings = {
   enabled: boolean;
   refreshMinutes: number;
@@ -186,4 +196,14 @@ export type ValidationReport = {
   lastError: string | null;
   lastRefreshAt: string | null;
   providers: Array<{ provider: string; ok: boolean; detail: string }>;
+};
+
+export const GIVERNY_IDLE_PROGRESS: GivernyRefreshProgress = {
+  running: false,
+  stage: "",
+  detail: "",
+  percent: 0,
+  startedAt: null,
+  finishedAt: null,
+  error: null,
 };

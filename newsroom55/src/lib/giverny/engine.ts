@@ -291,6 +291,22 @@ export function contributorsForSession(
   return { up, down };
 }
 
+export function latestDisplayPoint(
+  points: DailyPoint[],
+  field: "givCad" | "givUsd",
+  minCoverage = GIVERNY_MIN_COVERAGE,
+): DailyPoint | null {
+  const latest = points.at(-1);
+  if (!latest) return null;
+  if ((latest.coverage ?? 0) >= minCoverage && usablePrice(latest[field])) return latest;
+  if ((latest.coverage ?? 0) < minCoverage) return null;
+  for (let index = points.length - 2; index >= 0; index -= 1) {
+    const point = points[index];
+    if ((point.coverage ?? 0) >= minCoverage && usablePrice(point[field])) return point;
+  }
+  return null;
+}
+
 export function windowReturn(points: DailyPoint[], field: "givCad" | "givUsd" | "spxCad" | "spxUsd"): number | null {
   const series = points.map((point) => point[field]).filter(usablePrice);
   if (series.length < 2) return null;
