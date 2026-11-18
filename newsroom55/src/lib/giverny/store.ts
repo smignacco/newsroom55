@@ -318,6 +318,7 @@ export function replaceIndexPoints(points: DailyPoint[]) {
   );
   const now = new Date().toISOString();
   const tx = db.transaction(() => {
+    db.prepare("DELETE FROM giverny_index_daily").run();
     for (const point of points) insert.run({ ...point, computedAt: now });
   });
   tx();

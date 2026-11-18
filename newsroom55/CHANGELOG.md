@@ -5,6 +5,10 @@
 - Apparie les CUSIP OpenFIGI par lots (10 sans clé, 100 avec) et réécrit les
   tickers sur les 13F déjà importés, même si EDGAR reste en 403. Un livre sans
   tickers ne démarre plus l’indice à 100 ni un MTD CAD dû au seul change.
+- Respecte le quota OpenFIGI (`ratelimit-remaining` / `retry-after`) et relance
+  un lot 429 après l’attente indiquée, au lieu d’abandonner le reste du livre.
+- Ancre MTD/YTD à la dernière séance : un mois ou une année sans observation
+  qualifiée reste vide, ce n’est pas le rendement de la période précédente.
 - Retire la courbe de l’indice synthétique du Board et le réglage de plage.
 
 ## 1.0.0-ha.22

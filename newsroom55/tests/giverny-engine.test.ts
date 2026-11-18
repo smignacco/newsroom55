@@ -4,9 +4,11 @@ import {
   contributorsForSession,
   cumulativeGap,
   lastCompletedReturn,
+  monthToDateReturn,
   portfolioSessionReturn,
   reconstructIndex,
   sessionReturn,
+  yearToDateReturn,
   tickerCoverage,
   trackingError,
   usablePrice,
@@ -214,5 +216,20 @@ describe("Giverny portfolio math", () => {
       earliestFiledOn([book("2026-11-14", [["AAA", 1]]), book("2025-02-14", [["AAA", 1]])]),
     ).toBe("2025-02-14");
     expect(earliestFiledOn([])).toBeNull();
+  });
+
+  it("returns null MTD/YTD for a later period that has no observations", () => {
+    const october = [
+      { sessionDate: "2026-10-30", givCad: 100 } as never,
+      { sessionDate: "2026-10-31", givCad: 110 } as never,
+    ];
+    expect(monthToDateReturn(october, "2026-10-31", "givCad")).toBeCloseTo(0.1);
+    expect(monthToDateReturn(october, "2026-11-02", "givCad")).toBeNull();
+    const yearEnd = [
+      { sessionDate: "2025-12-30", givCad: 100 } as never,
+      { sessionDate: "2025-12-31", givCad: 110 } as never,
+    ];
+    expect(yearToDateReturn(yearEnd, "2025-12-31", "givCad")).toBeCloseTo(0.1);
+    expect(yearToDateReturn(yearEnd, "2026-01-02", "givCad")).toBeNull();
   });
 });

@@ -346,8 +346,7 @@ export function getGivernySummary(): GivernySummary {
   const points = readIndexPoints();
   const qualified = points.filter((point) => (point.coverage ?? 0) >= GIVERNY_MIN_COVERAGE);
   const latest = points.at(-1) ?? null;
-  const published = qualified.at(-1) ?? null;
-  const asOf = published?.sessionDate ?? latest?.sessionDate ?? nySessionDate();
+  const asOf = latest?.sessionDate ?? nySessionDate();
   const field = settings.currency === "USD" ? "givUsd" : "givCad";
   const spxField = settings.currency === "USD" ? "spxUsd" : "spxCad";
   const bookReady = (latest?.coverage ?? 0) >= GIVERNY_MIN_COVERAGE;

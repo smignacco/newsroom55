@@ -29,6 +29,44 @@ function stubFetch() {
   );
 }
 
+function figiOk(body: Array<{ idValue: string }>) {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Headers({ "ratelimit-remaining": "20", "ratelimit-reset": "40" }),
+    json: async () =>
+      body.map((row) => ({
+        data: [
+          {
+            ticker: `T${row.idValue.slice(-2)}`,
+            exchCode: "US",
+            marketSector: "Equity",
+            securityType: "Common Stock",
+          },
+        ],
+      })),
+    text: async () => "",
+  };
+}
+
+function point(sessionDate: string, givCad: number, coverage: number) {
+  return {
+    sessionDate,
+    givUsd: givCad,
+    givCad,
+    givAlpha: 100,
+    spxUsd: 100,
+    spxCad: 100,
+    usdCad: 1.4,
+    dayReturnUsd: null,
+    dayReturnCad: null,
+    spxReturnUsd: null,
+    coverage,
+    status: coverage >= 0.85 ? "ok" : "unavailable",
+    accession: "0001641864-26-000013",
+  } as const;
+}
+
 describe("manual 13F XML import", () => {
   it("refuses XML without an info table and does not invent a book", async () => {
     const { ingestUploadedFiling } = await import("@/lib/giverny/service");
@@ -95,23 +133,7 @@ describe("manual 13F XML import", () => {
     }));
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body || "[]")) as Array<{ idValue: string }>;
-      return {
-        ok: true,
-        status: 200,
-        headers: { get: () => null },
-        json: async () =>
-          body.map((row) => ({
-            data: [
-              {
-                ticker: `T${row.idValue.slice(-2)}`,
-                exchCode: "US",
-                marketSector: "Equity",
-                securityType: "Common Stock",
-              },
-            ],
-          })),
-        text: async () => "",
-      };
+      return figiOk(body);
     });
     vi.stubGlobal("fetch", fetchMock);
     const { mapCusips, openFigiBatchSize } = await import("@/lib/giverny/cusip");
@@ -197,5 +219,63 @@ describe("manual 13F XML import", () => {
     expect(summary.returns.ytd).toBeNull();
     expect(summary.levels.givCad).toBeNull();
     expect(summary.levels.givAlpha).toBeNull();
+  });
+
+  it("retries a 429 OpenFIGI chunk after Retry-After instead of dropping the rest", async () => {
+    delete process.env.OPENFIGI_API_KEY;
+    const jobs = Array.from({ length: 12 }, (_, index) => ({
+      cusip: String(index + 21).padStart(9, "0"),
+      issuerName: `Issuer ${index + 21}`,
+    }));
+    let calls = 0;
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body || "[]")) as Array<{ idValue: string }>;
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: false,
+          status: 429,
+          headers: new Headers({ "retry-after": "0", "ratelimit-remaining": "0", "ratelimit-reset": "1" }),
+          json: async () => ({}),
+          text: async () => "",
+        };
+      }
+      return figiOk(body);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { mapCusips } = await import("@/lib/giverny/cusip");
+    const { mapped } = await mapCusips(jobs);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(jobs.every((job) => mapped.has(job.cusip))).toBe(true);
+  });
+
+  it("does not show the previous month's return as the current MTD", async () => {
+    stubFetch();
+    const { ingestUploadedFiling, getGivernySummary } = await import("@/lib/giverny/service");
+    const { replaceIndexPoints } = await import("@/lib/giverny/store");
+    await ingestUploadedFiling(fixture, "0001641864-26-000014", "2026-11-12");
+    replaceIndexPoints([
+      point("2026-10-30", 100, 0.98),
+      point("2026-10-31", 110, 0.98),
+      point("2026-11-02", 110, 0),
+    ]);
+    const summary = getGivernySummary();
+    expect(summary.marketStatus).toBe("unavailable");
+    expect(summary.returns.mtd).toBeNull();
+  });
+
+  it("does not show the previous year's return as the current YTD", async () => {
+    stubFetch();
+    const { ingestUploadedFiling, getGivernySummary } = await import("@/lib/giverny/service");
+    const { replaceIndexPoints } = await import("@/lib/giverny/store");
+    await ingestUploadedFiling(fixture, "0001641864-26-000015", "2026-11-12");
+    replaceIndexPoints([
+      point("2025-12-30", 100, 0.98),
+      point("2025-12-31", 110, 0.98),
+      point("2026-01-02", 110, 0),
+    ]);
+    const summary = getGivernySummary();
+    expect(summary.returns.mtd).toBeNull();
+    expect(summary.returns.ytd).toBeNull();
   });
 });

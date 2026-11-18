@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parse13FDocuments, weightsFromHoldings } from "../src/lib/giverny/parse-13f";
 import { filingStoredDate, parseAtomFilings, pickLatestFilings } from "../src/lib/giverny/edgar";
-import { pickOpenFigiTicker } from "../src/lib/giverny/cusip";
+import { openFigiDefaultPaceMs, openFigiNextDelayMs, pickOpenFigiTicker } from "../src/lib/giverny/cusip";
 import { normalizeUsTicker } from "../src/lib/giverny/tickers";
 import expected from "./fixtures/giverny-validation-holdings.json";
 
@@ -59,5 +59,19 @@ describe("13F ingest", () => {
         { ticker: "GOOG", exchCode: "US", marketSector: "Equity", securityType: "Warrant" },
       ]),
     ).toBe("GOOG");
+  });
+
+  it("paces OpenFIGI using rate-limit headers and Retry-After", () => {
+    delete process.env.OPENFIGI_API_KEY;
+    expect(openFigiDefaultPaceMs()).toBe(2_400);
+    expect(openFigiNextDelayMs(new Headers({ "retry-after": "8" }), 429)).toBe(8_000);
+    expect(
+      openFigiNextDelayMs(new Headers({ "ratelimit-remaining": "4", "ratelimit-reset": "40" }), 200),
+    ).toBe(0);
+    expect(
+      openFigiNextDelayMs(new Headers({ "ratelimit-remaining": "0", "ratelimit-reset": "12" }), 200),
+    ).toBe(12_000);
+    expect(openFigiNextDelayMs(new Headers(), 200)).toBe(2_400);
+    expect(openFigiNextDelayMs(new Headers(), 429)).toBe(60_000);
   });
 });
