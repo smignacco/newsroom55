@@ -4,7 +4,8 @@
 
 - Intègre Activité & Sommeil dans la colonne du fil : au plus un cinquième à
   un quart de la hauteur restante, sans recouvrir les manchettes. La liste
-  reste visible et défilable sous Giverny.
+  reste visible et défilable sous Giverny. La télémétrie compacte (semaine et
+  résumé) tient dans cette rangée.
 - Relit les 13F EDGAR avec un User-Agent de navigateur, l’en-tête de contact
   exigé par la SEC, et des reprises avec délai (y compris 403). Si EDGAR
   refuse encore le trafic, l’indice reste indisponible — aucun livre ni cours

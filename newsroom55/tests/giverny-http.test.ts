@@ -51,9 +51,11 @@ describe("EDGAR HTTP identity", () => {
     expect(result.ok).toBe(false);
     expect(result.status).toBe(403);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    const firstHeaders = (fetchMock.mock.calls[0]?.[1] as { headers: Record<string, string> }).headers;
-    expect(firstHeaders.from).toBe(EDGAR_CONTACT_EMAIL);
-    expect(firstHeaders["user-agent"]).toMatch(/Chrome\/131/);
+    const firstInit = (fetchMock.mock.calls[0] as unknown[])[1] as
+      | { headers?: Record<string, string> }
+      | undefined;
+    expect(firstInit?.headers?.from).toBe(EDGAR_CONTACT_EMAIL);
+    expect(firstInit?.headers?.["user-agent"]).toMatch(/Chrome\/131/);
   });
 
   it("recovers after a transient EDGAR 403", async () => {

@@ -386,6 +386,8 @@ textarea {
   flex: 1 1 auto;
   min-height: 0;
   max-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .nr-news-head-meta {
@@ -926,6 +928,27 @@ textarea {
   padding: 0.52rem 0.68rem 0.48rem 0.78rem;
 }
 
+.nr-pulse-slot > .nr-pulse:is(button),
+.nr-pulse-slot > .nr-pulse:not(button) {
+  padding: 0.26rem 0.5rem 0.2rem 0.56rem;
+}
+
+.nr-pulse-slot > .nr-pulse > .nr-pulse-head {
+  min-height: 0;
+  padding-bottom: 0.1rem;
+  flex: 0 0 auto;
+}
+
+.nr-pulse-slot > .nr-pulse > .nr-pulse-head strong {
+  font-size: 0.52rem;
+}
+
+.nr-pulse-slot > .nr-pulse > .nr-pulse-visual {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
 .nr-pulse-private p,
 .nr-pulse-locked p {
   margin: 1rem 0 0;
@@ -981,7 +1004,9 @@ textarea {
 }
 
 .nr-pulse-visual.is-compact {
-  grid-template-rows: auto minmax(3.2rem, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.06rem;
+  padding-top: 0.06rem;
 }
 
 .nr-pulse-broadcast {
@@ -992,7 +1017,52 @@ textarea {
 }
 
 .nr-pulse-visual.is-compact .nr-pulse-broadcast {
-  min-height: min-content;
+  min-height: 0;
+  gap: 0.32rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-kicker {
+  font-size: 0.42rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-effort {
+  gap: 0.08rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-rest {
+  gap: 0.04rem;
+  padding-left: 0.4rem;
+}
+
+.nr-pulse-visual.is-compact .nr-effort-meters {
+  gap: 0.22rem;
+}
+
+.nr-pulse-visual.is-compact .nr-effort-meter {
+  gap: 0.06rem;
+}
+
+.nr-pulse-visual.is-compact .nr-effort-meter b {
+  font-size: 0.7rem;
+}
+
+.nr-pulse-visual.is-compact .nr-effort-track,
+.nr-pulse-visual.is-compact .nr-effort-track.is-plain {
+  height: 0.28rem;
+}
+
+.nr-pulse-visual.is-compact .nr-sleep-duration {
+  margin-top: 0;
+  font-size: 0.78rem;
+}
+
+.nr-pulse-visual.is-compact .nr-sleep-target {
+  margin-top: 0.02rem;
+  gap: 0.06rem;
+}
+
+.nr-pulse-visual.is-compact .nr-pulse-foot {
+  margin-top: 0;
 }
 
 .nr-pulse-effort,
@@ -1205,8 +1275,10 @@ textarea {
 }
 
 .nr-pulse-visual.is-compact .nr-week-bars {
-  height: auto;
-  min-height: 3.2rem;
+  height: 100%;
+  min-height: 0;
+  padding-top: 0.08rem;
+  margin-top: 0;
 }
 
 .nr-week-plot {

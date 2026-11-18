@@ -214,16 +214,29 @@ test.describe("Centre de nouvelles visual board", () => {
     await expect(page.locator(".nr-pulse-slot")).toBeVisible();
     await expect(page.locator(".nr-headlines")).toBeVisible();
     await expect(page.getByTestId("pulse-visual")).toBeVisible();
+    await expect(page.getByText("EFFORT")).toBeVisible();
+    await expect(page.getByText("REPOS")).toBeVisible();
+    await expect(page.locator(".nr-week-bars")).toBeVisible();
+    await expect(page.getByText(/SEMAINE/)).toBeVisible();
     const split = await page.evaluate(() => {
       const news = document.querySelector(".nr-news") as HTMLElement | null;
       const pulse = document.querySelector(".nr-pulse-slot") as HTMLElement | null;
       const headlines = document.querySelector(".nr-headlines") as HTMLElement | null;
-      if (!news || !pulse || !headlines) return null;
+      const week = document.querySelector(".nr-week-bars") as HTMLElement | null;
+      const foot = document.querySelector(".nr-pulse-foot") as HTMLElement | null;
+      if (!news || !pulse || !headlines || !week || !foot) return null;
       const remaining = news.getBoundingClientRect().height + pulse.getBoundingClientRect().height;
+      const slot = pulse.getBoundingClientRect();
+      const weekBox = week.getBoundingClientRect();
+      const footBox = foot.getBoundingClientRect();
+      const inside = (box: DOMRect) =>
+        box.top >= slot.top - 1 && box.bottom <= slot.bottom + 1 && box.height > 6;
       return {
-        pulseShare: pulse.getBoundingClientRect().height / remaining,
+        pulseShare: slot.height / remaining,
         headlinesVisible: headlines.getBoundingClientRect().height > 48,
         overlay: window.getComputedStyle(pulse).position,
+        weekInside: inside(weekBox),
+        footInside: inside(footBox),
       };
     });
     expect(split).toBeTruthy();
@@ -231,6 +244,8 @@ test.describe("Centre de nouvelles visual board", () => {
     expect(split!.pulseShare).toBeGreaterThan(0.12);
     expect(split!.pulseShare).toBeLessThanOrEqual(0.26);
     expect(split!.headlinesVisible).toBe(true);
+    expect(split!.weekInside).toBe(true);
+    expect(split!.footInside).toBe(true);
     const dest = path.join(media, "pulse-news-split.png");
     await page.screenshot({ path: dest, fullPage: false });
     expect(fs.existsSync(dest)).toBe(true);

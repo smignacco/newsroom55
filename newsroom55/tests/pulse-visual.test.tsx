@@ -91,6 +91,9 @@ describe("Activity & Sleep broadcast treatment", () => {
     expect(compact).toContain("cible 8 h 00");
     expect(compact).not.toContain("Profond");
     expect(compact).toContain("nr-week-goal");
+    expect(compact).toContain("nr-week-bars");
+    expect(compact).toContain("SEMAINE");
+    expect(compact).toContain("nr-pulse-foot");
     expect(compact).not.toContain("nr-pulse-night-arc");
 
     const html = renderToStaticMarkup(
@@ -147,6 +150,13 @@ describe("Activity & Sleep broadcast treatment", () => {
     );
     expect(css).not.toContain("minmax(9.6rem, 26fr)");
     expect(css).not.toContain("minmax(11rem, 32fr)");
+    expect(css).toMatch(
+      /\.nr-pulse-visual\.is-compact\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\) auto/,
+    );
+    expect(css).not.toMatch(/\.nr-pulse-visual\.is-compact[^{]*\{[^}]*minmax\(3\.2rem/);
+    expect(css).not.toMatch(/\.nr-pulse-visual\.is-compact \.nr-week-bars\s*\{[^}]*min-height:\s*3\.2rem/);
+    expect(css).toMatch(/\.nr-pulse-visual\.is-compact \.nr-week-bars\s*\{[^}]*min-height:\s*0/);
+    expect(css).toMatch(/\.nr-pulse-visual\.is-compact \.nr-pulse-broadcast\s*\{[^}]*min-height:\s*0/);
 
     const headlines: NewsStory[] = Array.from({ length: 8 }, (_, index) => ({
       id: index + 1,
