@@ -23,6 +23,7 @@ export function givernySettings(): GivernySettings {
   return {
     enabled: getSetting("giverny_enabled", "on") !== "off",
     refreshMinutes: boundedInteger(getSetting("giverny_refresh_minutes", "15"), 15, 5, 240),
+    heatmapSeconds: boundedInteger(getSetting("giverny_heatmap_seconds", "8"), 8, 0, 60),
     currency: currency === "USD" ? "USD" : "CAD",
     benchmark: "SPX",
     chartRange: isChartRange(range) ? range : "YTD",
@@ -46,6 +47,7 @@ export function givernyBoardLayout() {
 export function updateGivernySettings(patch: {
   enabled?: boolean;
   refreshMinutes?: number;
+  heatmapSeconds?: number;
   currency?: GivernyCurrency;
   chartRange?: GivernyChartRange;
   height?: GivernyHeight;
@@ -56,6 +58,9 @@ export function updateGivernySettings(patch: {
   if (patch.enabled !== undefined) setSetting("giverny_enabled", patch.enabled ? "on" : "off");
   if (patch.refreshMinutes !== undefined) {
     setSetting("giverny_refresh_minutes", String(boundedInteger(String(patch.refreshMinutes), 15, 5, 240)));
+  }
+  if (patch.heatmapSeconds !== undefined) {
+    setSetting("giverny_heatmap_seconds", String(boundedInteger(String(patch.heatmapSeconds), 8, 0, 60)));
   }
   if (patch.currency) setSetting("giverny_currency", patch.currency);
   if (patch.chartRange) setSetting("giverny_chart_range", patch.chartRange);

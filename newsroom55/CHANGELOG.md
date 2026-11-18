@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0-ha.30
+
+- La tuile Giverny peut alterner avec une carte (treemap) des titres du 13F
+  public : taille = poids, couleur = rendement de séance. Un cours manquant
+  reste gris, jamais 0 %. L’intervalle se règle dans l’admin (off à 30 s).
+  Ce n’est pas le livre officiel NBN125 ; aucun titre n’est inventé.
+
 ## 1.0.0-ha.29
 
 - Le Board affiche le VL estimé (étiquette VL CAD) dès qu’un VL de fin de

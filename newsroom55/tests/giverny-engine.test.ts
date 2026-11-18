@@ -3,6 +3,7 @@ import {
   compoundReturns,
   contributorsForSession,
   cumulativeGap,
+  heatmapHoldings,
   lastCompletedReturn,
   monthToDateReturn,
   portfolioSessionReturn,
@@ -15,6 +16,7 @@ import {
   trackingError,
   usablePrice,
 } from "../src/lib/giverny/engine";
+import { layoutHeatmap } from "../src/lib/giverny/heatmap";
 import { earliestFiledOn } from "../src/lib/giverny/store";
 import { lastNyTradingSessionOfMonth } from "../src/lib/giverny/tickers";
 import type { FilingBook, HoldingWeight } from "../src/lib/giverny/types";
@@ -129,6 +131,60 @@ describe("Giverny portfolio math", () => {
     expect(up[0]?.ticker).toBe("META");
     expect(up[0]?.contribution).toBeCloseTo(0.012);
     expect(down[0]?.ticker).toBe("GOOG");
+  });
+
+  it("builds a heatmap from 13F weights without treating a missing quote as 0%", () => {
+    const cells = heatmapHoldings(
+      [
+        { ticker: "META", cusip: "m", issuerName: "Meta", weight: 0.5, shares: 1, value: 50 },
+        { ticker: "BKNG", cusip: "b", issuerName: "Booking", weight: 0.3, shares: 1, value: 30 },
+        { ticker: null, cusip: "x", issuerName: "Unmapped issuer", weight: 0.2, shares: 1, value: 20 },
+      ],
+      new Map([["META", 0.02], ["BKNG", null]]),
+      new Map([["META", "Meta"], ["BKNG", "Booking"]]),
+    );
+    expect(cells.find((row) => row.ticker === "META")?.return).toBeCloseTo(0.02);
+    expect(cells.find((row) => row.ticker === "BKNG")?.return).toBeNull();
+    expect(cells.find((row) => row.ticker === null)?.name).toBe("Unmapped issuer");
+    expect(cells.find((row) => row.ticker === null)?.return).toBeNull();
+  });
+
+  it("folds leftover 13F weight into Autres only from real holdings", () => {
+    const weights = Array.from({ length: 24 }, (_, index) => ({
+      ticker: `T${index}`,
+      cusip: `c${index}`,
+      issuerName: `Issuer ${index}`,
+      weight: 24 - index,
+      shares: 1,
+      value: 24 - index,
+    }));
+    const known = heatmapHoldings(
+      weights,
+      new Map(weights.map((row) => [row.ticker, 0.01])),
+      new Map(weights.map((row) => [row.ticker, row.issuerName])),
+    );
+    const other = known.find((row) => row.name === "Autres");
+    expect(known).toHaveLength(22);
+    expect(other?.ticker).toBeNull();
+    expect(other?.weight).toBe(6);
+    expect(other?.return).toBeCloseTo(0.01);
+
+    const mixed = heatmapHoldings(
+      weights,
+      new Map(weights.map((row, index) => [row.ticker, index === 23 ? null : 0.01])),
+      new Map(weights.map((row) => [row.ticker, row.issuerName])),
+    );
+    expect(mixed.find((row) => row.name === "Autres")?.return).toBeNull();
+  });
+
+  it("lays out heatmap cells without inventing area", () => {
+    const rects = layoutHeatmap([
+      { ticker: "META", name: "Meta", weight: 0.6, return: 0.02 },
+      { ticker: "BKNG", name: "Booking", weight: 0.4, return: null },
+    ]);
+    const area = rects.reduce((sum, cell) => sum + cell.w * cell.h, 0);
+    expect(area).toBeCloseTo(10_000);
+    expect(rects.find((row) => row.ticker === "BKNG")?.return).toBeNull();
   });
 
   it("measures official vs synthetic tracking without overwriting the synthetic series", () => {

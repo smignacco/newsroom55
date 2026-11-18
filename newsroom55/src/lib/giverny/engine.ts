@@ -7,6 +7,7 @@ import {
   type FilingBook,
   type GivernyChartRange,
   type GivernyPointStatus,
+  type HeatmapHolding,
   type HoldingWeight,
 } from "@/lib/giverny/types";
 import {
@@ -311,6 +312,45 @@ export function contributorsForSession(
   const up = [...rows].sort((left, right) => right.contribution - left.contribution).filter((row) => row.contribution > 0).slice(0, limit);
   const down = [...rows].sort((left, right) => left.contribution - right.contribution).filter((row) => row.contribution < 0).slice(0, limit);
   return { up, down };
+}
+
+export const HEATMAP_MAX_CELLS = 22;
+
+export function heatmapHoldings(
+  weights: HoldingWeight[],
+  returns: Map<string, number | null>,
+  names: Map<string, string>,
+  maxCells = HEATMAP_MAX_CELLS,
+): HeatmapHolding[] {
+  const rows: HeatmapHolding[] = [];
+  for (const holding of weights) {
+    if (!(holding.weight > 0)) continue;
+    const ticker = mappedTicker(holding);
+    rows.push({
+      ticker,
+      name: (ticker && names.get(ticker)) || holding.issuerName,
+      weight: holding.weight,
+      return: holdingReturn(holding, returns),
+    });
+  }
+  rows.sort((left, right) => right.weight - left.weight || (left.ticker ?? "").localeCompare(right.ticker ?? ""));
+  if (rows.length <= maxCells) return rows;
+  const head = rows.slice(0, maxCells - 1);
+  const tail = rows.slice(maxCells - 1);
+  const weight = tail.reduce((total, row) => total + row.weight, 0);
+  const known = tail.every((row) => row.return != null);
+  return [
+    ...head,
+    {
+      ticker: null,
+      name: "Autres",
+      weight,
+      return:
+        known && weight > 0
+          ? tail.reduce((total, row) => total + row.weight * (row.return as number), 0) / weight
+          : null,
+    },
+  ];
 }
 
 export function latestDisplayPoint(

@@ -2,6 +2,7 @@ import { usEquitySession } from "@/lib/markets/session";
 import {
   chartSeries,
   contributorsForSession,
+  heatmapHoldings,
   lastCompletedReturn,
   monthToDateReturn,
   monthlyIndexReturns,
@@ -312,36 +313,46 @@ function marketStatusLabel(status: GivernySummary["marketStatus"]): string {
   return "INDISPONIBLE";
 }
 
-function liveContributors(points: ReturnType<typeof readIndexPoints>): { up: Contributor[]; down: Contributor[] } {
+function liveSessionBook() {
   const filing = latestFiling();
-  if (!filing) return { up: [], down: [] };
-  const holdings = listHoldings(filing.id).filter(
-    (row): row is typeof row & { ticker: string; weight: number } =>
-      Boolean(row.ticker) && row.weight != null && !row.derivative,
-  );
-  const dates = [...new Set(holdings.flatMap((row) => [...priceSeries(row.ticker).keys()]))].sort();
+  if (!filing) return null;
+  const rows = listHoldings(filing.id).filter((row) => row.weight != null && row.weight > 0 && !row.derivative);
+  const holdings = rows.map((row) => ({
+    ticker: row.ticker,
+    cusip: row.cusip,
+    issuerName: row.issuerName,
+    weight: row.weight as number,
+    shares: row.shares,
+    value: row.value,
+  }));
+  const mapped = holdings.filter((row): row is typeof row & { ticker: string } => Boolean(row.ticker));
+  const dates = [...new Set(mapped.flatMap((row) => [...priceSeries(row.ticker).keys()]))].sort();
   const last = dates.at(-1);
   const prev = dates.at(-2);
-  if (!last || !prev) return { up: [], down: [] };
   const returns = new Map<string, number | null>();
   const names = new Map<string, string>();
-  for (const row of holdings) {
+  for (const row of mapped) {
     names.set(row.ticker, row.issuerName);
-    returns.set(row.ticker, sessionReturn(priceSeries(row.ticker).get(prev) ?? null, priceSeries(row.ticker).get(last) ?? null));
+    returns.set(
+      row.ticker,
+      last && prev
+        ? sessionReturn(priceSeries(row.ticker).get(prev) ?? null, priceSeries(row.ticker).get(last) ?? null)
+        : null,
+    );
   }
-  void points;
-  return contributorsForSession(
-    holdings.map((row) => ({
-      ticker: row.ticker,
-      cusip: row.cusip,
-      issuerName: row.issuerName,
-      weight: row.weight,
-      shares: row.shares,
-      value: row.value,
-    })),
-    returns,
-    names,
-  );
+  return { holdings, returns, names };
+}
+
+function liveContributors(): { up: Contributor[]; down: Contributor[] } {
+  const book = liveSessionBook();
+  if (!book) return { up: [], down: [] };
+  return contributorsForSession(book.holdings, book.returns, book.names);
+}
+
+function liveHeatmap() {
+  const book = liveSessionBook();
+  if (!book) return [];
+  return heatmapHoldings(book.holdings, book.returns, book.names);
 }
 
 export function getGivernySummary(): GivernySummary {
@@ -418,7 +429,9 @@ export function getGivernySummary(): GivernySummary {
       vsSpxYtd: ytd != null && spxYtd != null ? ytd - spxYtd : null,
     },
     chart: chartSeries(scaledPoints, settings.chartRange, asOf, field),
-    contributors: liveContributors(points),
+    contributors: liveContributors(),
+    heatmap: liveHeatmap(),
+    heatmapRotateSeconds: settings.heatmapSeconds,
     providerHealth: readProviderNotes(),
     navEstimate: showNav
       ? {
@@ -477,7 +490,7 @@ export function getGivernyHistory(range?: string) {
 }
 
 export function getGivernyContributors() {
-  return liveContributors(readIndexPoints());
+  return liveContributors();
 }
 
 export function getGivernyFilings() {

@@ -116,6 +116,8 @@ test.describe("Centre de nouvelles visual board", () => {
             up: [{ ticker: "META", name: "Meta", weight: 0.07, return: 0.02, contribution: 0.0014 }],
             down: [{ ticker: "BKNG", name: "Booking", weight: 0.04, return: -0.01, contribution: -0.0004 }],
           },
+          heatmap: [],
+          heatmapRotateSeconds: 0,
           providerHealth: [],
           navEstimate: null,
           message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
@@ -138,6 +140,69 @@ test.describe("Centre de nouvelles visual board", () => {
     const rail = path.join(media, "news-feed-no-breaking-tile.png");
     await page.locator(".nr-right-rail").screenshot({ path: rail });
     expect(fs.existsSync(rail)).toBe(true);
+  });
+
+  test("giverny tile alternates onto the 13F heatmap", async ({ page }) => {
+    ensureDir();
+    await page.route("**/api/giverny/summary", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "cache-control": "no-store" },
+        body: JSON.stringify({
+          identity: "synthetic",
+          officialNav: false,
+          enabled: true,
+          currency: "CAD",
+          marketStatus: "closed",
+          marketStatusLabel: "FERMÉ",
+          lastRefreshAt: "2026-11-18T21:00:00.000Z",
+          lastCloseAt: "2026-11-18T21:00:00.000Z",
+          lastSuccessfulRefreshAt: "2026-11-18T21:00:00.000Z",
+          coverage: 0.98,
+          filing: {
+            accession: "0001641864-26-000011",
+            periodOfReport: "2026-09-30",
+            filedAt: "2026-11-12",
+            holdings: 4,
+            mapped: 3,
+          },
+          levels: { givCad: 98.64, givUsd: 101.1, givAlpha: 101.8 },
+          last: { givCad: 98.64, givUsd: 101.1, asOf: "2026-11-18" },
+          returns: {
+            session: 0.0053,
+            last5: -0.0136,
+            mtd: -0.0136,
+            ytd: -0.0136,
+            vsSpxSession: 0.001,
+            vsSpxYtd: 0.0169,
+          },
+          chart: [],
+          contributors: { up: [], down: [] },
+          heatmap: [
+            { ticker: "META", name: "Meta", weight: 0.42, return: 0.012 },
+            { ticker: "BKNG", name: "Booking", weight: 0.28, return: -0.008 },
+            { ticker: "ANET", name: "Arista", weight: 0.2, return: 0.004 },
+            { ticker: null, name: "Unmapped issuer", weight: 0.1, return: null },
+          ],
+          heatmapRotateSeconds: 1,
+          providerHealth: [],
+          navEstimate: null,
+          message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
+        }),
+      });
+    });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("giverny-tracker")).toHaveAttribute("data-view", "levels");
+    await expect(page.getByTestId("giverny-tracker")).toHaveAttribute("data-view", "heatmap", {
+      timeout: 8_000,
+    });
+    await expect(page.getByRole("heading", { name: "Carte 13F" })).toBeVisible();
+    await expect(page.getByText("Livre 13F public")).toBeVisible();
+    const dest = path.join(media, "giverny-heatmap.png");
+    await page.getByTestId("giverny-tracker").screenshot({ path: dest });
+    expect(fs.existsSync(dest)).toBe(true);
   });
 
   test("pulse sits under the news list at about a fifth of the column", async ({

@@ -28,6 +28,7 @@ function boardPreview() {
 const schema = z.object({
   enabled: z.boolean().optional(),
   refreshMinutes: z.number().int().min(5).max(240).optional(),
+  heatmapSeconds: z.number().int().min(0).max(60).optional(),
   currency: z.enum(["CAD", "USD"]).optional(),
   chartRange: z.enum(["1M", "3M", "YTD", "1Y"]).optional(),
   height: z.enum(["compact", "standard", "tall"]).optional(),

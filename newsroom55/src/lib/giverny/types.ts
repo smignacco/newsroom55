@@ -25,6 +25,7 @@ export type GivernyRefreshProgress = {
 export type GivernySettings = {
   enabled: boolean;
   refreshMinutes: number;
+  heatmapSeconds: number;
   currency: GivernyCurrency;
   benchmark: typeof GIVERNY_BENCHMARK;
   chartRange: GivernyChartRange;
@@ -132,6 +133,13 @@ export type Contributor = {
   contribution: number;
 };
 
+export type HeatmapHolding = {
+  ticker: string | null;
+  name: string;
+  weight: number;
+  return: number | null;
+};
+
 export type GivernySummary = {
   identity: "synthetic";
   officialNav: false;
@@ -170,6 +178,8 @@ export type GivernySummary = {
   };
   chart: Array<{ date: string; value: number }>;
   contributors: { up: Contributor[]; down: Contributor[] };
+  heatmap: HeatmapHolding[];
+  heatmapRotateSeconds: number;
   providerHealth: Array<{ provider: string; ok: boolean; detail: string }>;
   navEstimate: {
     value: number;

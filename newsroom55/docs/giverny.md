@@ -43,7 +43,9 @@ le rendement synthétique CAD depuis l’ancre, seulement sur un jour dont la
 couverture passe le plancher — estimation entre deux rapports, pas le VL
 officiel, pas un livre NBN125 inventé. Les cours live sont rangés sous la séance NY du timestamp,
 pas sous la date civile du rafraîchissement. Le Board n’affiche pas de courbe
-de l’indice.
+de l’indice. La tuile peut alterner, à un intervalle choisi en admin, avec une
+carte des titres du 13F public (poids × rendement). Un cours manquant n’est
+pas coloré comme 0 %. Ce n’est pas le livre NBN125.
 
 ## API
 

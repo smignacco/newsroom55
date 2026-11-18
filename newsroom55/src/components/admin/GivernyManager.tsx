@@ -135,7 +135,10 @@ export function GivernyManager({ csrf }: { csrf: string }) {
         inventé. Le mois s’inscrit en AAAA-MM (31 octobre 2026 → 2026-10). Le
         prix unitaire NBN125 va dans VL CAD, pas dans le %. Si le 13F public
         n’existe qu’après la fin de mois, l’estimation part de la première
-        séance 13F suivante — le trou n’est pas inventé.
+        séance 13F suivante — le trou n’est pas inventé. La tuile peut
+        alterner avec une carte des titres du 13F public (poids × rendement
+        de séance). Un cours manquant reste gris, jamais 0 %. Ce n’est pas
+        le livre officiel NBN125.
       </p>
       {board ? (
         <p className={board.navEstimate ? "nr-ok" : "nr-time"}>
@@ -206,6 +209,31 @@ export function GivernyManager({ csrf }: { csrf: string }) {
       <label className="nr-field">
         Indice de référence
         <input value="S&P 500 (SPX)" readOnly />
+      </label>
+
+      <label className="nr-field">
+        Carte 13F (rotation)
+        <select
+          value={String(settings.heatmapSeconds ?? 8)}
+          onChange={(event) =>
+            run("heatmap", async () => {
+              await givernyApi("/api/admin/giverny", csrf, {
+                method: "POST",
+                body: JSON.stringify({ heatmapSeconds: Number(event.target.value) }),
+              });
+              return "Rotation de la carte 13F enregistrée.";
+            })
+          }
+        >
+          <option value="0">Désactivée (indice seulement)</option>
+          <option value="6">6 secondes</option>
+          <option value="8">8 secondes</option>
+          <option value="10">10 secondes</option>
+          <option value="12">12 secondes</option>
+          <option value="15">15 secondes</option>
+          <option value="20">20 secondes</option>
+          <option value="30">30 secondes</option>
+        </select>
       </label>
 
       <label className="nr-field">

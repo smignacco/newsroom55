@@ -43,6 +43,11 @@ const summary: GivernySummary = {
     up: [{ ticker: "META", name: "Meta", weight: 0.07, return: 0.02, contribution: 0.0014 }],
     down: [{ ticker: "BKNG", name: "Booking", weight: 0.04, return: -0.01, contribution: -0.0004 }],
   },
+  heatmap: [
+    { ticker: "META", name: "Meta", weight: 0.07, return: 0.02 },
+    { ticker: "BKNG", name: "Booking", weight: 0.04, return: null },
+  ],
+  heatmapRotateSeconds: 8,
   providerHealth: [],
   navEstimate: null,
   message: "Indice synthétique estimé à partir des 13F publics. Ce n’est pas le VL officiel.",
@@ -58,6 +63,17 @@ describe("Giverny board treatment", () => {
     expect(html).toContain("META");
     expect(html).not.toContain(">0,00</strong>");
     expect(html).not.toContain("nr-giverny-spark");
+  });
+
+  it("renders a 13F heatmap without painting a missing quote as 0%", () => {
+    const html = renderToStaticMarkup(<GivernyPanel summary={summary} view="heatmap" />);
+    expect(html).toContain("Carte 13F");
+    expect(html).toContain("Livre 13F public");
+    expect(html).toContain("META");
+    expect(html).toContain("BKNG");
+    expect(html).toContain("cours manquant");
+    expect(html).toContain("pas le NBN125 officiel");
+    expect(html).not.toMatch(/BKNG[^<]*0,00 %/);
   });
 
   it("labels a NAV estimate without claiming an official fund price", () => {

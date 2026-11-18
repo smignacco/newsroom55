@@ -60,7 +60,8 @@ Les identifiants restent côté serveur. L’historique quotidien et les dépôt
 sont dans SQLite (`/data` sur Home Assistant).
 
 Dans `/admin` → **Giverny** : activer le module, choisir CAD ou USD, l’intervalle,
-la hauteur, le bandeau d’alerte compact, importer le XML 13F, actualiser CUSIP
+la rotation de la carte 13F (off = indice seulement), la hauteur, le bandeau
+d’alerte compact, importer le XML 13F, actualiser CUSIP
 et cours (avec une progression CUSIP / Yahoo / change / indice), et saisir les
 rendements mensuels officiels. Un VL CAD de fin de mois (ex. NBN125, mois
 AAAA-MM) ancre l’affichage sur la dernière séance NY du mois, ou sur la
